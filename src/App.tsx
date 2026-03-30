@@ -219,10 +219,10 @@ const Dashboard = ({ userData, lang }: { userData: UserData, lang: string }) => 
           <p className="text-[10px] uppercase tracking-[0.4em] font-bold mb-3" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
             {lang === 'fr' ? new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
-          <h2 className="text-5xl leading-tight" style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>
+          <h2 className="text-3xl sm:text-5xl leading-tight" style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>
             {lang === 'fr' ? `Paix sur toi,` : `السلام عليك`}
           </h2>
-          <h2 className="text-5xl leading-tight text-gradient" style={{ fontWeight: 700 }}>
+          <h2 className="text-3xl sm:text-5xl leading-tight text-gradient" style={{ fontWeight: 700 }}>
             {lang === 'fr' ? username : `يا ${username}`}
           </h2>
           <div className="mt-3 flex items-center gap-3">
@@ -991,7 +991,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
                   whileHover={{ opacity: 1 }}
                   className={cn(
                     "absolute inset-0 z-10 bg-bordeaux/60 backdrop-blur-sm rounded-r-2xl flex flex-col items-center justify-center gap-4 transition-opacity duration-300",
-                    "opacity-0 group-hover:opacity-100 md:opacity-0" // On mobile, show on group hover (tap)
+                    "opacity-0 group-hover:opacity-100"
                   )}
                 >
                   <button
@@ -1021,11 +1021,11 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
         <div className="flex-1 flex flex-col gap-4 relative h-full overflow-hidden">
           {/* Top Bar - Fixed at top of view */}
           <div className="w-full px-6 py-4 flex flex-col gap-4 z-50">
-            <div className="bg-surface/80 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-primary/10 p-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="bg-surface/80 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-primary/10 p-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-1 flex-shrink-0">
                 <button 
                   onClick={() => { savePage(); setActivePageId(null); }}
-                  className="p-3 hover:bg-primary/5 rounded-full text-primary transition-colors"
+                  className="p-3 hover:bg-primary/5 rounded-full text-primary transition-colors flex-shrink-0"
                 >
                   <ChevronLeft size={20} />
                 </button>
@@ -1038,71 +1038,70 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
                       diftarPages: prev.diftarPages.map(p => p.id === activePageId ? { ...p, title: val } : p)
                     }));
                   }}
-                  className="font-serif italic text-xl text-primary bg-transparent border-none focus:ring-0 text-left flex-1 min-w-[150px] ml-2"
+                  className="font-serif italic text-base sm:text-xl text-primary bg-transparent border-none focus:ring-0 text-left w-24 sm:w-auto sm:flex-1 min-w-0 ml-1"
                 />
-                <div className="w-px h-6 bg-primary/10 mx-1" />
+                <div className="w-px h-6 bg-primary/10 mx-1 hidden sm:block" />
                 
                 {/* Tools Group */}
-                <div className="flex items-center gap-1 bg-primary/5 p-1 rounded-full">
+                <div className="flex items-center gap-0.5 sm:gap-1 bg-primary/5 p-1 rounded-full flex-shrink-0">
                   <button 
                     onClick={() => { setShowToolsMenu(!showToolsMenu); setShowCustomizationMenu(false); setShowStickerPicker(false); setShowPaperSettings(false); }}
                     className={cn(
-                      "p-2.5 rounded-full transition-all",
+                      "p-2 sm:p-2.5 rounded-full transition-all",
                       showToolsMenu ? "bg-primary text-white shadow-lg" : "text-primary hover:bg-primary/10"
                     )}
                     title={lang === 'fr' ? 'Outils' : 'أدوات'}
                   >
-                    <Pencil size={18} />
+                    <Pencil size={16} />
                   </button>
                   <button 
                     onClick={() => { setShowCustomizationMenu(!showCustomizationMenu); setShowToolsMenu(false); setShowStickerPicker(false); setShowPaperSettings(false); }}
                     className={cn(
-                      "p-2.5 rounded-full transition-all",
+                      "p-2 sm:p-2.5 rounded-full transition-all",
                       showCustomizationMenu ? "bg-primary text-white shadow-lg" : "text-primary hover:bg-primary/10"
                     )}
                     title={lang === 'fr' ? 'Couleurs' : 'الألوان'}
                   >
-                    <Palette size={18} />
+                    <Palette size={16} />
                   </button>
                   <button 
                     onClick={() => { setShowStickerPicker(!showStickerPicker); setShowToolsMenu(false); setShowCustomizationMenu(false); setShowPaperSettings(false); }}
                     className={cn(
-                      "p-2.5 rounded-full transition-all",
+                      "p-2 sm:p-2.5 rounded-full transition-all",
                       showStickerPicker ? "bg-primary text-white shadow-lg" : "text-primary hover:bg-primary/10"
                     )}
                     title={lang === 'fr' ? 'Stickers' : 'ملصقات'}
                   >
-                    <Star size={18} />
+                    <Star size={16} />
                   </button>
                   <button 
                     onClick={() => { setShowPaperSettings(!showPaperSettings); setShowToolsMenu(false); setShowCustomizationMenu(false); setShowStickerPicker(false); }}
                     className={cn(
-                      "p-2.5 rounded-full transition-all",
+                      "p-2 sm:p-2.5 rounded-full transition-all",
                       showPaperSettings ? "bg-primary text-white shadow-lg" : "text-primary hover:bg-primary/10"
                     )}
                     title={lang === 'fr' ? 'Papier' : 'الورق'}
                   >
-                    <Settings2 size={18} />
+                    <Settings2 size={16} />
                   </button>
                 </div>
               </div>
 
-              {/* Center: Undo/Redo */}
-              <div className="hidden sm:flex items-center gap-2 bg-primary/5 p-1 rounded-full">
-                <button onClick={undo} className="p-2.5 text-primary hover:bg-primary/10 rounded-full transition-colors" title="Undo"><Undo size={18}/></button>
-                <button onClick={redo} className="p-2.5 text-primary hover:bg-primary/10 rounded-full transition-colors" title="Redo"><Redo size={18}/></button>
+              {/* Center: Undo/Redo — always visible */}
+              <div className="flex items-center gap-0.5 sm:gap-2 bg-primary/5 p-1 rounded-full flex-shrink-0">
+                <button onClick={undo} className="p-2 sm:p-2.5 text-primary hover:bg-primary/10 rounded-full transition-colors" title="Undo"><Undo size={16}/></button>
+                <button onClick={redo} className="p-2 sm:p-2.5 text-primary hover:bg-primary/10 rounded-full transition-colors" title="Redo"><Redo size={16}/></button>
               </div>
 
               {/* Right: Actions */}
-              <div className="flex items-center gap-2">
-                <button onClick={clearCanvas} className="p-3 text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Clear"><Trash2 size={18}/></button>
-                <div className="w-px h-6 bg-primary/10 mx-1" />
-                <button onClick={exportPDF} className="p-3 text-primary hover:bg-primary/5 rounded-full transition-colors" title="Export"><Download size={18}/></button>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button onClick={clearCanvas} className="p-2 sm:p-3 text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Clear"><Trash2 size={16}/></button>
+                <button onClick={exportPDF} className="p-2 sm:p-3 text-primary hover:bg-primary/5 rounded-full transition-colors hidden sm:block" title="Export"><Download size={18}/></button>
                 <button 
                   onClick={savePage} 
                   disabled={isSaving}
                   className={cn(
-                    "rounded-full transition-all flex items-center gap-2 px-5 py-2.5 shadow-lg active:scale-95",
+                    "rounded-full transition-all flex items-center gap-1.5 px-3 sm:px-5 py-2 sm:py-2.5 shadow-lg active:scale-95",
                     isSaving ? "bg-green-500 text-white shadow-green-500/20" : "bg-primary text-white hover:bg-primary/90 shadow-primary/20"
                   )}
                 >
@@ -1110,9 +1109,9 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
                     animate={isSaving ? { rotate: 360 } : {}}
                     transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                   >
-                    {isSaving ? <Check size={18}/> : <Save size={18}/>}
+                    {isSaving ? <Check size={16}/> : <Save size={16}/>}
                   </motion.div>
-                  <span className="text-sm font-bold hidden sm:inline">
+                  <span className="text-xs sm:text-sm font-bold hidden sm:inline">
                     {isSaving ? (lang === 'fr' ? 'Sauvé' : 'تم الحفظ') : (lang === 'fr' ? 'Sauver' : 'حفظ')}
                   </span>
                 </button>
@@ -1227,7 +1226,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
               className="flex-1 bg-surface rounded-[2.5rem] shadow-2xl overflow-y-auto relative border border-primary/10 group cursor-none transition-all duration-700 custom-scrollbar"
             >
             {/* Scroll Navigation Buttons */}
-            <div className="fixed right-20 bottom-32 z-50 flex flex-col gap-2">
+            <div className="fixed right-4 md:right-20 bottom-36 md:bottom-8 z-50 flex flex-col gap-2">
               <button 
                 onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
                 className="p-3 bg-surface/80 backdrop-blur-md rounded-full shadow-lg border border-primary/10 text-primary hover:bg-primary hover:text-white transition-all"
