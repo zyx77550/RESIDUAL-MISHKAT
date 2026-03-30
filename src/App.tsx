@@ -20,8 +20,11 @@ import {
   Settings,
   ChevronRight,
   ChevronLeft,
+  ChevronUp,
+  ChevronDown,
   Plus,
   Save,
+  Check,
   Undo,
   Redo,
   Trash2,
@@ -50,7 +53,7 @@ import confetti from 'canvas-confetti';
 
 // --- Components ---
 
-const Sidebar = ({ activeTab, setActiveTab, lang, setLang }: any) => {
+const Sidebar = ({ activeTab, setActiveTab, lang, setLang, isCollapsed, setIsCollapsed }: any) => {
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: lang === 'fr' ? 'Tableau de bord' : 'لوحة التحكم' },
     { id: 'calendar', icon: CalendarIcon, label: lang === 'fr' ? 'Calendrier' : 'التقويم' },
@@ -65,92 +68,137 @@ const Sidebar = ({ activeTab, setActiveTab, lang, setLang }: any) => {
   ];
 
   return (
-    <div className={cn(
-      "fixed bottom-0 left-0 right-0 md:relative md:w-72 bg-surface/40 backdrop-blur-2xl border-t md:border-t-0 md:border-r border-primary/5 p-3 md:p-6 flex md:flex-col overflow-x-auto md:overflow-x-visible no-scrollbar justify-start md:justify-start gap-2 md:gap-4 z-50",
-      lang === 'ar' ? "md:order-last" : ""
-    )}>
-      <div className="hidden md:block mb-12 text-center shrink-0">
-        <motion.h1 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-3xl text-gradient"
+    <motion.div 
+      initial={false}
+      animate={{ 
+        width: isCollapsed ? '80px' : '288px',
+      }}
+      className={cn(
+        "fixed bottom-0 left-0 right-0 md:relative backdrop-blur-2xl border-t md:border-t-0 md:border-r p-3 md:p-5 flex md:flex-col overflow-x-auto md:overflow-x-hidden no-scrollbar justify-start md:justify-start gap-1.5 md:gap-2 z-50 transition-all duration-500",
+        lang === 'ar' ? "md:order-last md:border-r-0 md:border-l" : ""
+      )}
+      style={{
+        background: 'var(--brand-surface)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+        borderColor: 'var(--border-subtle)',
+      }}
+    >
+      <div className="hidden md:flex items-center justify-between mb-8 shrink-0 pt-2">
+        {!isCollapsed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex-1 pl-1"
+          >
+            <div className="relative inline-block">
+              <h1 className="text-4xl text-gradient" style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>Mishkat</h1>
+              <div className="absolute -bottom-0.5 left-0 right-4 h-px" style={{ background: 'linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), transparent)', opacity: 0.35 }} />
+            </div>
+            <p className="text-[9px] uppercase tracking-[0.38em] mt-2 font-bold" style={{ color: 'var(--brand-secondary)', opacity: 0.65 }}>مِشْكَاة · حِفْظ القرآن</p>
+          </motion.div>
+        )}
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-2.5 rounded-xl transition-all hover:scale-105 flex-shrink-0"
+          style={{ background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-primary)' }}
         >
-          Mishkat
-        </motion.h1>
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-xs uppercase tracking-[0.3em] text-secondary/60 font-bold mt-1"
-        >
-          مِشْكَاة
-        </motion.p>
+          {isCollapsed ? (lang === 'ar' ? <ChevronLeft size={17} /> : <ChevronRight size={17} />) : (lang === 'ar' ? <ChevronRight size={17} /> : <ChevronLeft size={17} />)}
+        </button>
       </div>
       
-      <div className="flex md:flex-col gap-2 flex-1">
+      <div className="flex md:flex-col gap-1 flex-1">
         {menuItems.map((item, idx) => (
           <motion.button
             key={item.id}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: idx * 0.05 }}
+            transition={{ delay: idx * 0.04 }}
             onClick={() => setActiveTab(item.id)}
             className={cn(
-              "flex flex-col md:flex-row items-center gap-2 md:gap-4 p-3 md:p-4 rounded-2xl transition-all shrink-0 min-w-[80px] md:min-w-0 group relative",
-              activeTab === item.id ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105 md:scale-100" : "text-text-muted hover:bg-primary/5 hover:text-primary"
+              "flex flex-col md:flex-row items-center gap-2 md:gap-3 p-2.5 md:p-3 rounded-xl transition-all shrink-0 min-w-[68px] md:min-w-0 group relative",
+              isCollapsed ? "md:justify-center" : ""
             )}
+            style={activeTab === item.id ? {
+              background: 'var(--brand-primary)',
+              color: '#fff',
+              boxShadow: '0 4px 18px color-mix(in srgb, var(--brand-primary) 32%, transparent)',
+            } : {
+              color: 'var(--brand-text-muted)',
+            }}
+            title={isCollapsed ? item.label : ""}
           >
-            <item.icon size={20} className={cn("transition-transform duration-500 group-hover:scale-110", activeTab === item.id ? "text-white" : "text-secondary/60")} />
-            <span className="text-[10px] md:text-sm font-bold uppercase tracking-wider md:tracking-normal md:capitalize">{item.label}</span>
+            <item.icon size={18} className={cn("transition-all duration-300 group-hover:scale-110 flex-shrink-0")} style={activeTab === item.id ? { color: '#fff' } : { color: 'var(--brand-secondary)', opacity: 0.75 }} />
+            {!isCollapsed && (
+              <motion.span 
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                className={cn("text-[10px] md:text-[13px] whitespace-nowrap transition-colors leading-none", activeTab === item.id ? "text-white font-semibold" : "font-medium")}
+              >
+                {item.label}
+              </motion.span>
+            )}
             {activeTab === item.id && (
               <motion.div 
                 layoutId="sidebar-active"
-                className="absolute inset-0 bg-primary rounded-2xl -z-10"
-                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                className="absolute inset-0 rounded-xl -z-10"
+                style={{ background: 'var(--brand-primary)' }}
+                transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
               />
+            )}
+            {activeTab !== item.id && (
+              <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity -z-10" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }} />
             )}
           </motion.button>
         ))}
       </div>
 
-      <div className="hidden md:flex mt-auto flex-col gap-6">
+      {!isCollapsed && (
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="p-5 bg-primary/5 rounded-[2rem] text-[10px] text-text-muted space-y-3 border border-primary/5"
+          className="hidden md:flex mt-auto flex-col gap-4"
         >
-          <p className="font-black uppercase tracking-tighter">Artisans du Savoir</p>
-          <p className="font-medium">Rahima & hamda_wa_chakra</p>
-          <div className="flex gap-4">
-            <a href="https://www.instagram.com/hamda_wa_chakra" target="_blank" className="hover:text-secondary transition-colors font-bold">IG</a>
-            <a href="https://www.tiktok.com/@hamda_wa_chakra" target="_blank" className="hover:text-secondary transition-colors font-bold">TK</a>
+          <div className="p-4 rounded-2xl text-[10px] space-y-2.5 relative overflow-hidden" style={{ background: 'color-mix(in srgb, var(--brand-secondary) 7%, transparent)', border: '1px solid var(--border-accent)' }}>
+            <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, var(--brand-secondary), transparent)' }} />
+            <p className="font-bold uppercase tracking-widest" style={{ color: 'var(--brand-secondary)' }}>Artisans du Savoir</p>
+            <p className="font-medium" style={{ color: 'var(--brand-text-muted)' }}>Rahima & hamda_wa_chakra</p>
+            <div className="flex gap-4">
+              <a href="https://www.instagram.com/hamda_wa_chakra" target="_blank" className="transition-all font-bold hover:scale-105" style={{ color: 'var(--brand-primary)' }}>IG</a>
+              <a href="https://www.tiktok.com/@hamda_wa_chakra" target="_blank" className="transition-all font-bold hover:scale-105" style={{ color: 'var(--brand-primary)' }}>TK</a>
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-1.5">
+            <button 
+              onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')}
+              className="flex items-center gap-3 p-3 rounded-xl transition-all group"
+              style={{ color: 'var(--brand-text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--brand-primary) 5%, transparent)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <Languages size={16} className="group-hover:rotate-12 transition-transform flex-shrink-0" style={{ color: 'var(--brand-secondary)' }} />
+              <span className="text-[11px] font-semibold uppercase tracking-widest">{lang === 'fr' ? 'العربية' : 'Français'}</span>
+            </button>
+            <button 
+              onClick={() => {
+                if (confirm(lang === 'fr' ? 'Voulez-vous vraiment tout réinitialiser ?' : 'هل تريد حقاً إعادة ضبط كل شيء؟')) {
+                  localStorage.removeItem('mishkat_user_data');
+                  window.location.reload();
+                }
+              }}
+              className="flex items-center gap-3 p-3 rounded-xl transition-all group"
+              style={{ color: 'rgba(239,68,68,0.4)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.05)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <Trash2 size={16} className="group-hover:scale-110 transition-transform flex-shrink-0" />
+              <span className="text-[11px] font-semibold uppercase tracking-widest">{lang === 'fr' ? 'Réinitialiser' : 'إعادة ضبط'}</span>
+            </button>
           </div>
         </motion.div>
-        
-        <div className="flex flex-col gap-2">
-          <button 
-            onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')}
-            className="flex items-center gap-4 p-4 rounded-2xl text-text-main/60 hover:bg-primary/5 transition-colors group"
-          >
-            <Languages size={20} className="group-hover:rotate-12 transition-transform" />
-            <span className="text-xs font-bold uppercase tracking-widest">{lang === 'fr' ? 'العربية' : 'Français'}</span>
-          </button>
-          <button 
-            onClick={() => {
-              if (confirm(lang === 'fr' ? 'Voulez-vous vraiment tout réinitialiser ?' : 'هل تريد حقاً إعادة ضبط كل شيء؟')) {
-                localStorage.removeItem('mishkat_user_data');
-                window.location.reload();
-              }
-            }}
-            className="flex items-center gap-4 p-4 rounded-2xl text-red-500/40 hover:bg-red-500/5 transition-colors group"
-          >
-            <Trash2 size={20} className="group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-bold uppercase tracking-widest">{lang === 'fr' ? 'Réinitialiser' : 'إعادة ضبط'}</span>
-          </button>
-        </div>
-      </div>
-    </div>
+      )}
+    </motion.div>
   );
 };
 
@@ -162,85 +210,100 @@ const Dashboard = ({ userData, lang }: { userData: UserData, lang: string }) => 
   const username = userData.settings?.username || 'Hafiz';
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-10">
       <header className="flex justify-between items-end">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <h2 className="text-5xl text-primary leading-tight">
-            {lang === 'fr' ? `Paix sur toi, ${username}` : `السلام عليك يا ${username}`}
+          <p className="text-[10px] uppercase tracking-[0.4em] font-bold mb-3" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
+            {lang === 'fr' ? new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+          <h2 className="text-5xl leading-tight" style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>
+            {lang === 'fr' ? `Paix sur toi,` : `السلام عليك`}
           </h2>
-          <p className="text-secondary font-bold tracking-[0.4em] uppercase text-xs mt-2 opacity-60">تَطْبِيقُ الحِفْظِ المِثَالِي</p>
+          <h2 className="text-5xl leading-tight text-gradient" style={{ fontWeight: 700 }}>
+            {lang === 'fr' ? username : `يا ${username}`}
+          </h2>
+          <div className="mt-3 flex items-center gap-3">
+            <div className="h-px w-8" style={{ background: 'var(--brand-secondary)', opacity: 0.4 }} />
+            <p className="text-[10px] font-bold tracking-[0.35em] uppercase" style={{ color: 'var(--brand-secondary)', opacity: 0.55 }}>تَطْبِيقُ الحِفْظِ المِثَالِي</p>
+            <div className="h-px w-8" style={{ background: 'var(--brand-secondary)', opacity: 0.4 }} />
+          </div>
         </motion.div>
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="text-right hidden sm:block"
         >
-          <p className="text-[10px] uppercase tracking-widest text-text-muted font-black">Curateurs de Lumière</p>
-          <p className="text-sm text-secondary">Rahima & Hamda</p>
+          <p className="text-[9px] uppercase tracking-widest font-black" style={{ color: 'var(--brand-text-muted)' }}>Curateurs de Lumière</p>
+          <p className="text-base font-semibold mt-0.5" style={{ color: 'var(--brand-secondary)' }}>Rahima & Hamda</p>
         </motion.div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="glass-card p-10 flex flex-col items-center justify-center text-center relative overflow-hidden group"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <div className="relative w-48 h-48">
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700" style={{ background: 'radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brand-secondary) 6%, transparent), transparent 70%)' }} />
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, var(--brand-secondary), transparent)', opacity: 0 }} />
+          <div className="card-accent-bar" />
+          <div className="relative w-44 h-44">
+            {/* Decorative outer ring */}
+            <div className="absolute inset-0 rounded-full" style={{ border: '1px dashed var(--border-accent)', opacity: 0.5, animation: 'spin 30s linear infinite' }} />
             <svg className="w-full h-full transform -rotate-90">
-              <circle
-                cx="50%" cy="50%" r="42%"
-                stroke="currentColor" strokeWidth="8"
-                fill="transparent"
-                className="text-primary/5"
-              />
+              <circle cx="50%" cy="50%" r="42%" stroke="currentColor" strokeWidth="6" fill="transparent" style={{ color: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)' }} />
               <motion.circle
                 cx="50%" cy="50%" r="42%"
-                stroke="currentColor" strokeWidth="8"
+                stroke="url(#progressGrad)" strokeWidth="6"
                 fill="transparent"
                 strokeDasharray="100 100"
                 pathLength="1"
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: progress / 100 }}
-                transition={{ duration: 2, ease: "easeOut" }}
-                className="text-primary"
+                transition={{ duration: 2.2, ease: "easeOut" }}
                 strokeLinecap="round"
               />
+              <defs>
+                <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="var(--brand-primary)" />
+                  <stop offset="100%" stopColor="var(--brand-secondary)" />
+                </linearGradient>
+              </defs>
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-5xl text-primary">{Math.round(progress)}%</span>
-              <span className="text-[9px] text-text-muted uppercase tracking-[0.2em] font-black mt-1">{lang === 'fr' ? 'Accompli' : 'تم الإنجاز'}</span>
+              <span className="text-5xl text-gradient" style={{ fontWeight: 700 }}>{Math.round(progress)}%</span>
+              <span className="text-[9px] uppercase tracking-[0.2em] font-black mt-1" style={{ color: 'var(--brand-text-muted)' }}>{lang === 'fr' ? 'Accompli' : 'تم الإنجاز'}</span>
             </div>
           </div>
-          <h3 className="mt-8 text-2xl text-primary">{lang === 'fr' ? 'Votre Voyage' : 'رحلتك'}</h3>
-          <p className="text-xs text-text-muted mt-2 max-w-[200px] leading-relaxed">
+          <h3 className="mt-7 text-2xl" style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>{lang === 'fr' ? 'Votre Voyage' : 'رحلتك'}</h3>
+          <p className="text-sm mt-2 max-w-[180px] leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>
             {lang === 'fr' ? 'Chaque verset est une lumière sur votre chemin.' : 'كل آية هي نور في طريقك.'}
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-2 gap-6 col-span-1 lg:col-span-2">
+        <div className="grid grid-cols-2 gap-4 col-span-1 lg:col-span-2">
           {[
-            { label: lang === 'fr' ? 'Sourates' : 'السور', value: memorizedCount, icon: BookOpen, color: 'from-accent/20 to-transparent' },
-            { label: lang === 'fr' ? 'Objectifs' : 'الأهداف', value: userData.goals.filter(g => g.completed).length, icon: Target, color: 'from-pastel-green/20 to-transparent' },
-            { label: lang === 'fr' ? 'Badges' : 'الأوسمة', value: userData.badges.length, icon: Award, color: 'from-secondary/10 to-transparent' },
-            { label: lang === 'fr' ? 'Jours' : 'الأيام', value: userData.calendar.length, icon: CalendarIcon, color: 'from-primary/5 to-transparent' },
+            { label: lang === 'fr' ? 'Sourates' : 'السور', value: memorizedCount, icon: BookOpen, grad: 'from-[#A8DADC]/15' },
+            { label: lang === 'fr' ? 'Objectifs' : 'الأهداف', value: userData.goals.filter(g => g.completed).length, icon: Target, grad: 'from-[#B7E4C7]/15' },
+            { label: lang === 'fr' ? 'Badges' : 'الأوسمة', value: userData.badges.length, icon: Award, grad: 'from-[#D4AF37]/10' },
+            { label: lang === 'fr' ? 'Jours' : 'الأيام', value: userData.calendar.length, icon: CalendarIcon, grad: 'from-[#8B2635]/8' },
           ].map((stat, i) => (
             <motion.div 
               key={i}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className={cn("glass-card p-8 flex flex-col justify-between group overflow-hidden relative")}
+              transition={{ delay: i * 0.1 + 0.1 }}
+              className={cn("glass-card p-7 flex flex-col justify-between group overflow-hidden relative")}
             >
-              <div className={cn("absolute inset-0 bg-gradient-to-br opacity-50", stat.color)} />
-              <stat.icon className="text-primary/20 group-hover:text-secondary/40 transition-colors duration-500 relative z-10" size={32} />
-              <div className="relative z-10">
-                <p className="text-4xl text-primary">{stat.value}</p>
-                <p className="text-[10px] uppercase tracking-[0.2em] font-black text-text-muted mt-1">{stat.label}</p>
+              <div className="card-accent-bar" />
+              <div className={cn("absolute inset-0 bg-gradient-to-br opacity-60", stat.grad)} />
+              <stat.icon className="relative z-10 transition-all duration-500 group-hover:scale-110" size={28} style={{ color: 'color-mix(in srgb, var(--brand-primary) 25%, transparent)' }} />
+              <div className="relative z-10 mt-4">
+                <p className="text-5xl text-gradient" style={{ fontWeight: 700 }}>{stat.value}</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] font-black mt-1" style={{ color: 'var(--brand-text-muted)' }}>{stat.label}</p>
               </div>
             </motion.div>
           ))}
@@ -251,31 +314,43 @@ const Dashboard = ({ userData, lang }: { userData: UserData, lang: string }) => 
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="glass-card p-10 relative overflow-hidden"
+        className="glass-card p-8 relative overflow-hidden"
       >
-        <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-          <Target size={200} />
+        <div className="card-accent-bar" />
+        <div className="absolute top-0 right-0 p-8 opacity-[0.025] pointer-events-none">
+          <Target size={180} />
         </div>
-        <h3 className="text-2xl text-primary mb-8 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center">
-            <Target size={20} className="text-secondary" />
+        <h3 className="text-2xl mb-7 flex items-center gap-4" style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)' }}>
+            <Target size={17} style={{ color: 'var(--brand-secondary)' }} />
           </div>
           {lang === 'fr' ? 'Intentions du mois' : 'نوايا الشهر'}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {userData.goals.slice(0, 3).map((goal, idx) => (
             <motion.div 
               key={goal.id}
               whileHover={{ scale: 1.02 }}
-              className="flex items-center gap-4 p-5 bg-secondary/5 rounded-[1.5rem] border border-primary/5 group transition-all"
+              className="flex items-center gap-4 p-4 rounded-xl border transition-all group"
+              style={{
+                background: goal.completed 
+                  ? 'color-mix(in srgb, var(--brand-secondary) 6%, transparent)' 
+                  : 'color-mix(in srgb, var(--brand-primary) 3%, transparent)',
+                borderColor: goal.completed ? 'var(--border-accent)' : 'var(--border-subtle)',
+              }}
             >
               <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                goal.completed ? "bg-pastel-green text-white" : "bg-surface border border-primary/10 text-text-muted"
-              )}>
-                {goal.completed ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all",
+              )} style={{
+                background: goal.completed ? 'var(--brand-secondary)' : 'var(--brand-surface)',
+                border: goal.completed ? 'none' : '1.5px solid var(--border-subtle)',
+              }}>
+                {goal.completed 
+                  ? <CheckCircle2 size={14} style={{ color: '#fff' }} /> 
+                  : <Circle size={14} style={{ color: 'var(--brand-text-muted)' }} />
+                }
               </div>
-              <span className={cn("text-sm font-medium transition-all", goal.completed ? "line-through text-text-muted" : "text-text-main/70 group-hover:text-text-main")}>
+              <span className={cn("text-sm font-medium leading-snug transition-all", goal.completed ? "line-through" : "")} style={{ color: goal.completed ? 'var(--brand-text-muted)' : 'var(--brand-text-main)', opacity: goal.completed ? 0.6 : 1 }}>
                 {goal.text}
               </span>
             </motion.div>
@@ -302,7 +377,9 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
   const [showPaperSettings, setShowPaperSettings] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [paperStyle, setPaperStyle] = useState<'blank' | 'lines' | 'grid' | 'dots'>('lines');
+  const [pageHeight, setPageHeight] = useState(5000);
   const [canvasScale, setCanvasScale] = useState(1);
   const isDrawingRef = useRef(false);
   const activeStrokeRef = useRef<Stroke | null>(null);
@@ -312,6 +389,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
   const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(null);
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const activePage = userData.diftarPages.find(p => p.id === activePageId);
 
@@ -402,6 +480,8 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
     if (activePage) {
       setCurrentStrokes(activePage.strokes || []);
       setStickers(activePage.stickers || []);
+      setPageHeight(activePage.height || 5000);
+      setPaperStyle(activePage.paperStyle || 'lines');
       setUndoStack([]);
       setRedoStack([]);
     }
@@ -542,7 +622,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
 
   useEffect(() => {
     redrawCanvas();
-  }, [currentStrokes, stickers, lang]);
+  }, [currentStrokes, stickers, lang, pageHeight, paperStyle]);
 
   const getCoords = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
@@ -722,12 +802,14 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
 
   const savePage = () => {
     if (!activePageId) return;
+    setIsSaving(true);
     setUserData((prev: UserData) => ({
       ...prev,
       diftarPages: prev.diftarPages.map(p => 
-        p.id === activePageId ? { ...p, strokes: currentStrokes, stickers, lastSaved: Date.now() } : p
+        p.id === activePageId ? { ...p, strokes: currentStrokes, stickers, height: pageHeight, paperStyle, lastSaved: Date.now() } : p
       )
     }));
+    setTimeout(() => setIsSaving(false), 1000);
   };
 
   const clearCanvas = () => {
@@ -755,6 +837,8 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
       type: 'custom',
       strokes: [],
       stickers: [],
+      height: 5000,
+      paperStyle: 'lines',
       lastSaved: Date.now()
     };
     setUserData((prev: UserData) => ({
@@ -804,6 +888,22 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
   const springConfig = { damping: 25, stiffness: 200 };
   const cursorXSpring = useSpring(cursorX, springConfig);
   const cursorYSpring = useSpring(cursorY, springConfig);
+
+  // Automatic Infinite Scroll
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !activePageId) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollTop + clientHeight >= scrollHeight - 800) {
+        setPageHeight(prev => prev + 1000);
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [activePageId]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -918,56 +1018,251 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col gap-4 relative">
-          <div className="flex justify-between items-center bg-surface/95 backdrop-blur-sm p-3 rounded-2xl shadow-sm z-10 border border-primary/5">
-            <button onClick={() => { savePage(); setActivePageId(null); }} className="p-2 hover:bg-primary/5 rounded-lg transition-colors">
-              <ChevronLeft />
-            </button>
-            <input 
-              value={activePage?.title} 
-              onChange={(e) => {
-                const val = e.target.value;
-                setUserData((prev: UserData) => ({
-                  ...prev,
-                  diftarPages: prev.diftarPages.map(p => p.id === activePageId ? { ...p, title: val } : p)
-                }));
-              }}
-              className="font-serif italic text-xl text-primary bg-transparent border-none focus:ring-0 text-center flex-1"
-            />
-            <div className="flex gap-2">
-              <div className="flex gap-1">
-                <button onClick={undo} className="p-2 hover:bg-primary/5 rounded-lg transition-colors" title="Undo"><Undo size={18}/></button>
-                <button onClick={redo} className="p-2 hover:bg-primary/5 rounded-lg transition-colors" title="Redo"><Redo size={18}/></button>
+        <div className="flex-1 flex flex-col gap-4 relative h-full overflow-hidden">
+          {/* Top Bar - Fixed at top of view */}
+          <div className="w-full px-6 py-4 flex flex-col gap-4 z-50">
+            <div className="bg-surface/80 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-primary/10 p-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => { savePage(); setActivePageId(null); }}
+                  className="p-3 hover:bg-primary/5 rounded-full text-primary transition-colors"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <input 
+                  value={activePage?.title} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setUserData((prev: UserData) => ({
+                      ...prev,
+                      diftarPages: prev.diftarPages.map(p => p.id === activePageId ? { ...p, title: val } : p)
+                    }));
+                  }}
+                  className="font-serif italic text-xl text-primary bg-transparent border-none focus:ring-0 text-left flex-1 min-w-[150px] ml-2"
+                />
+                <div className="w-px h-6 bg-primary/10 mx-1" />
+                
+                {/* Tools Group */}
+                <div className="flex items-center gap-1 bg-primary/5 p-1 rounded-full">
+                  <button 
+                    onClick={() => { setShowToolsMenu(!showToolsMenu); setShowCustomizationMenu(false); setShowStickerPicker(false); setShowPaperSettings(false); }}
+                    className={cn(
+                      "p-2.5 rounded-full transition-all",
+                      showToolsMenu ? "bg-primary text-white shadow-lg" : "text-primary hover:bg-primary/10"
+                    )}
+                    title={lang === 'fr' ? 'Outils' : 'أدوات'}
+                  >
+                    <Pencil size={18} />
+                  </button>
+                  <button 
+                    onClick={() => { setShowCustomizationMenu(!showCustomizationMenu); setShowToolsMenu(false); setShowStickerPicker(false); setShowPaperSettings(false); }}
+                    className={cn(
+                      "p-2.5 rounded-full transition-all",
+                      showCustomizationMenu ? "bg-primary text-white shadow-lg" : "text-primary hover:bg-primary/10"
+                    )}
+                    title={lang === 'fr' ? 'Couleurs' : 'الألوان'}
+                  >
+                    <Palette size={18} />
+                  </button>
+                  <button 
+                    onClick={() => { setShowStickerPicker(!showStickerPicker); setShowToolsMenu(false); setShowCustomizationMenu(false); setShowPaperSettings(false); }}
+                    className={cn(
+                      "p-2.5 rounded-full transition-all",
+                      showStickerPicker ? "bg-primary text-white shadow-lg" : "text-primary hover:bg-primary/10"
+                    )}
+                    title={lang === 'fr' ? 'Stickers' : 'ملصقات'}
+                  >
+                    <Star size={18} />
+                  </button>
+                  <button 
+                    onClick={() => { setShowPaperSettings(!showPaperSettings); setShowToolsMenu(false); setShowCustomizationMenu(false); setShowStickerPicker(false); }}
+                    className={cn(
+                      "p-2.5 rounded-full transition-all",
+                      showPaperSettings ? "bg-primary text-white shadow-lg" : "text-primary hover:bg-primary/10"
+                    )}
+                    title={lang === 'fr' ? 'Papier' : 'الورق'}
+                  >
+                    <Settings2 size={18} />
+                  </button>
+                </div>
               </div>
-              <div className="w-px h-6 bg-primary/10 mx-1" />
-              <button onClick={exportPDF} className="p-2 hover:bg-primary/5 rounded-lg transition-colors" title="PDF"><Download size={18}/></button>
-              <button onClick={savePage} className="p-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 px-3">
-                <Save size={16}/>
-                <span className="text-xs font-bold">{lang === 'fr' ? 'Sauver' : 'حفظ'}</span>
-              </button>
+
+              {/* Center: Undo/Redo */}
+              <div className="hidden sm:flex items-center gap-2 bg-primary/5 p-1 rounded-full">
+                <button onClick={undo} className="p-2.5 text-primary hover:bg-primary/10 rounded-full transition-colors" title="Undo"><Undo size={18}/></button>
+                <button onClick={redo} className="p-2.5 text-primary hover:bg-primary/10 rounded-full transition-colors" title="Redo"><Redo size={18}/></button>
+              </div>
+
+              {/* Right: Actions */}
+              <div className="flex items-center gap-2">
+                <button onClick={clearCanvas} className="p-3 text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Clear"><Trash2 size={18}/></button>
+                <div className="w-px h-6 bg-primary/10 mx-1" />
+                <button onClick={exportPDF} className="p-3 text-primary hover:bg-primary/5 rounded-full transition-colors" title="Export"><Download size={18}/></button>
+                <button 
+                  onClick={savePage} 
+                  disabled={isSaving}
+                  className={cn(
+                    "rounded-full transition-all flex items-center gap-2 px-5 py-2.5 shadow-lg active:scale-95",
+                    isSaving ? "bg-green-500 text-white shadow-green-500/20" : "bg-primary text-white hover:bg-primary/90 shadow-primary/20"
+                  )}
+                >
+                  <motion.div
+                    animate={isSaving ? { rotate: 360 } : {}}
+                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                  >
+                    {isSaving ? <Check size={18}/> : <Save size={18}/>}
+                  </motion.div>
+                  <span className="text-sm font-bold hidden sm:inline">
+                    {isSaving ? (lang === 'fr' ? 'Sauvé' : 'تم الحفظ') : (lang === 'fr' ? 'Sauver' : 'حفظ')}
+                  </span>
+                </button>
+              </div>
             </div>
+
+            {/* Floating Popups below Top Bar */}
+            <AnimatePresence>
+              {(showToolsMenu || showCustomizationMenu || showStickerPicker || showPaperSettings) && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="w-full max-w-2xl mx-auto"
+                >
+                  {showToolsMenu && (
+                    <motion.div className="bg-surface/95 backdrop-blur-3xl p-4 rounded-[2.5rem] shadow-2xl border border-primary/10 flex justify-around items-center gap-2">
+                      {[
+                        { id: 'pen', icon: Pencil, label: lang === 'fr' ? 'Stylo' : 'قلم' },
+                        { id: 'fountain-pen', icon: Brush, label: lang === 'fr' ? 'Plume' : 'ريشة' },
+                        { id: 'highlighter', icon: Highlighter, label: lang === 'fr' ? 'Surligneur' : 'قلم تحديد' },
+                        { id: 'eraser', icon: Eraser, label: lang === 'fr' ? 'Gomme' : 'ممحاة' }
+                      ].map(t => (
+                        <button
+                          key={t.id}
+                          onClick={() => { setTool(t.id as any); setShowToolsMenu(false); }}
+                          className={cn(
+                            "flex flex-col items-center gap-2 p-3 rounded-2xl transition-all flex-1",
+                            tool === t.id ? "bg-primary text-white shadow-lg" : "hover:bg-primary/5 text-primary/60"
+                          )}
+                        >
+                          <t.icon size={20} />
+                          <span className="text-[10px] font-bold uppercase tracking-widest">{t.label}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+
+                  {showCustomizationMenu && (
+                    <motion.div className="bg-surface/95 backdrop-blur-3xl p-6 rounded-[2.5rem] shadow-2xl border border-primary/10 space-y-6">
+                      <div className="space-y-3">
+                        <h4 className="text-[10px] uppercase tracking-[0.2em] font-black text-primary/40 px-1">{lang === 'fr' ? 'Couleurs' : 'الألوان'}</h4>
+                        <div className="grid grid-cols-10 gap-2">
+                          {PALETTE.map(c => (
+                            <button 
+                              key={c} 
+                              onClick={() => setColor(c)} 
+                              className={cn(
+                                "w-6 h-6 rounded-full border border-primary/10 transition-all hover:scale-125",
+                                color === c && "ring-2 ring-primary ring-offset-2 scale-110 shadow-lg"
+                              )}
+                              style={{ background: c }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <h4 className="text-[10px] uppercase tracking-[0.2em] font-black text-primary/40 px-1">{lang === 'fr' ? 'Épaisseur' : 'السمك'}</h4>
+                        <div className="flex items-center gap-4 px-1">
+                          <input 
+                            type="range" min="1" max="50" value={width} 
+                            onChange={(e) => setWidth(parseInt(e.target.value))}
+                            className="flex-1 accent-primary h-1.5 bg-primary/10 rounded-full appearance-none cursor-pointer"
+                          />
+                          <span className="text-xs font-mono w-8 text-primary/60 text-right">{width}px</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {showStickerPicker && (
+                    <motion.div className="bg-surface/95 backdrop-blur-3xl p-6 rounded-[2.5rem] shadow-2xl border border-primary/10 grid grid-cols-6 sm:grid-cols-8 gap-4 max-h-[300px] overflow-y-auto custom-scrollbar">
+                      {QURAN_ICONS.map(icon => (
+                        <button 
+                          key={icon.id} 
+                          onClick={() => { setActiveStickerSvg(icon.svg); setShowStickerPicker(false); }}
+                          className="aspect-square hover:scale-110 transition-all flex items-center justify-center p-2 bg-primary/5 rounded-2xl border border-transparent hover:border-primary/20"
+                          dangerouslySetInnerHTML={{ __html: icon.svg }}
+                        />
+                      ))}
+                    </motion.div>
+                  )}
+
+                  {showPaperSettings && (
+                    <motion.div className="bg-surface/95 backdrop-blur-3xl p-6 rounded-[2.5rem] shadow-2xl border border-primary/10 flex justify-around gap-4">
+                      {[
+                        { id: 'blank', label: lang === 'fr' ? 'Blanc' : 'أبيض' },
+                        { id: 'lines', label: lang === 'fr' ? 'Lignes' : 'سطور' },
+                        { id: 'grid', label: lang === 'fr' ? 'Grille' : 'شبكة' },
+                        { id: 'dots', label: lang === 'fr' ? 'Points' : 'نقاط' }
+                      ].map(style => (
+                        <button
+                          key={style.id}
+                          onClick={() => { setPaperStyle(style.id as any); setShowPaperSettings(false); }}
+                          className={cn(
+                            "flex-1 py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all border",
+                            paperStyle === style.id ? "bg-primary text-white border-primary shadow-lg" : "bg-primary/5 text-primary border-transparent hover:bg-primary/10"
+                          )}
+                        >
+                          {style.label}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          <div className="flex-1 bg-surface rounded-[2.5rem] shadow-2xl overflow-hidden relative border border-primary/10 group cursor-none transition-all duration-700">
+          <div 
+            ref={scrollContainerRef}
+              className="flex-1 bg-surface rounded-[2.5rem] shadow-2xl overflow-y-auto relative border border-primary/10 group cursor-none transition-all duration-700 custom-scrollbar"
+            >
+            {/* Scroll Navigation Buttons */}
+            <div className="fixed right-20 bottom-32 z-50 flex flex-col gap-2">
+              <button 
+                onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="p-3 bg-surface/80 backdrop-blur-md rounded-full shadow-lg border border-primary/10 text-primary hover:bg-primary hover:text-white transition-all"
+                title="Top"
+              >
+                <ChevronUp size={20} />
+              </button>
+              <button 
+                onClick={() => scrollContainerRef.current?.scrollTo({ top: pageHeight, behavior: 'smooth' })}
+                className="p-3 bg-surface/80 backdrop-blur-md rounded-full shadow-lg border border-primary/10 text-primary hover:bg-primary hover:text-white transition-all"
+                title="Bottom"
+              >
+                <ChevronDown size={20} />
+              </button>
+            </div>
+
             {/* Notebook Binding Effect */}
             <div className={cn(
-              "absolute top-0 bottom-0 w-12 bg-gradient-to-r from-black/10 via-transparent to-transparent z-20 pointer-events-none",
+              "absolute top-0 w-12 bg-gradient-to-r from-black/10 via-transparent to-transparent z-20 pointer-events-none",
               lang === 'ar' ? "right-0 rotate-180" : "left-0"
-            )}>
+            )} style={{ height: `${pageHeight}px` }}>
               <div className="h-full w-full flex flex-col justify-around py-8 px-2">
-                {[...Array(12)].map((_, i) => (
-                  <div key={i} className="w-full h-2 bg-black/5 rounded-full shadow-inner" />
+                {[...Array(Math.ceil(pageHeight / 100))].map((_, i) => (
+                  <div key={i} className="w-full h-2 bg-black/5 rounded-full shadow-inner mb-4" />
                 ))}
               </div>
             </div>
 
             {/* Paper Texture Overlay */}
-            <div className="absolute inset-0 pointer-events-none opacity-[0.05] bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]" />
+            <div className="absolute inset-0 pointer-events-none opacity-[0.05] bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] z-10" style={{ height: `${pageHeight}px` }} />
             
             <canvas
               ref={canvasRef}
               width={1000}
-              height={1400}
+              height={pageHeight}
               onMouseDown={startDrawing}
               onMouseMove={draw}
               onMouseUp={stopDrawing}
@@ -975,8 +1270,19 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
               onTouchStart={startDrawing}
               onTouchMove={draw}
               onTouchEnd={stopDrawing}
-              className="w-full h-full touch-none"
+              className="w-full touch-none bg-[#fdfcf8]"
             />
+
+            {/* Add more space button at the bottom */}
+            <div className="flex justify-center py-12 bg-[#fdfcf8] relative z-20">
+              <button 
+                onClick={() => setPageHeight(prev => prev + 2000)}
+                className="flex items-center gap-2 px-6 py-3 bg-primary/5 text-primary rounded-full hover:bg-primary/10 transition-all border border-primary/10 font-bold uppercase tracking-widest text-xs"
+              >
+                <Plus size={16} />
+                {lang === 'fr' ? "Ajouter de l'espace" : "إضافة مساحة"}
+              </button>
+            </div>
             
             {/* Custom Cursor */}
             <motion.div 
@@ -1017,195 +1323,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData, setUserDa
               </motion.div>
             </motion.div>
 
-            {/* Immersive Dock (Variante 1) */}
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-6 w-full max-w-2xl px-6">
-              {/* Sub-panels (Stickers, Tools, Customization) */}
-              <AnimatePresence>
-                {showStickerPicker && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                    className="bg-surface/90 backdrop-blur-3xl p-4 rounded-[2rem] shadow-2xl border border-white/40 w-[95vw] max-w-lg grid grid-cols-6 sm:grid-cols-8 gap-3 max-h-[250px] overflow-y-auto scrollbar-hide"
-                  >
-                    {QURAN_ICONS.map(icon => (
-                      <button 
-                        key={icon.id} 
-                        onClick={() => { setActiveStickerSvg(icon.svg); setShowStickerPicker(false); }}
-                        className="aspect-square hover:scale-110 transition-all duration-300 hover:rotate-6 flex items-center justify-center p-1.5 bg-primary/5 rounded-xl border border-transparent hover:border-secondary/30"
-                        dangerouslySetInnerHTML={{ __html: icon.svg }}
-                      />
-                    ))}
-                  </motion.div>
-                )}
 
-                {showToolsMenu && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                    className="bg-surface/90 backdrop-blur-3xl p-4 rounded-[2.5rem] shadow-2xl border border-white/40 w-[95vw] max-w-md flex justify-around items-center gap-2"
-                  >
-                    {[
-                      { id: 'pen', icon: NotebookPen, label: lang === 'fr' ? 'Stylo' : 'قلم' },
-                      { id: 'fountain-pen', icon: Pencil, label: lang === 'fr' ? 'Plume' : 'ريشة' },
-                      { id: 'highlighter', icon: Highlighter, label: lang === 'fr' ? 'Surligneur' : 'قلم تحديد' },
-                      { id: 'chalk', icon: Wind, label: lang === 'fr' ? 'Craie' : 'طبشور' },
-                      { id: 'ruler', icon: Ruler, label: lang === 'fr' ? 'Règle' : 'مسطرة' },
-                      { id: 'eraser', icon: Eraser, label: lang === 'fr' ? 'Gomme' : 'ممحاة' }
-                    ].map((t, idx) => (
-                      <motion.button
-                        key={t.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.05 }}
-                        onClick={() => { setTool(t.id as any); setShowToolsMenu(false); }}
-                        className={cn(
-                          "flex flex-col items-center gap-2 p-3 rounded-2xl transition-all flex-1 min-w-[60px] group",
-                          tool === t.id ? "bg-primary text-white shadow-xl scale-110" : "hover:bg-primary/5 text-text-muted hover:text-primary"
-                        )}
-                      >
-                        <t.icon size={20} className={cn("transition-transform duration-500", tool === t.id ? "scale-110" : "group-hover:scale-110 group-hover:rotate-12")} />
-                        <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
-                      </motion.button>
-                    ))}
-                  </motion.div>
-                )}
-
-                {showCustomizationMenu && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                    className="bg-surface/90 backdrop-blur-3xl p-5 rounded-[2.5rem] shadow-2xl border border-white/40 w-[95vw] max-w-lg space-y-5 max-h-[60vh] overflow-y-auto scrollbar-hide"
-                  >
-                    {/* Colors */}
-                    <div className="space-y-2">
-                      <h4 className="text-[9px] uppercase tracking-[0.2em] font-black text-text-muted px-1">{lang === 'fr' ? 'Couleurs' : 'الألوان'}</h4>
-                      <div className="grid grid-cols-8 sm:grid-cols-10 gap-1.5">
-                        {PALETTE.map(c => (
-                          <button 
-                            key={c} 
-                            onClick={() => setColor(c)} 
-                            className={cn(
-                              "w-6 h-6 rounded-full border border-white/40 transition-all hover:scale-125 shadow-sm",
-                              color === c && "ring-2 ring-secondary ring-offset-2 scale-110 shadow-lg"
-                            )}
-                            style={{ 
-                              background: c.startsWith('gradient:') ? 
-                                (c === 'gradient:gold-red' ? 'linear-gradient(to bottom right, #D4AF37, #8B2635)' :
-                                 c === 'gradient:blue-cyan' ? 'linear-gradient(to bottom right, #1D3557, #A8DADC)' :
-                                 'linear-gradient(to bottom right, #6D597A, #FF99C8)') : 
-                              c.startsWith('pattern:') ?
-                                (c === 'pattern:dots' ? 'radial-gradient(#8B2635 2px, transparent 2px) 0 0 / 10px 10px' :
-                                 'repeating-linear-gradient(45deg, #D4AF37, #D4AF37 2px, transparent 2px, transparent 10px)') :
-                              c 
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Width */}
-                    <div className="space-y-2">
-                      <h4 className="text-[9px] uppercase tracking-[0.2em] font-black text-bordeaux/30 px-1">{lang === 'fr' ? 'Épaisseur' : 'السمك'}</h4>
-                      <div className="flex items-center gap-3 px-1">
-                        <input 
-                          type="range" min="1" max="25" value={width} 
-                          onChange={(e) => setWidth(parseInt(e.target.value))}
-                          className="flex-1 accent-bordeaux h-1 bg-beige rounded-full appearance-none cursor-pointer"
-                        />
-                        <span className="text-[10px] font-mono w-5 text-bordeaux/60 text-right">{width}</span>
-                      </div>
-                    </div>
-
-                    {/* Paper Style */}
-                    <div className="space-y-2">
-                      <h4 className="text-[9px] uppercase tracking-[0.2em] font-black text-bordeaux/30 px-1">{lang === 'fr' ? 'Papier' : 'الورق'}</h4>
-                      <div className="flex justify-around items-center gap-1.5">
-                        {(['blank', 'lines', 'grid', 'dots'] as const).map(style => (
-                          <button
-                            key={style}
-                            onClick={() => setPaperStyle(style)}
-                            className={cn(
-                              "flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all flex-1",
-                              paperStyle === style ? "bg-bordeaux text-white shadow-md scale-105" : "hover:bg-beige text-bordeaux/60"
-                            )}
-                          >
-                            <div className="w-7 h-7 rounded border border-current/20 flex items-center justify-center overflow-hidden mb-0.5">
-                              {style === 'lines' && <div className="w-full h-full flex flex-col gap-0.5 p-1 opacity-40"><div className="h-px bg-current w-full"/><div className="h-px bg-current w-full"/><div className="h-px bg-current w-full"/></div>}
-                              {style === 'grid' && <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-0.5 p-1 opacity-40"><div className="border border-current"/><div className="border border-current"/><div className="border border-current"/><div className="border border-current"/></div>}
-                              {style === 'dots' && <div className="w-full h-full grid grid-cols-2 grid-rows-2 p-1 opacity-40"><div className="w-0.5 h-0.5 bg-current rounded-full"/><div className="w-0.5 h-0.5 bg-current rounded-full"/><div className="w-0.5 h-0.5 bg-current rounded-full"/><div className="w-0.5 h-0.5 bg-current rounded-full"/></div>}
-                              {style === 'blank' && <div className="w-full h-full bg-current/5"/>}
-                            </div>
-                            <span className="text-[7px] font-bold uppercase tracking-tighter">{style}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Main Dock */}
-              <motion.div 
-                layout
-                className="bg-bordeaux/95 backdrop-blur-3xl p-2 rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl border border-white/10 flex items-center justify-center gap-2 sm:gap-4"
-              >
-                <div className="flex items-center gap-1 sm:gap-2 px-2">
-                  {/* Tools Menu Trigger */}
-                  <button 
-                    onClick={() => { setShowToolsMenu(!showToolsMenu); setShowCustomizationMenu(false); setShowStickerPicker(false); }} 
-                    className={cn(
-                      "p-3 sm:p-4 rounded-full transition-all duration-300 relative group", 
-                      showToolsMenu ? "bg-white text-bordeaux shadow-xl scale-110" : "text-white/60 hover:text-white hover:bg-white/10"
-                    )}
-                    title={lang === 'fr' ? 'Outils' : 'أدوات'}
-                  >
-                    <Brush size={20} className="sm:w-6 sm:h-6"/>
-                    {showToolsMenu && <motion.div layoutId="activeTool" className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-bordeaux rounded-full" />}
-                  </button>
-
-                  {/* Customization Menu Trigger */}
-                  <button 
-                    onClick={() => { setShowCustomizationMenu(!showCustomizationMenu); setShowToolsMenu(false); setShowStickerPicker(false); }} 
-                    className={cn(
-                      "p-3 sm:p-4 rounded-full transition-all duration-300 relative group", 
-                      showCustomizationMenu ? "bg-white text-bordeaux shadow-xl scale-110" : "text-white/60 hover:text-white hover:bg-white/10"
-                    )}
-                    title={lang === 'fr' ? 'Personnalisation' : 'تخصيص'}
-                  >
-                    <Palette size={20} className="sm:w-6 sm:h-6"/>
-                    {showCustomizationMenu && <motion.div layoutId="activeTool" className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-bordeaux rounded-full" />}
-                  </button>
-
-                  {/* Stickers Trigger */}
-                  <button 
-                    onClick={() => { setShowStickerPicker(!showStickerPicker); setShowToolsMenu(false); setShowCustomizationMenu(false); }} 
-                    className={cn(
-                      "p-3 sm:p-4 rounded-full transition-all duration-300 relative group", 
-                      showStickerPicker ? "bg-white text-bordeaux shadow-xl scale-110" : "text-white/60 hover:text-white hover:bg-white/10"
-                    )}
-                    title={lang === 'fr' ? 'Stickers' : 'ملصقات'}
-                  >
-                    <Star size={20} className="sm:w-6 sm:h-6"/>
-                    {showStickerPicker && <motion.div layoutId="activeTool" className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-bordeaux rounded-full" />}
-                  </button>
-                </div>
-
-                <div className="w-px h-8 sm:h-10 bg-white/10" />
-
-                <div className="px-2">
-                  <button 
-                    onClick={clearCanvas} 
-                    className="p-3 sm:p-4 rounded-full text-white/40 hover:bg-red-500 hover:text-white transition-all duration-300 group"
-                    title={lang === 'fr' ? 'Effacer la page' : 'مسح الصفحة'}
-                  >
-                    <Trash2 size={20} className="sm:w-6 sm:h-6 group-hover:rotate-12 transition-transform" />
-                  </button>
-                </div>
-              </motion.div>
-            </div>
           </div>
         </div>
       )}
@@ -1318,6 +1436,7 @@ const ColoringGrid = ({ userData, setUserData, lang }: { userData: UserData, set
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [lang, setLang] = useState<'fr' | 'ar'>('fr');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
 
@@ -1385,12 +1504,21 @@ export default function App() {
       
       {/* Atmospheric Background Elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-secondary/5 blur-[120px] floating-element" />
-        <div className="absolute top-[20%] -right-[5%] w-[30%] h-[30%] rounded-full bg-primary/5 blur-[100px] floating-element" style={{ animationDelay: '-2s' }} />
-        <div className="absolute -bottom-[10%] left-[20%] w-[50%] h-[50%] rounded-full bg-accent/5 blur-[150px] floating-element" style={{ animationDelay: '-4s' }} />
+        <div className="absolute -top-[15%] -left-[10%] w-[45%] h-[45%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-secondary) 8%, transparent), transparent 70%)', filter: 'blur(80px)', animationDelay: '0s' }} />
+        <div className="absolute top-[30%] -right-[8%] w-[35%] h-[35%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 6%, transparent), transparent 70%)', filter: 'blur(100px)', animationDelay: '-2.5s' }} />
+        <div className="absolute -bottom-[15%] left-[15%] w-[55%] h-[55%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-accent) 7%, transparent), transparent 70%)', filter: 'blur(120px)', animationDelay: '-5s' }} />
+        {/* Geometric subtle overlay */}
+        <div className="absolute inset-0 geometric-pattern opacity-40" style={{ color: 'var(--brand-primary)' }} />
       </div>
 
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} />
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        lang={lang} 
+        setLang={setLang} 
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+      />
 
       <main className={cn(
         "flex-1 p-4 md:p-12 overflow-y-auto pb-24 md:pb-12 relative z-10",
@@ -1437,32 +1565,48 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-bordeaux/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6"
+            className="fixed inset-0 backdrop-blur-sm z-[100] flex items-center justify-center p-6"
+            style={{ background: 'color-mix(in srgb, var(--brand-primary) 35%, transparent)' }}
           >
             <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.88, y: 24 }}
               animate={{ scale: 1, y: 0 }}
-              className="glass-card p-10 max-w-lg text-center space-y-6"
+              transition={{ type: 'spring', bounce: 0.3 }}
+              className="glass-card p-12 max-w-md text-center space-y-7 relative overflow-hidden"
             >
-              <div className="w-24 h-24 bg-bordeaux rounded-full flex items-center justify-center mx-auto shadow-xl">
-                <span className="text-4xl text-white font-bold">م</span>
+              {/* Decorative top gradient */}
+              <div className="absolute top-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-primary))' }} />
+              <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-[0.07]" style={{ background: 'radial-gradient(circle, var(--brand-secondary), transparent)' }} />
+              
+              <div className="relative">
+                <div className="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto shadow-2xl relative" style={{ background: 'var(--brand-primary)' }}>
+                  <div className="absolute inset-0 rounded-2xl" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.2), transparent)' }} />
+                  <span className="text-4xl text-white" style={{ fontFamily: 'Amiri, serif', fontWeight: 700 }}>م</span>
+                </div>
+                {/* Pulsing ring */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-28 h-28 rounded-2xl opacity-20" style={{ border: '1px solid var(--brand-primary)', animation: 'pulse-ring 2.5s ease-in-out infinite' }} />
+                </div>
               </div>
+              
               <div>
-                <h2 className="text-3xl font-bold text-bordeaux">Mishkat (مِشْكَاة)</h2>
-                <p className="text-gold text-lg">تَطْبِيقُ الحِفْظِ</p>
+                <h2 className="text-3xl font-bold" style={{ color: 'var(--brand-primary)' }}>Mishkat</h2>
+                <p className="text-lg mt-1" style={{ color: 'var(--brand-secondary)', fontFamily: 'Amiri, serif' }}>مِشْكَاة · تَطْبِيقُ الحِفْظِ</p>
               </div>
-              <p className="text-bordeaux/70">
+              
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>
                 {lang === 'fr' 
                   ? "Bienvenue dans votre compagnon de mémorisation. Suivez vos progrès, coloriez vos réussites et écrivez vos notes dans votre Diftar numérique."
                   : "مرحباً بك في رفيقك في الحفظ. تتبع تقدمك، لون إنجازاتك، واكتب ملاحظاتك في دفترك الرقمي."}
               </p>
+              
               <button 
                 onClick={() => setShowOnboarding(false)}
-                className="w-full bg-bordeaux text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-bordeaux/90 transition-colors"
+                className="premium-button w-full text-lg"
               >
-                {lang === 'fr' ? "Commencer l'aventure" : "ابدأ الرحلة"}
+                {lang === 'fr' ? "Commencer l'aventure ✦" : "ابدأ الرحلة ✦"}
               </button>
-              <p className="text-[10px] text-bordeaux/40">Par Rahima & hamda_wa_chakra</p>
+              <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--brand-text-muted)', opacity: 0.6 }}>Par Rahima & hamda_wa_chakra</p>
             </motion.div>
           </motion.div>
         )}
