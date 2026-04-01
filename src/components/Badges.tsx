@@ -7,7 +7,8 @@ import {
   X, Lock, Unlock, TrendingUp, RotateCcw
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { Badge, UserData, BADGE_DEFINITIONS, getRarityColor, getRarityLabel, getBadgeProgress } from '../types';
+import { Badge, UserData, BADGE_DEFINITIONS, getRarityColor, getRarityLabel } from '../types';
+import { getBadgeProgress } from '../lib/badgeEngine';
 import { formatUnlockDate, getTimeSinceUnlock, getBadgesByRarity, celebrateBadgeUnlock } from '../lib/badgeEngine';
 
 // Mapping des icônes pour les badges
