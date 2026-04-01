@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import { GoalsSection } from './components/Goals';
 import { TasbihSection } from './components/Tasbih';
@@ -110,12 +110,12 @@ const Sidebar = ({ activeTab, setActiveTab, lang, setLang, isCollapsed, setIsCol
               'flex flex-col md:flex-row items-center gap-2 md:gap-3 p-2.5 md:p-3 rounded-xl transition-all shrink-0 min-w-[68px] md:min-w-0 group relative',
               isCollapsed ? 'md:justify-center' : ''
             )}
-            style={activeTab === item.id ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 4px 18px color-mix(in srgb, var(--brand-primary) 32%, transparent)' } : { color: 'var(--brand-text-muted)' }}
+            style={activeTab === item.id ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 4px 18px color-mix(in srgb, var(--brand-primary) 32%, transparent)' } : { color: 'color-mix(in srgb, var(--brand-primary) 65%, transparent)' }}
             title={isCollapsed ? item.label : ''}
           >
-            <item.icon size={18} className="transition-all duration-300 group-hover:scale-110 flex-shrink-0" style={activeTab === item.id ? { color: '#fff' } : { color: 'var(--brand-secondary)', opacity: 0.75 }} />
+            <item.icon size={18} className="transition-all duration-300 group-hover:scale-110 flex-shrink-0" style={activeTab === item.id ? { color: '#fff' } : { color: 'var(--brand-primary)', opacity: 0.6 }} />
             {!isCollapsed && (
-              <motion.span initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} className={cn('text-[10px] md:text-[13px] whitespace-nowrap transition-colors leading-none', activeTab === item.id ? 'text-white font-semibold' : 'font-medium')}>
+              <motion.span initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} className={cn('text-[10px] md:text-[13px] whitespace-nowrap transition-colors leading-none', activeTab === item.id ? 'text-white font-semibold' : 'font-medium')} style={activeTab === item.id ? {} : { color: 'color-mix(in srgb, var(--brand-primary) 65%, transparent)' }}>
                 {item.label}
               </motion.span>
             )}
@@ -385,6 +385,11 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
   const activeStrokeRef = useRef<Stroke | null>(null);
   const stickerCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const [activeStickerSvg, setActiveStickerSvg] = useState<string | null>(null);
+  const activeStickerSvgRef = useRef<string | null>(null);
+  const setActiveStickerSvgWithRef = useCallback((val: string | null) => {
+    activeStickerSvgRef.current = val;
+    setActiveStickerSvg(val);
+  }, []);
   const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(null);
   const [showConfirmClear, setShowConfirmClear]   = useState(false);
   const [isDrawing, setIsDrawing]           = useState(false);
@@ -409,7 +414,22 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
     { label: lang === 'fr' ? 'Rose pâle' : 'وردي', value: '#fff0f3' },
   ];
 
-  const getStrokeStyle = (ctx: CanvasRenderingContext2D, stroke: Stroke) => {
+  const getBrandColorForPaper = (pc: string) => {
+    // For dark paper, use gold; for light papers use the brand primary red
+    if (pc === '#0f172a') return '#D4AF37';
+    return '#8B2635';
+  };
+
+  const getColoredStickerSvg = (svg: string, pc: string) => {
+    const brandColor = getBrandColorForPaper(pc);
+    // Inject explicit dimensions and replace currentColor with brand color
+    let colored = svg
+      .replace('<svg ', `<svg width="60" height="60" `)
+      .replace(/currentColor/g, brandColor);
+    return colored;
+  };
+
+
     if (stroke.color === 'pattern:dots') {
       const pc = document.createElement('canvas'); pc.width = 10; pc.height = 10;
       const pctx = pc.getContext('2d')!;
@@ -577,16 +597,17 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
     currentStrokes.forEach(renderStroke);
 
     stickers.forEach((sticker: any) => {
-      const cachedImg = stickerCacheRef.current.get(sticker.svg);
+      const coloredSvg = getColoredStickerSvg(sticker.svg, paperColor);
+      const cachedImg = stickerCacheRef.current.get(coloredSvg);
       if (cachedImg) {
-        ctx.drawImage(cachedImg, sticker.x - 25, sticker.y - 25, 50, 50);
+        ctx.drawImage(cachedImg, sticker.x - 30, sticker.y - 30, 60, 60);
       } else {
         const img = new Image();
-        const svgBlob = new Blob([sticker.svg], { type: 'image/svg+xml;charset=utf-8' });
+        const svgBlob = new Blob([coloredSvg], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(svgBlob);
         img.onload = () => {
-          stickerCacheRef.current.set(sticker.svg, img);
-          ctx.drawImage(img, sticker.x - 25, sticker.y - 25, 50, 50);
+          stickerCacheRef.current.set(coloredSvg, img);
+          ctx.drawImage(img, sticker.x - 30, sticker.y - 30, 60, 60);
           URL.revokeObjectURL(url);
         };
         img.src = url;
@@ -608,17 +629,17 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
   };
 
   const handleCanvasClick = (e: React.MouseEvent | React.TouchEvent) => {
-    if (activeStickerSvg) {
+    if (activeStickerSvgRef.current) {
       const { x, y } = getCoords(e);
       setUndoStack(prev => [...prev, { strokes: currentStrokes, stickers }]);
       setRedoStack([]);
-      setStickers(prev => [...prev, { id: Date.now().toString(), svg: activeStickerSvg, x, y }]);
-      setActiveStickerSvg(null);
+      setStickers(prev => [...prev, { id: Date.now().toString(), svg: activeStickerSvgRef.current!, x, y }]);
+      setActiveStickerSvgWithRef(null);
     }
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-    if (activeStickerSvg) { handleCanvasClick(e); return; }
+    if (activeStickerSvgRef.current) { handleCanvasClick(e); return; }
     const { x, y } = getCoords(e);
     if (tool === 'eraser') {
       const idx = stickers.findIndex((s: any) => Math.sqrt(Math.pow(s.x - x, 2) + Math.pow(s.y - y, 2)) < 30);
@@ -781,7 +802,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
     return () => window.removeEventListener('mousemove', handle);
   }, []);
 
-  const closeAllPanels = () => { setShowToolsMenu(false); setShowCustomizationMenu(false); setShowStickerPicker(false); setShowPaperSettings(false); };
+  const closeAllPanels = () => { setShowToolsMenu(false); setShowCustomizationMenu(false); setShowStickerPicker(false); setShowPaperSettings(false); setActiveStickerSvgWithRef(null); };
 
   // ──────────────────────────────────
   // PAGE LIST VIEW (Gallery)
@@ -1123,7 +1144,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
                     {STICKER_CATEGORIES[stickerCategory].icons.map(icon => (
                       <button
                         key={icon.id}
-                        onClick={() => { setActiveStickerSvg(icon.svg); setShowStickerPicker(false); }}
+                        onClick={() => { setActiveStickerSvgWithRef(icon.svg); setShowStickerPicker(false); }}
                         className="aspect-square flex items-center justify-center p-2 rounded-2xl border transition-all hover:scale-110"
                         style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', borderColor: 'transparent', color: 'var(--brand-primary)' }}
                         dangerouslySetInnerHTML={{ __html: icon.svg }}
@@ -1414,9 +1435,54 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userData, setUserData]             = useState<UserData | null>(null);
+  const [badgeCelebration, setBadgeCelebration] = useState<string[]>([]);
+
+  // Badge definitions — inline engine
+  const checkBadges = useCallback((data: UserData): string[] => {
+    const earned: string[] = [];
+    const memorized = data.surahs.filter(s => s.status === 'memorized').length;
+    const badgeDefs = [
+      { id: 'first_surah',    condition: () => memorized >= 1 },
+      { id: 'five_surahs',    condition: () => memorized >= 5 },
+      { id: 'ten_surahs',     condition: () => memorized >= 10 },
+      { id: 'quarter_quran',  condition: () => memorized >= 28 },
+      { id: 'half_quran',     condition: () => memorized >= 57 },
+      { id: 'full_quran',     condition: () => memorized >= 114 },
+      { id: 'first_goal',     condition: () => data.goals.some(g => g.completed) },
+      { id: 'streak_7',       condition: () => (data.loginStreak || 0) >= 7 },
+      { id: 'streak_30',      condition: () => (data.loginStreak || 0) >= 30 },
+      { id: 'tasbih_100',     condition: () => (data.tasbihCount || 0) >= 100 },
+      { id: 'tasbih_1000',    condition: () => (data.tasbihCount || 0) >= 1000 },
+      { id: 'calendar_10',    condition: () => (data.calendar || []).length >= 10 },
+    ];
+    badgeDefs.forEach(def => {
+      if (!data.badges.includes(def.id) && def.condition()) {
+        earned.push(def.id);
+      }
+    });
+    return earned;
+  }, []);
+
+  const updateUserDataWithBadges = useCallback((updater: UserData | ((prev: UserData) => UserData)) => {
+    setUserData(prev => {
+      if (!prev) return prev;
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      const newBadges = checkBadges(next);
+      if (newBadges.length > 0) {
+        const updated = { ...next, badges: [...next.badges, ...newBadges] };
+        // Trigger celebration confetti for each new badge
+        setBadgeCelebration(newBadges);
+        setTimeout(() => setBadgeCelebration([]), 3000);
+        return updated;
+      }
+      return next;
+    });
+  }, [checkBadges]);
 
   useEffect(() => {
     const saved = localStorage.getItem('mishkat_user_data');
+    const today = new Date().toDateString();
+
     if (saved) {
       const parsed = JSON.parse(saved);
       if (!parsed.settings) parsed.settings = { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' };
@@ -1430,6 +1496,20 @@ export default function App() {
           color: parsed.surahs[i]?.color,
         }));
       }
+      // Migrate missing fields
+      if (parsed.loginStreak === undefined) parsed.loginStreak = 1;
+      if (parsed.tasbihSessionBest === undefined) parsed.tasbihSessionBest = 0;
+
+      // Update login streak
+      if (parsed.lastLoginDate !== today) {
+        const lastDate = parsed.lastLoginDate ? new Date(parsed.lastLoginDate) : null;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const isConsecutive = lastDate && lastDate.toDateString() === yesterday.toDateString();
+        parsed.loginStreak = isConsecutive ? (parsed.loginStreak || 1) + 1 : 1;
+        parsed.lastLoginDate = today;
+      }
+
       setUserData(parsed);
     } else {
       const initial: UserData = {
@@ -1440,6 +1520,9 @@ export default function App() {
           { id: '2', text: 'Lire 5 pages par jour', completed: true, month: 3 },
         ],
         badges: [], calendar: [], tasbihCount: 0, onboarded: false,
+        loginStreak: 1,
+        lastLoginDate: today,
+        tasbihSessionBest: 0,
         settings: { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' },
       };
       setUserData(initial);
@@ -1450,6 +1533,12 @@ export default function App() {
   useEffect(() => {
     if (userData) localStorage.setItem('mishkat_user_data', JSON.stringify(userData));
   }, [userData]);
+
+  useEffect(() => {
+    if (badgeCelebration.length > 0) {
+      confetti({ particleCount: 120, spread: 100, origin: { y: 0.5 }, colors: ['#D4AF37', '#8B2635', '#ffffff', '#A8DADC'] });
+    }
+  }, [badgeCelebration]);
 
   if (!userData) return null;
 
@@ -1485,15 +1574,15 @@ export default function App() {
               className="h-full"
             >
               {activeTab === 'dashboard'    && <Dashboard userData={userData} lang={lang} />}
-              {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={setUserData} lang={lang} />}
-              {activeTab === 'coloring'     && <ColoringGrid userData={userData} setUserData={setUserData} lang={lang} />}
-              {activeTab === 'goals'        && <GoalsSection userData={userData} setUserData={setUserData} lang={lang} />}
-              {activeTab === 'tasbih'       && <TasbihSection userData={userData} setUserData={setUserData} lang={lang} />}
-              {activeTab === 'memorization' && <MemorizationSection userData={userData} setUserData={setUserData} lang={lang} />}
-              {activeTab === 'calendar'     && <CalendarSection userData={userData} setUserData={setUserData} lang={lang} />}
+              {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+              {activeTab === 'coloring'     && <ColoringGrid userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+              {activeTab === 'goals'        && <GoalsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+              {activeTab === 'tasbih'       && <TasbihSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+              {activeTab === 'memorization' && <MemorizationSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+              {activeTab === 'calendar'     && <CalendarSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
               {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} />}
-              {activeTab === 'kanban'       && <KanbanSection userData={userData} setUserData={setUserData} lang={lang} />}
-              {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={setUserData} lang={lang} />}
+              {activeTab === 'kanban'       && <KanbanSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+              {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -1521,6 +1610,39 @@ export default function App() {
               </button>
               <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--brand-text-muted)', opacity: 0.6 }}>Par Rahima & hamda_wa_chakra</p>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Badge Celebration Toast */}
+      <AnimatePresence>
+        {badgeCelebration.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 60, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.9 }}
+            transition={{ type: 'spring', bounce: 0.4 }}
+            className="fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2"
+          >
+            {badgeCelebration.map(badgeId => (
+              <div
+                key={badgeId}
+                className="flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl border"
+                style={{
+                  background: 'var(--brand-surface)',
+                  borderColor: 'var(--border-accent)',
+                  backdropFilter: 'blur(20px)',
+                }}
+              >
+                <span className="text-2xl">🏅</span>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--brand-secondary)' }}>
+                    {lang === 'fr' ? 'Nouveau badge débloqué !' : 'شارة جديدة!'}
+                  </p>
+                  <p className="text-sm font-bold" style={{ color: 'var(--brand-primary)' }}>{badgeId.replace(/_/g, ' ')}</p>
+                </div>
+              </div>
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
