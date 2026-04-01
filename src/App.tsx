@@ -970,7 +970,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
               style={{ background: isSaving ? '#22c55e' : 'var(--brand-primary)' }}
             >
               {isSaving ? <Check size={15} /> : <Save size={15} />}
-              <span className="text-xs hidden sm:inline">{isSaving ? (lang === 'fr' ? 'Sauvé' : 'تم') : (lang === 'fr' ? 'Sauver' : 'حفظ')}</span>
+              <span className="text-xs hidden sm:inline">{isSaving ? (lang === 'fr' ? 'Sauvegardé' : 'تم') : (lang === 'fr' ? 'Sauvegarder' : 'حفظ')}</span>
             </button>
           </div>
         </div>
