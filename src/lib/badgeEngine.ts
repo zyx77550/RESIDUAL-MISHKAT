@@ -16,10 +16,7 @@ export function checkAndUnlockBadges(userData: UserData): BadgeUnlockResult {
   const newBadges: Badge[] = [];
 
   for (const badgeDef of BADGE_DEFINITIONS) {
-    // Si déjà débloqué, skip
     if (currentBadgeIds.has(badgeDef.id)) continue;
-
-    // Vérifier la condition
     try {
       if (badgeDef.condition(userData)) {
         const unlockedBadge: Badge = {
@@ -29,7 +26,7 @@ export function checkAndUnlockBadges(userData: UserData): BadgeUnlockResult {
         newBadges.push(unlockedBadge);
       }
     } catch (error) {
-      console.error(`Erreur lors de la vérification du badge ${badgeDef.id}:`, error);
+      console.error(`Erreur badge ${badgeDef.id}:`, error);
     }
   }
 
@@ -44,18 +41,11 @@ export function checkAndUnlockBadges(userData: UserData): BadgeUnlockResult {
  * Met à jour la streak de connexion
  */
 export function updateLoginStreak(userData: UserData): UserData {
-  const { newStreak, isConsecutive } = checkLoginStreak(userData);
+  const { newStreak } = checkLoginStreak(userData);
   const today = new Date().toISOString().split('T')[0];
-
-  // Ne met à jour que si c'est un nouveau jour
   if (userData.lastLoginDate !== today) {
-    return {
-      ...userData,
-      lastLoginDate: today,
-      loginStreak: newStreak
-    };
+    return { ...userData, lastLoginDate: today, loginStreak: newStreak };
   }
-
   return userData;
 }
 
@@ -69,63 +59,25 @@ export function celebrateBadgeUnlock(badge: Badge): void {
     epic: ['#8B2635', '#E63946', '#FF6B6B'],
     legendary: ['#FFD700', '#FFA500', '#FF4500', '#FF6347']
   };
-
   const badgeColors = colors[badge.rarity] || colors.common;
 
-  // Explosion principale
-  confetti({
-    particleCount: 150,
-    spread: 100,
-    origin: { y: 0.6 },
-    colors: badgeColors,
-    disableForReducedMotion: true,
-    zIndex: 9999
-  });
-
-  // Deuxième salve après un délai
+  confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: badgeColors, disableForReducedMotion: true, zIndex: 9999 });
   setTimeout(() => {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.7 },
-      colors: badgeColors,
-      disableForReducedMotion: true,
-      zIndex: 9999,
-      shapes: ['circle', 'square']
-    });
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.7 }, colors: badgeColors, disableForReducedMotion: true, zIndex: 9999, shapes: ['circle', 'square'] });
   }, 200);
 
-  // Troisième salve pour les badges légendaires
   if (badge.rarity === 'legendary') {
     setTimeout(() => {
-      confetti({
-        particleCount: 200,
-        spread: 120,
-        origin: { y: 0.5 },
-        colors: badgeColors,
-        disableForReducedMotion: true,
-        zIndex: 9999,
-        scalar: 1.2
-      });
+      confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 }, colors: badgeColors, disableForReducedMotion: true, zIndex: 9999, scalar: 1.2 });
     }, 400);
   }
 }
 
-/**
- * Formate la date de déblocage
- */
 export function formatUnlockDate(timestamp: number, lang: 'fr' | 'ar'): string {
   const date = new Date(timestamp);
-  return date.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'ar-SA', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
+  return date.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'ar-SA', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-/**
- * Calcule le temps écoulé depuis le déblocage
- */
 export function getTimeSinceUnlock(timestamp: number, lang: 'fr' | 'ar'): string {
   const now = Date.now();
   const diff = now - timestamp;
@@ -139,16 +91,13 @@ export function getTimeSinceUnlock(timestamp: number, lang: 'fr' | 'ar'): string
     if (minutes > 0) return `Il y a ${minutes} minute${minutes > 1 ? 's' : ''}`;
     return "À l'instant";
   } else {
-    if (days > 0) return `منذ ${days} يوم${days > 1 ? '' : ''}`;
-    if (hours > 0) return `منذ ${hours} ساعة${hours > 1 ? '' : ''}`;
-    if (minutes > 0) return `منذ ${minutes} دقيقة${minutes > 1 ? '' : ''}`;
+    if (days > 0) return `منذ ${days} يوم`;
+    if (hours > 0) return `منذ ${hours} ساعة`;
+    if (minutes > 0) return `منذ ${minutes} دقيقة`;
     return 'الآن';
   }
 }
 
-/**
- * Obtient les badges par rareté
- */
 export function getBadgesByRarity(badges: Badge[]): Record<string, Badge[]> {
   return badges.reduce((acc, badge) => {
     if (!acc[badge.rarity]) acc[badge.rarity] = [];
@@ -157,82 +106,45 @@ export function getBadgesByRarity(badges: Badge[]): Record<string, Badge[]> {
   }, {} as Record<string, Badge[]>);
 }
 
-/**
- * Vérifie si un badge spécifique est débloqué
- */
 export function isBadgeUnlocked(userData: UserData, badgeId: string): boolean {
   return userData.badges.some(b => b.id === badgeId);
 }
 
-/**
- * Obtient le prochain badge à débloquer
- */
 export function getNextBadgeToUnlock(userData: UserData): Badge | null {
   const unlockedIds = new Set(userData.badges.map(b => b.id));
-
   for (const badgeDef of BADGE_DEFINITIONS) {
     if (!unlockedIds.has(badgeDef.id)) {
-      // Vérifier si on est proche de débloquer ce badge
       const progress = getBadgeProgress(userData, badgeDef.id);
-      if (progress > 0) {
-        return { ...badgeDef, unlockedAt: undefined };
-      }
+      if (progress > 0) return { ...badgeDef, unlockedAt: undefined };
     }
   }
-
   return null;
 }
 
-/**
- * Calcule la progression vers un badge spécifique
- */
 export function getBadgeProgress(userData: UserData, badgeId: string): number {
   switch (badgeId) {
-    case 'first_surah':
-      return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 1) * 100);
-    case 'five_surahs':
-      return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 5) * 100);
-    case 'ten_surahs':
-      return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 10) * 100);
-    case 'twenty_surahs':
-      return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 20) * 100);
-    case 'fifty_surahs':
-      return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 50) * 100);
-    case 'hundred_surahs':
-      return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 100) * 100);
-    case 'full_hafiz':
-      return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 114) * 100);
-    case 'first_goal':
-      return Math.min(100, (userData.goals.filter(g => g.completed).length / 1) * 100);
-    case 'five_goals':
-      return Math.min(100, (userData.goals.filter(g => g.completed).length / 5) * 100);
-    case 'ten_goals':
-      return Math.min(100, (userData.goals.filter(g => g.completed).length / 10) * 100);
-    case 'streak_3':
-      return Math.min(100, (userData.loginStreak / 3) * 100);
-    case 'streak_7':
-      return Math.min(100, (userData.loginStreak / 7) * 100);
-    case 'streak_30':
-      return Math.min(100, (userData.loginStreak / 30) * 100);
-    case 'tasbih_33':
-      return Math.min(100, (userData.tasbihSessionBest / 33) * 100);
-    case 'tasbih_100':
-      return Math.min(100, (userData.tasbihSessionBest / 100) * 100);
-    case 'tasbih_1000_total':
-      return Math.min(100, (userData.tasbihCount / 1000) * 100);
-    case 'first_note':
-      return Math.min(100, (userData.diftarPages.length / 1) * 100);
-    case 'five_notes':
-      return Math.min(100, (userData.diftarPages.length / 5) * 100);
-    case 'artist':
-      return Math.min(100, (userData.surahs.filter(s => s.color).length / 30) * 100);
-    case 'color_master':
-      return Math.min(100, (userData.surahs.filter(s => s.color).length / 60) * 100);
-    case 'first_calendar':
-      return Math.min(100, (userData.calendar.length / 1) * 100);
-    case 'week_calendar':
-      return Math.min(100, (userData.calendar.length / 7) * 100);
-    default:
-      return 0;
+    case 'first_surah':        return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 1) * 100);
+    case 'five_surahs':        return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 5) * 100);
+    case 'ten_surahs':         return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 10) * 100);
+    case 'twenty_surahs':      return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 20) * 100);
+    case 'fifty_surahs':       return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 50) * 100);
+    case 'hundred_surahs':     return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 100) * 100);
+    case 'full_hafiz':         return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 114) * 100);
+    case 'first_goal':         return Math.min(100, (userData.goals.filter(g => g.completed).length / 1) * 100);
+    case 'five_goals':         return Math.min(100, (userData.goals.filter(g => g.completed).length / 5) * 100);
+    case 'ten_goals':          return Math.min(100, (userData.goals.filter(g => g.completed).length / 10) * 100);
+    case 'streak_3':           return Math.min(100, ((userData.loginStreak ?? 0) / 3) * 100);
+    case 'streak_7':           return Math.min(100, ((userData.loginStreak ?? 0) / 7) * 100);
+    case 'streak_30':          return Math.min(100, ((userData.loginStreak ?? 0) / 30) * 100);
+    case 'tasbih_33':          return Math.min(100, ((userData.tasbihSessionBest ?? 0) / 33) * 100);
+    case 'tasbih_100':         return Math.min(100, ((userData.tasbihSessionBest ?? 0) / 100) * 100);
+    case 'tasbih_1000_total':  return Math.min(100, ((userData.tasbihCount ?? 0) / 1000) * 100);
+    case 'first_note':         return Math.min(100, (userData.diftarPages.length / 1) * 100);
+    case 'five_notes':         return Math.min(100, (userData.diftarPages.length / 5) * 100);
+    case 'artist':             return Math.min(100, (userData.surahs.filter(s => s.color).length / 30) * 100);
+    case 'color_master':       return Math.min(100, (userData.surahs.filter(s => s.color).length / 60) * 100);
+    case 'first_calendar':     return Math.min(100, (userData.calendar.length / 1) * 100);
+    case 'week_calendar':      return Math.min(100, (userData.calendar.length / 7) * 100);
+    default:                   return 0;
   }
 }
