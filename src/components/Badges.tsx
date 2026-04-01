@@ -227,7 +227,7 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
         })}
       </div>
 
-      {/* Modal détail badge (tap sur mobile) */}
+      {/* Modal détail badge */}
       <AnimatePresence>
         {selectedBadge && (
           <motion.div
@@ -247,14 +247,11 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
               style={{ borderColor: getRarityColor(selectedBadge.rarity), borderWidth: '2px' }}
               onClick={e => e.stopPropagation()}
             >
-              {/* Glow */}
               <div className="absolute -top-16 -right-16 w-32 h-32 rounded-full opacity-20 blur-3xl" style={{ backgroundColor: getRarityColor(selectedBadge.rarity) }} />
               <div className="absolute -bottom-16 -left-16 w-32 h-32 rounded-full opacity-20 blur-3xl" style={{ backgroundColor: getRarityColor(selectedBadge.rarity) }} />
-
               <button onClick={() => setSelectedBadge(null)} className="absolute top-4 right-4 p-2 rounded-full" style={{ background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', color: 'var(--brand-text-muted)' }}>
                 <X size={16} />
               </button>
-
               <div className="flex flex-col items-center text-center gap-4 relative z-10">
                 <div
                   className="w-16 h-16 rounded-2xl flex items-center justify-center"
@@ -262,7 +259,6 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
                 >
                   {(() => { const IC = ICON_MAP[selectedBadge.icon] || Award; return <IC size={32} />; })()}
                 </div>
-
                 <div>
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider mb-2"
                     style={{ backgroundColor: `color-mix(in srgb, ${getRarityColor(selectedBadge.rarity)} 15%, transparent)`, color: getRarityColor(selectedBadge.rarity) }}>
@@ -276,7 +272,6 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
                     {lang === 'fr' ? selectedBadge.description : selectedBadge.descriptionAr}
                   </p>
                 </div>
-
                 {unlockedIds.has(selectedBadge.id) ? (
                   <div className="flex flex-col items-center gap-1">
                     <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: getRarityColor(selectedBadge.rarity) }}>
