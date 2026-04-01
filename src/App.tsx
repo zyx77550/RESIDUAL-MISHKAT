@@ -43,8 +43,9 @@ import {
   Settings2,
 } from 'lucide-react';
 import { cn } from './lib/utils';
-import { Surah, DiftarPage, UserData, generateAllSurahs, Stroke } from './types';
+import { Surah, DiftarPage, UserData, Badge, generateAllSurahs, Stroke, checkLoginStreak } from './types';
 import confetti from 'canvas-confetti';
+import { checkAndUnlockBadges, celebrateBadgeUnlock } from './lib/badgeEngine';
 
 // ═══════════════════════════════════════════════════════
 // SIDEBAR
@@ -189,8 +190,8 @@ const Dashboard = ({ userData, lang }: { userData: UserData; lang: string }) => 
           </div>
         </motion.div>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-right hidden sm:block">
-          <p className="text-[9px] uppercase tracking-widest font-black" style={{ color: 'var(--brand-text-muted)' }}>Curateurs de Lumière</p>
-          <p className="text-base font-semibold mt-0.5" style={{ color: 'var(--brand-secondary)' }}>Rahima & Hamda</p>
+          <p className="text-[9px] uppercase tracking-widest font-black" style={{ color: 'var(--brand-text-muted)' }}>Pensée et Dévloppée par</p>
+          <p className="text-base font-semibold mt-0.5" style={{ color: 'var(--brand-secondary)' }}>Rahima @Hamda_wa_chakra</p>
         </motion.div>
       </header>
 
@@ -1435,53 +1436,28 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userData, setUserData]             = useState<UserData | null>(null);
-  const [badgeCelebration, setBadgeCelebration] = useState<string[]>([]);
-
-  // Badge definitions — inline engine
-  const checkBadges = useCallback((data: UserData): string[] => {
-    const earned: string[] = [];
-    const memorized = data.surahs.filter(s => s.status === 'memorized').length;
-    const badgeDefs = [
-      { id: 'first_surah',    condition: () => memorized >= 1 },
-      { id: 'five_surahs',    condition: () => memorized >= 5 },
-      { id: 'ten_surahs',     condition: () => memorized >= 10 },
-      { id: 'quarter_quran',  condition: () => memorized >= 28 },
-      { id: 'half_quran',     condition: () => memorized >= 57 },
-      { id: 'full_quran',     condition: () => memorized >= 114 },
-      { id: 'first_goal',     condition: () => data.goals.some(g => g.completed) },
-      { id: 'streak_7',       condition: () => (data.loginStreak || 0) >= 7 },
-      { id: 'streak_30',      condition: () => (data.loginStreak || 0) >= 30 },
-      { id: 'tasbih_100',     condition: () => (data.tasbihCount || 0) >= 100 },
-      { id: 'tasbih_1000',    condition: () => (data.tasbihCount || 0) >= 1000 },
-      { id: 'calendar_10',    condition: () => (data.calendar || []).length >= 10 },
-    ];
-    badgeDefs.forEach(def => {
-      if (!data.badges.includes(def.id) && def.condition()) {
-        earned.push(def.id);
-      }
-    });
-    return earned;
-  }, []);
+  const [newlyUnlocked, setNewlyUnlocked]   = useState<Badge[]>([]);
 
   const updateUserDataWithBadges = useCallback((updater: UserData | ((prev: UserData) => UserData)) => {
     setUserData(prev => {
       if (!prev) return prev;
       const next = typeof updater === 'function' ? updater(prev) : updater;
-      const newBadges = checkBadges(next);
+      const { newBadges } = checkAndUnlockBadges(next);
       if (newBadges.length > 0) {
         const updated = { ...next, badges: [...next.badges, ...newBadges] };
-        // Trigger celebration confetti for each new badge
-        setBadgeCelebration(newBadges);
-        setTimeout(() => setBadgeCelebration([]), 3000);
+        setNewlyUnlocked(newBadges);
+        newBadges.forEach((badge, i) => {
+          setTimeout(() => celebrateBadgeUnlock(badge), i * 800);
+        });
         return updated;
       }
       return next;
     });
-  }, [checkBadges]);
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem('mishkat_user_data');
-    const today = new Date().toDateString();
+    const today = new Date().toISOString().split('T')[0];
 
     if (saved) {
       const parsed = JSON.parse(saved);
@@ -1500,13 +1476,11 @@ export default function App() {
       if (parsed.loginStreak === undefined) parsed.loginStreak = 1;
       if (parsed.tasbihSessionBest === undefined) parsed.tasbihSessionBest = 0;
 
-      // Update login streak
+      // Update login streak via the canonical helper
+      const today = new Date().toISOString().split('T')[0];
       if (parsed.lastLoginDate !== today) {
-        const lastDate = parsed.lastLoginDate ? new Date(parsed.lastLoginDate) : null;
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const isConsecutive = lastDate && lastDate.toDateString() === yesterday.toDateString();
-        parsed.loginStreak = isConsecutive ? (parsed.loginStreak || 1) + 1 : 1;
+        const { newStreak } = checkLoginStreak(parsed);
+        parsed.loginStreak = newStreak;
         parsed.lastLoginDate = today;
       }
 
@@ -1535,10 +1509,11 @@ export default function App() {
   }, [userData]);
 
   useEffect(() => {
-    if (badgeCelebration.length > 0) {
-      confetti({ particleCount: 120, spread: 100, origin: { y: 0.5 }, colors: ['#D4AF37', '#8B2635', '#ffffff', '#A8DADC'] });
+    if (newlyUnlocked.length > 0) {
+      const timer = setTimeout(() => setNewlyUnlocked([]), 10000);
+      return () => clearTimeout(timer);
     }
-  }, [badgeCelebration]);
+  }, [newlyUnlocked]);
 
   if (!userData) return null;
 
@@ -1580,7 +1555,7 @@ export default function App() {
               {activeTab === 'tasbih'       && <TasbihSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
               {activeTab === 'memorization' && <MemorizationSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
               {activeTab === 'calendar'     && <CalendarSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-              {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} />}
+              {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked} />}
               {activeTab === 'kanban'       && <KanbanSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
               {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
             </motion.div>
@@ -1610,39 +1585,6 @@ export default function App() {
               </button>
               <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--brand-text-muted)', opacity: 0.6 }}>Par Rahima & hamda_wa_chakra</p>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Badge Celebration Toast */}
-      <AnimatePresence>
-        {badgeCelebration.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 60, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 40, scale: 0.9 }}
-            transition={{ type: 'spring', bounce: 0.4 }}
-            className="fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2"
-          >
-            {badgeCelebration.map(badgeId => (
-              <div
-                key={badgeId}
-                className="flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl border"
-                style={{
-                  background: 'var(--brand-surface)',
-                  borderColor: 'var(--border-accent)',
-                  backdropFilter: 'blur(20px)',
-                }}
-              >
-                <span className="text-2xl">🏅</span>
-                <div>
-                  <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--brand-secondary)' }}>
-                    {lang === 'fr' ? 'Nouveau badge débloqué !' : 'شارة جديدة!'}
-                  </p>
-                  <p className="text-sm font-bold" style={{ color: 'var(--brand-primary)' }}>{badgeId.replace(/_/g, ' ')}</p>
-                </div>
-              </div>
-            ))}
           </motion.div>
         )}
       </AnimatePresence>
