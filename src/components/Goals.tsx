@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Circle, Plus, Trash2, Target, TrendingUp, Award } from 'lucide-react';
 import { UserData, Goal } from '../types';
 import { cn } from '../lib/utils';
-import { checkAndUnlockBadges, celebrateBadgeUnlock } from '../lib/badgeEngine';
 
 interface GoalsSectionProps {
   userData: UserData;
@@ -13,7 +12,6 @@ interface GoalsSectionProps {
 
 export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps) => {
   const [newGoal, setNewGoal] = useState('');
-  const [newlyUnlocked, setNewlyUnlocked] = useState<any[]>([]);
 
   const addGoal = () => {
     if (!newGoal.trim()) return;
@@ -23,45 +21,15 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
       completed: false,
       month: new Date().getMonth()
     };
-
-    setUserData((prev: UserData) => {
-      const newData = {
-        ...prev,
-        goals: [goal, ...prev.goals]
-      };
-      return newData;
-    });
+    setUserData((prev: UserData) => ({ ...prev, goals: [goal, ...prev.goals] }));
     setNewGoal('');
   };
 
   const toggleGoal = (id: string) => {
-    setUserData((prev: UserData) => {
-      // Mettre à jour l'objectif
-      const updatedGoals = prev.goals.map((g: Goal) => 
-        g.id === id ? { ...g, completed: !g.completed } : g
-      );
-
-      const newData = {
-        ...prev,
-        goals: updatedGoals
-      };
-
-      // 🔥 VÉRIFIER LES BADGES APRÈS AVOIR COMPLÉTÉ UN OBJECTIF
-      const { newBadges } = checkAndUnlockBadges(newData);
-
-      if (newBadges.length > 0) {
-        newData.badges = [...prev.badges, ...newBadges];
-        // Célébrer les nouveaux badges
-        setTimeout(() => {
-          newBadges.forEach((badge, index) => {
-            setTimeout(() => celebrateBadgeUnlock(badge), index * 600);
-          });
-          setNewlyUnlocked(newBadges);
-        }, 100);
-      }
-
-      return newData;
-    });
+    setUserData((prev: UserData) => ({
+      ...prev,
+      goals: prev.goals.map((g: Goal) => g.id === id ? { ...g, completed: !g.completed } : g)
+    }));
   };
 
   const deleteGoal = (id: string) => {
@@ -77,7 +45,6 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
 
   return (
     <div className="space-y-8">
-      {/* Header avec statistiques */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold" style={{ color: 'var(--brand-primary)' }}>
@@ -93,7 +60,7 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
             <div className="relative w-14 h-14">
               <svg className="w-full h-full transform -rotate-90">
                 <circle cx="50%" cy="50%" r="40%" stroke="currentColor" strokeWidth="6" fill="transparent" style={{ color: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)' }} />
-                <circle cx="50%" cy="50%" r="40%" stroke="var(--brand-primary)" strokeWidth="6" fill="transparent" strokeDasharray="100 100" pathLength="1" style={{ pathLength: progress / 100 }} strokeLinecap="round" />
+                <circle cx="50%" cy="50%" r="40%" stroke="var(--brand-primary)" strokeWidth="6" fill="transparent" strokeDasharray="100 100" pathLength="1" style={{ pathLength: progress / 100 } as React.CSSProperties} strokeLinecap="round" />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <TrendingUp size={16} style={{ color: 'var(--brand-primary)' }} />
@@ -109,20 +76,16 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
         )}
       </header>
 
-      {/* Input d'ajout */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <input 
+        <input
           value={newGoal}
           onChange={(e) => setNewGoal(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && addGoal()}
           placeholder={lang === 'fr' ? 'Ajouter un objectif...' : 'أضف هدفاً جديداً...'}
-          className="flex-1 bg-surface border-none rounded-2xl px-6 py-4 shadow-sm focus:ring-2 focus:ring-secondary min-w-0 text-primary"
-          style={{ 
-            backgroundColor: 'var(--brand-surface)',
-            color: 'var(--brand-text-main)'
-          }}
+          className="flex-1 bg-surface border-none rounded-2xl px-6 py-4 shadow-sm focus:ring-2 min-w-0 text-primary"
+          style={{ backgroundColor: 'var(--brand-surface)', color: 'var(--brand-text-main)' }}
         />
-        <motion.button 
+        <motion.button
           onClick={addGoal}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -133,11 +96,10 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
         </motion.button>
       </div>
 
-      {/* Liste des objectifs */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <AnimatePresence mode="popLayout">
           {userData.goals.map((goal: Goal, index: number) => (
-            <motion.div 
+            <motion.div
               layout
               key={goal.id}
               initial={{ opacity: 0, y: 20 }}
@@ -155,57 +117,33 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
               }}
               onClick={() => toggleGoal(goal.id)}
             >
-              <motion.button 
+              <motion.button
                 whileTap={{ scale: 0.9 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleGoal(goal.id);
-                }}
+                onClick={(e) => { e.stopPropagation(); toggleGoal(goal.id); }}
                 className="flex-shrink-0"
               >
                 {goal.completed ? (
-                  <CheckCircle2 
-                    size={28} 
-                    style={{ color: 'var(--brand-secondary)' }}
-                    strokeWidth={2.5}
-                  />
+                  <CheckCircle2 size={28} style={{ color: 'var(--brand-secondary)' }} strokeWidth={2.5} />
                 ) : (
-                  <Circle 
-                    size={28} 
-                    style={{ color: 'var(--brand-text-muted)' }}
-                    strokeWidth={2}
-                  />
+                  <Circle size={28} style={{ color: 'var(--brand-text-muted)' }} strokeWidth={2} />
                 )}
               </motion.button>
 
-              <span 
-                className={cn(
-                  "flex-1 text-lg",
-                  goal.completed && "line-through"
-                )}
-                style={{ 
-                  color: goal.completed ? 'var(--brand-text-muted)' : 'var(--brand-text-main)',
-                  fontWeight: goal.completed ? 400 : 500
-                }}
+              <span
+                className={cn("flex-1 text-lg", goal.completed && "line-through")}
+                style={{ color: goal.completed ? 'var(--brand-text-muted)' : 'var(--brand-text-main)', fontWeight: goal.completed ? 400 : 500 }}
               >
                 {goal.text}
               </span>
 
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteGoal(goal.id);
-                }}
+                onClick={(e) => { e.stopPropagation(); deleteGoal(goal.id); }}
                 className="flex-shrink-0 p-2 rounded-full transition-colors"
                 style={{ color: 'var(--brand-text-muted)' }}
-                onMouseEnter={(e) => {
-                  (e.target as HTMLElement).style.color = '#ef4444';
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLElement).style.color = 'var(--brand-text-muted)';
-                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#ef4444'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--brand-text-muted)'; }}
               >
                 <Trash2 size={20} />
               </motion.button>
@@ -214,48 +152,29 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
         </AnimatePresence>
       </div>
 
-      {/* Message si vide */}
       {userData.goals.length === 0 && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-16"
-        >
-          <Target 
-            size={64} 
-            className="mx-auto mb-4 opacity-30"
-            style={{ color: 'var(--brand-primary)' }}
-          />
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16">
+          <Target size={64} className="mx-auto mb-4 opacity-30" style={{ color: 'var(--brand-primary)' }} />
           <p style={{ color: 'var(--brand-text-muted)' }}>
-            {lang === 'fr' 
-              ? 'Aucun objectif pour le moment. Commencez par en créer un !' 
-              : 'لا توجد أهداف حالياً. ابدأ بإنشاء واحد!'}
+            {lang === 'fr' ? 'Aucun objectif pour le moment. Commencez par en créer un !' : 'لا توجد أهداف حالياً. ابدأ بإنشاء واحد!'}
           </p>
         </motion.div>
       )}
 
-      {/* Section motivation */}
       {completedCount > 0 && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="glass-card p-6 flex items-center gap-4"
           style={{ backgroundColor: 'color-mix(in srgb, var(--brand-secondary) 10%, var(--brand-surface))' }}
         >
-          <Award 
-            size={32} 
-            style={{ color: 'var(--brand-secondary)' }}
-          />
+          <Award size={32} style={{ color: 'var(--brand-secondary)' }} />
           <div>
             <p className="font-bold" style={{ color: 'var(--brand-primary)' }}>
-              {lang === 'fr' 
-                ? `Bravo ! Vous avez complété ${completedCount} objectif${completedCount > 1 ? 's' : ''} !` 
-                : `أحسنت! أكملت ${completedCount} هدفاً!`}
+              {lang === 'fr' ? `Bravo ! Vous avez complété ${completedCount} objectif${completedCount > 1 ? 's' : ''} !` : `أحسنت! أكملت ${completedCount} هدفاً!`}
             </p>
             <p className="text-sm" style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' 
-                ? 'Continuez comme ça pour débloquer plus de badges.' 
-                : 'استمر هكذا لفتح المزيد من الشارات.'}
+              {lang === 'fr' ? 'Continuez comme ça pour débloquer plus de badges.' : 'استمر هكذا لفتح المزيد من الشارات.'}
             </p>
           </div>
         </motion.div>
