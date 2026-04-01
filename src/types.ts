@@ -47,16 +47,316 @@ export interface UserSettings {
   avatar?: string;
 }
 
+export interface Goal {
+  id: string;
+  text: string;
+  completed: boolean;
+  month: number;
+}
+
+export interface Badge {
+  id: string;
+  icon: string;
+  title: string;
+  titleAr: string;
+  description: string;
+  descriptionAr: string;
+  color: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  unlockedAt?: number;
+  condition: (userData: UserData) => boolean;
+}
+
 export interface UserData {
   surahs: Surah[];
   diftarPages: DiftarPage[];
-  goals: { id: string; text: string; completed: boolean; month: number }[];
-  badges: string[];
+  goals: Goal[];
+  badges: Badge[];
   calendar: { date: string; prayers: string[]; fasting: boolean; pagesRead: number }[];
   tasbihCount: number;
+  tasbihSessionBest: number;
   onboarded: boolean;
   settings: UserSettings;
+  lastLoginDate?: string;
+  loginStreak: number;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// DÉFINITIONS DES BADGES AVEC CONDITIONS
+// ═══════════════════════════════════════════════════════════════
+
+export const BADGE_DEFINITIONS: Omit<Badge, 'unlockedAt'>[] = [
+  {
+    id: 'first_surah',
+    icon: 'Star',
+    title: 'Première Sourate',
+    titleAr: 'أول سورة',
+    description: 'Mémorisez votre première sourate',
+    descriptionAr: 'احفظ سورتك الأولى',
+    color: 'text-yellow-500',
+    rarity: 'common',
+    condition: (data) => data.surahs.filter(s => s.status === 'memorized').length >= 1
+  },
+  {
+    id: 'five_surahs',
+    icon: 'Award',
+    title: 'Cinq Sourates',
+    titleAr: 'خمس سور',
+    description: 'Mémorisez 5 sourates',
+    descriptionAr: 'احفظ 5 سور',
+    color: 'text-blue-500',
+    rarity: 'common',
+    condition: (data) => data.surahs.filter(s => s.status === 'memorized').length >= 5
+  },
+  {
+    id: 'ten_surahs',
+    icon: 'Trophy',
+    title: 'Dizaine Complète',
+    titleAr: 'عشر سور',
+    description: 'Mémorisez 10 sourates',
+    descriptionAr: 'احفظ 10 سور',
+    color: 'text-purple-500',
+    rarity: 'common',
+    condition: (data) => data.surahs.filter(s => s.status === 'memorized').length >= 10
+  },
+  {
+    id: 'twenty_surahs',
+    icon: 'Medal',
+    title: 'Vingt Sourates',
+    titleAr: 'عشرون سورة',
+    description: 'Mémorisez 20 sourates',
+    descriptionAr: 'احفظ 20 سورة',
+    color: 'text-indigo-500',
+    rarity: 'rare',
+    condition: (data) => data.surahs.filter(s => s.status === 'memorized').length >= 20
+  },
+  {
+    id: 'fifty_surahs',
+    icon: 'Crown',
+    title: 'Half Hafiz',
+    titleAr: 'نصف الحافظ',
+    description: 'Mémorisez 50 sourates',
+    descriptionAr: 'احفظ 50 سورة',
+    color: 'text-amber-600',
+    rarity: 'epic',
+    condition: (data) => data.surahs.filter(s => s.status === 'memorized').length >= 50
+  },
+  {
+    id: 'hundred_surahs',
+    icon: 'Gem',
+    title: 'Cent Sourates',
+    titleAr: 'مائة سورة',
+    description: 'Mémorisez 100 sourates',
+    descriptionAr: 'احفظ 100 سورة',
+    color: 'text-emerald-600',
+    rarity: 'legendary',
+    condition: (data) => data.surahs.filter(s => s.status === 'memorized').length >= 100
+  },
+  {
+    id: 'full_hafiz',
+    icon: 'Crown',
+    title: 'Hafiz Complet',
+    titleAr: 'حافظ كامل',
+    description: 'Mémorisez les 114 sourates du Coran',
+    descriptionAr: 'احفظ القرآن كاملاً - 114 سورة',
+    color: 'text-yellow-600',
+    rarity: 'legendary',
+    condition: (data) => data.surahs.filter(s => s.status === 'memorized').length >= 114
+  },
+  {
+    id: 'juz_amma',
+    icon: 'BookOpen',
+    title: 'Juz Amma',
+    titleAr: 'جزء عم',
+    description: 'Complétez tout le Juz Amma (sourates 78-114)',
+    descriptionAr: 'أكمل جزء عم بالكامل',
+    color: 'text-green-500',
+    rarity: 'rare',
+    condition: (data) => {
+      const juzAmma = data.surahs.filter(s => s.id >= 78 && s.id <= 114);
+      return juzAmma.length > 0 && juzAmma.every(s => s.status === 'memorized');
+    }
+  },
+  {
+    id: 'juz_tabarak',
+    icon: 'BookMarked',
+    title: 'Juz Tabarak',
+    titleAr: 'جزء تبارك',
+    description: 'Complétez le Juz Tabarak (sourates 67-77)',
+    descriptionAr: 'أكمل جزء تبارك',
+    color: 'text-teal-500',
+    rarity: 'rare',
+    condition: (data) => {
+      const juzTabarak = data.surahs.filter(s => s.id >= 67 && s.id <= 77);
+      return juzTabarak.length > 0 && juzTabarak.every(s => s.status === 'memorized');
+    }
+  },
+  {
+    id: 'first_goal',
+    icon: 'Target',
+    title: 'Premier Objectif',
+    titleAr: 'أول هدف',
+    description: 'Complétez votre premier objectif',
+    descriptionAr: 'أكمل هدفك الأول',
+    color: 'text-red-500',
+    rarity: 'common',
+    condition: (data) => data.goals.filter(g => g.completed).length >= 1
+  },
+  {
+    id: 'five_goals',
+    icon: 'Flag',
+    title: 'Planificateur',
+    titleAr: 'المخطط',
+    description: 'Complétez 5 objectifs',
+    descriptionAr: 'أكمل 5 أهداف',
+    color: 'text-orange-500',
+    rarity: 'common',
+    condition: (data) => data.goals.filter(g => g.completed).length >= 5
+  },
+  {
+    id: 'ten_goals',
+    icon: 'ClipboardCheck',
+    title: 'Objectifs Maître',
+    titleAr: 'سيد الأهداف',
+    description: 'Complétez 10 objectifs',
+    descriptionAr: 'أكمل 10 أهداف',
+    color: 'text-pink-500',
+    rarity: 'rare',
+    condition: (data) => data.goals.filter(g => g.completed).length >= 10
+  },
+  {
+    id: 'streak_3',
+    icon: 'Flame',
+    title: '3 Jours de Foi',
+    titleAr: '3 أيام إيمان',
+    description: 'Connectez-vous 3 jours consécutifs',
+    descriptionAr: 'سجل دخولك 3 أيام متتالية',
+    color: 'text-orange-600',
+    rarity: 'common',
+    condition: (data) => data.loginStreak >= 3
+  },
+  {
+    id: 'streak_7',
+    icon: 'Zap',
+    title: 'Semaine de Foi',
+    titleAr: 'أسبوع إيمان',
+    description: 'Connectez-vous 7 jours consécutifs',
+    descriptionAr: 'سجل دخولك لمدة أسبوع',
+    color: 'text-yellow-500',
+    rarity: 'rare',
+    condition: (data) => data.loginStreak >= 7
+  },
+  {
+    id: 'streak_30',
+    icon: 'Moon',
+    title: 'Mois de Dévotion',
+    titleAr: 'شهر تفانٍ',
+    description: 'Connectez-vous 30 jours consécutifs',
+    descriptionAr: 'سجل دخولك لمدة شهر',
+    color: 'text-purple-600',
+    rarity: 'epic',
+    condition: (data) => data.loginStreak >= 30
+  },
+  {
+    id: 'tasbih_33',
+    icon: 'Heart',
+    title: 'Tasbih Débutant',
+    titleAr: 'مبتدئ التسبيح',
+    description: 'Faites 33 tasbih en une session',
+    descriptionAr: 'أكمل 33 تسبيحة في جلسة',
+    color: 'text-rose-400',
+    rarity: 'common',
+    condition: (data) => data.tasbihSessionBest >= 33
+  },
+  {
+    id: 'tasbih_100',
+    icon: 'Sparkles',
+    title: 'Dhikr Master',
+    titleAr: 'سيد الذكر',
+    description: 'Faites 100 tasbih en une session',
+    descriptionAr: 'أكمل 100 تسبيحة في جلسة',
+    color: 'text-rose-500',
+    rarity: 'rare',
+    condition: (data) => data.tasbihSessionBest >= 100
+  },
+  {
+    id: 'tasbih_1000_total',
+    icon: 'Infinity',
+    title: 'Mille Dhikr',
+    titleAr: 'ألف ذكر',
+    description: 'Faites 1000 tasbih au total',
+    descriptionAr: 'أكمل 1000 تسبيحة إجمالاً',
+    color: 'text-rose-600',
+    rarity: 'epic',
+    condition: (data) => data.tasbihCount >= 1000
+  },
+  {
+    id: 'first_note',
+    icon: 'NotebookPen',
+    title: 'Première Note',
+    titleAr: 'أول ملاحظة',
+    description: 'Créez votre première page dans le Diftar',
+    descriptionAr: 'أنشئ صفحتك الأولى في الدفتر',
+    color: 'text-blue-400',
+    rarity: 'common',
+    condition: (data) => data.diftarPages.length >= 1
+  },
+  {
+    id: 'five_notes',
+    icon: 'BookText',
+    title: 'Écrivain',
+    titleAr: 'كاتب',
+    description: 'Créez 5 pages dans le Diftar',
+    descriptionAr: 'أنشئ 5 صفحات في الدفتر',
+    color: 'text-blue-500',
+    rarity: 'common',
+    condition: (data) => data.diftarPages.length >= 5
+  },
+  {
+    id: 'artist',
+    icon: 'Palette',
+    title: 'Artiste du Coran',
+    titleAr: 'فنان القرآن',
+    description: 'Coloriez 30 sourates dans la grille',
+    descriptionAr: 'لوّن 30 سورة في الشبكة',
+    color: 'text-pink-400',
+    rarity: 'rare',
+    condition: (data) => data.surahs.filter(s => s.color).length >= 30
+  },
+  {
+    id: 'color_master',
+    icon: 'Paintbrush',
+    title: 'Maître de la Couleur',
+    titleAr: 'سيد الألوان',
+    description: 'Coloriez 60 sourates dans la grille',
+    descriptionAr: 'لوّن 60 سورة في الشبكة',
+    color: 'text-pink-500',
+    rarity: 'epic',
+    condition: (data) => data.surahs.filter(s => s.color).length >= 60
+  },
+  {
+    id: 'first_calendar',
+    icon: 'Calendar',
+    title: 'Premier Jour',
+    titleAr: 'أول يوم',
+    description: 'Marquez votre premier jour dans le calendrier',
+    descriptionAr: 'سجل يومك الأول في التقويم',
+    color: 'text-cyan-500',
+    rarity: 'common',
+    condition: (data) => data.calendar.length >= 1
+  },
+  {
+    id: 'week_calendar',
+    icon: 'CalendarDays',
+    title: 'Semaine Complète',
+    titleAr: 'أسبوع كامل',
+    description: 'Marquez 7 jours dans le calendrier',
+    descriptionAr: 'سجل 7 أيام في التقويم',
+    color: 'text-cyan-600',
+    rarity: 'common',
+    condition: (data) => data.calendar.length >= 7
+  }
+];
 
 // ═══════════════════════════════════════════════════════════════
 // TOUTES LES 114 SOURATES DU CORAN — NOMS COMPLETS
@@ -185,3 +485,49 @@ export const generateAllSurahs = (): Surah[] => {
     color: undefined,
   }));
 };
+
+// ═══════════════════════════════════════════════════════════════
+// FONCTIONS UTILITAIRES POUR LES BADGES
+// ═══════════════════════════════════════════════════════════════
+
+export function checkLoginStreak(userData: UserData): { newStreak: number; isConsecutive: boolean } {
+  const today = new Date().toISOString().split('T')[0];
+  const lastLogin = userData.lastLoginDate;
+
+  if (!lastLogin) {
+    return { newStreak: 1, isConsecutive: false };
+  }
+
+  const lastDate = new Date(lastLogin);
+  const todayDate = new Date(today);
+  const diffTime = todayDate.getTime() - lastDate.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return { newStreak: userData.loginStreak, isConsecutive: true };
+  } else if (diffDays === 1) {
+    return { newStreak: userData.loginStreak + 1, isConsecutive: true };
+  } else {
+    return { newStreak: 1, isConsecutive: false };
+  }
+}
+
+export function getRarityColor(rarity: string): string {
+  switch (rarity) {
+    case 'common': return '#A8DADC';
+    case 'rare': return '#D4AF37';
+    case 'epic': return '#8B2635';
+    case 'legendary': return '#FFD700';
+    default: return '#A8DADC';
+  }
+}
+
+export function getRarityLabel(rarity: string, lang: 'fr' | 'ar'): string {
+  const labels = {
+    common: { fr: 'Commun', ar: 'شائع' },
+    rare: { fr: 'Rare', ar: 'نادر' },
+    epic: { fr: 'Épique', ar: 'ملحمي' },
+    legendary: { fr: 'Légendaire', ar: 'أسطوري' }
+  };
+  return labels[rarity as keyof typeof labels]?.[lang] || rarity;
+}
