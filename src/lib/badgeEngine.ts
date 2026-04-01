@@ -137,7 +137,7 @@ export function getTimeSinceUnlock(timestamp: number, lang: 'fr' | 'ar'): string
     if (days > 0) return `Il y a ${days} jour${days > 1 ? 's' : ''}`;
     if (hours > 0) return `Il y a ${hours} heure${hours > 1 ? 's' : ''}`;
     if (minutes > 0) return `Il y a ${minutes} minute${minutes > 1 ? 's' : ''}`;
-    return 'À l'instant';
+    return "À l'instant";
   } else {
     if (days > 0) return `منذ ${days} يوم${days > 1 ? '' : ''}`;
     if (hours > 0) return `منذ ${hours} ساعة${hours > 1 ? '' : ''}`;
