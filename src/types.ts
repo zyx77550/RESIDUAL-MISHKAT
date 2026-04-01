@@ -179,7 +179,7 @@ export const BADGE_DEFINITIONS: Omit<Badge, 'unlockedAt'>[] = [
   },
   {
     id: 'juz_tabarak',
-    icon: 'BookMarked',
+    icon: 'Bookmark',           // ← corrigé (était 'BookMarked')
     title: 'Juz Tabarak',
     titleAr: 'جزء تبارك',
     description: 'Complétez le Juz Tabarak (sourates 67-77)',
@@ -233,7 +233,7 @@ export const BADGE_DEFINITIONS: Omit<Badge, 'unlockedAt'>[] = [
     descriptionAr: 'سجل دخولك 3 أيام متتالية',
     color: 'text-orange-600',
     rarity: 'common',
-    condition: (data) => data.loginStreak >= 3
+    condition: (data) => (data.loginStreak ?? 0) >= 3
   },
   {
     id: 'streak_7',
@@ -244,7 +244,7 @@ export const BADGE_DEFINITIONS: Omit<Badge, 'unlockedAt'>[] = [
     descriptionAr: 'سجل دخولك لمدة أسبوع',
     color: 'text-yellow-500',
     rarity: 'rare',
-    condition: (data) => data.loginStreak >= 7
+    condition: (data) => (data.loginStreak ?? 0) >= 7
   },
   {
     id: 'streak_30',
@@ -255,7 +255,7 @@ export const BADGE_DEFINITIONS: Omit<Badge, 'unlockedAt'>[] = [
     descriptionAr: 'سجل دخولك لمدة شهر',
     color: 'text-purple-600',
     rarity: 'epic',
-    condition: (data) => data.loginStreak >= 30
+    condition: (data) => (data.loginStreak ?? 0) >= 30
   },
   {
     id: 'tasbih_33',
@@ -266,7 +266,7 @@ export const BADGE_DEFINITIONS: Omit<Badge, 'unlockedAt'>[] = [
     descriptionAr: 'أكمل 33 تسبيحة في جلسة',
     color: 'text-rose-400',
     rarity: 'common',
-    condition: (data) => data.tasbihSessionBest >= 33
+    condition: (data) => (data.tasbihSessionBest ?? 0) >= 33
   },
   {
     id: 'tasbih_100',
@@ -277,18 +277,18 @@ export const BADGE_DEFINITIONS: Omit<Badge, 'unlockedAt'>[] = [
     descriptionAr: 'أكمل 100 تسبيحة في جلسة',
     color: 'text-rose-500',
     rarity: 'rare',
-    condition: (data) => data.tasbihSessionBest >= 100
+    condition: (data) => (data.tasbihSessionBest ?? 0) >= 100
   },
   {
     id: 'tasbih_1000_total',
-    icon: 'Infinity',
+    icon: 'Star',
     title: 'Mille Dhikr',
     titleAr: 'ألف ذكر',
     description: 'Faites 1000 tasbih au total',
     descriptionAr: 'أكمل 1000 تسبيحة إجمالاً',
     color: 'text-rose-600',
     rarity: 'epic',
-    condition: (data) => data.tasbihCount >= 1000
+    condition: (data) => (data.tasbihCount ?? 0) >= 1000
   },
   {
     id: 'first_note',
@@ -523,11 +523,11 @@ export function getRarityColor(rarity: string): string {
 }
 
 export function getRarityLabel(rarity: string, lang: 'fr' | 'ar'): string {
-  const labels = {
-    common: { fr: 'Commun', ar: 'شائع' },
-    rare: { fr: 'Rare', ar: 'نادر' },
-    epic: { fr: 'Épique', ar: 'ملحمي' },
+  const labels: Record<string, { fr: string; ar: string }> = {
+    common:    { fr: 'Commun',     ar: 'شائع'   },
+    rare:      { fr: 'Rare',       ar: 'نادر'   },
+    epic:      { fr: 'Épique',     ar: 'ملحمي'  },
     legendary: { fr: 'Légendaire', ar: 'أسطوري' }
   };
-  return labels[rarity as keyof typeof labels]?.[lang] || rarity;
+  return labels[rarity]?.[lang] || rarity;
 }
