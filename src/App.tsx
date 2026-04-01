@@ -429,7 +429,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
     return colored;
   };
 
-
+  const getStrokeStyle = (ctx: CanvasRenderingContext2D, stroke: Stroke) => {
     if (stroke.color === 'pattern:dots') {
       const pc = document.createElement('canvas'); pc.width = 10; pc.height = 10;
       const pctx = pc.getContext('2d')!;
