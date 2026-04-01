@@ -179,7 +179,7 @@ export const BADGE_DEFINITIONS: Omit<Badge, 'unlockedAt'>[] = [
   },
   {
     id: 'juz_tabarak',
-    icon: 'Bookmark',           // ← corrigé (était 'BookMarked')
+    icon: 'Bookmark',
     title: 'Juz Tabarak',
     titleAr: 'جزء تبارك',
     description: 'Complétez le Juz Tabarak (sourates 67-77)',
@@ -504,9 +504,9 @@ export function checkLoginStreak(userData: UserData): { newStreak: number; isCon
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) {
-    return { newStreak: userData.loginStreak, isConsecutive: true };
+    return { newStreak: userData.loginStreak || 1, isConsecutive: true };
   } else if (diffDays === 1) {
-    return { newStreak: userData.loginStreak + 1, isConsecutive: true };
+    return { newStreak: (userData.loginStreak || 0) + 1, isConsecutive: true };
   } else {
     return { newStreak: 1, isConsecutive: false };
   }
