@@ -24,13 +24,25 @@ if ('serviceWorker' in navigator) {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 // New version available
                 if (confirm('Une nouvelle version de l\'application est disponible. Voulez-vous la mettre à jour ?')) {
+                  // Wait for controller change before reloading
+                  let refreshing = false;
+                  navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (refreshing) return;
+                    refreshing = true;
+                    console.log('Controller changed, reloading...');
+                    window.location.reload();
+                  });
                   newWorker.postMessage({ type: 'SKIP_WAITING' });
-                  window.location.reload();
                 }
               }
             });
           }
         });
+
+        // Also check for updates periodically (every 1 hour)
+        setInterval(() => {
+          registration.update();
+        }, 60 * 60 * 1000);
       })
       .catch((registrationError) => {
         console.log('SW registration failed: ', registrationError);

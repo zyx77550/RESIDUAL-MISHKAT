@@ -1473,51 +1473,99 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const saved = localStorage.getItem('mishkat_user_data');
-    const today = new Date().toISOString().split('T')[0];
-
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (!parsed.settings) parsed.settings = { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' };
-      // Migrate surahs to add real names if they're missing
-      if (parsed.surahs && parsed.surahs[0]?.name === 'Surah 1') {
-        const { generateAllSurahs } = require('./types');
-        const freshSurahs = generateAllSurahs();
-        parsed.surahs = freshSurahs.map((fresh: any, i: number) => ({
-          ...fresh,
-          status: parsed.surahs[i]?.status || 'not_started',
-          color: parsed.surahs[i]?.color,
-        }));
-      }
-      // Migrate missing fields
-      if (parsed.loginStreak === undefined) parsed.loginStreak = 1;
-      if (parsed.tasbihSessionBest === undefined) parsed.tasbihSessionBest = 0;
-
-      // Update login streak via the canonical helper
+    try {
+      const saved = localStorage.getItem('mishkat_user_data');
       const today = new Date().toISOString().split('T')[0];
-      if (parsed.lastLoginDate !== today) {
-        const { newStreak } = checkLoginStreak(parsed);
-        parsed.loginStreak = newStreak;
-        parsed.lastLoginDate = today;
-      }
 
-      setUserData(parsed);
-    } else {
+      if (saved) {
+        let parsed: UserData;
+        try {
+          parsed = JSON.parse(saved);
+        } catch (parseError) {
+          console.error('Failed to parse user data from localStorage, creating fresh data:', parseError);
+          // If localStorage is corrupted, create new data
+          const initial: UserData = {
+            surahs: generateAllSurahs(),
+            diftarPages: [],
+            goals: [
+              { id: '1', text: 'Mémoriser Sourate Al-Mulk', completed: false, month: 3 },
+              { id: '2', text: 'Lire 5 pages par jour', completed: true, month: 3 },
+            ],
+            badges: [], calendar: [], tasbihCount: 0, onboarded: false,
+            loginStreak: 1,
+            lastLoginDate: today,
+            tasbihSessionBest: 0,
+            settings: { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' },
+          };
+          setUserData(initial);
+          setShowOnboarding(true);
+          return;
+        }
+
+        // Ensure all required fields exist
+        if (!parsed.surahs || !Array.isArray(parsed.surahs)) parsed.surahs = generateAllSurahs();
+        if (!parsed.diftarPages || !Array.isArray(parsed.diftarPages)) parsed.diftarPages = [];
+        if (!parsed.goals || !Array.isArray(parsed.goals)) parsed.goals = [];
+        if (!parsed.badges || !Array.isArray(parsed.badges)) parsed.badges = [];
+        if (!parsed.calendar || !Array.isArray(parsed.calendar)) parsed.calendar = [];
+        if (!parsed.settings) parsed.settings = { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' };
+
+        // Validate critical fields
+        if (typeof parsed.tasbihCount !== 'number') parsed.tasbihCount = 0;
+        if (typeof parsed.loginStreak !== 'number') parsed.loginStreak = 1;
+        if (typeof parsed.tasbihSessionBest !== 'number') parsed.tasbihSessionBest = 0;
+        if (typeof parsed.onboarded !== 'boolean') parsed.onboarded = false;
+
+        // Migrate surahs to add real names if they're missing
+        if (parsed.surahs && parsed.surahs[0]?.name === 'Surah 1') {
+          const freshSurahs = generateAllSurahs();
+          parsed.surahs = freshSurahs.map((fresh: any, i: number) => ({
+            ...fresh,
+            status: parsed.surahs[i]?.status || 'not_started',
+            color: parsed.surahs[i]?.color,
+          }));
+        }
+
+        // Update login streak via the canonical helper
+        if (parsed.lastLoginDate !== today) {
+          const { newStreak } = checkLoginStreak(parsed);
+          parsed.loginStreak = newStreak;
+          parsed.lastLoginDate = today;
+        }
+
+        setUserData(parsed);
+      } else {
+        const initial: UserData = {
+          surahs: generateAllSurahs(),
+          diftarPages: [],
+          goals: [
+            { id: '1', text: 'Mémoriser Sourate Al-Mulk', completed: false, month: 3 },
+            { id: '2', text: 'Lire 5 pages par jour', completed: true, month: 3 },
+          ],
+          badges: [], calendar: [], tasbihCount: 0, onboarded: false,
+          loginStreak: 1,
+          lastLoginDate: today,
+          tasbihSessionBest: 0,
+          settings: { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' },
+        };
+        setUserData(initial);
+        setShowOnboarding(true);
+      }
+    } catch (error) {
+      console.error('Fatal error loading user data:', error);
+      // Emergency fallback
+      const today = new Date().toISOString().split('T')[0];
       const initial: UserData = {
         surahs: generateAllSurahs(),
         diftarPages: [],
-        goals: [
-          { id: '1', text: 'Mémoriser Sourate Al-Mulk', completed: false, month: 3 },
-          { id: '2', text: 'Lire 5 pages par jour', completed: true, month: 3 },
-        ],
-        badges: [], calendar: [], tasbihCount: 0, onboarded: false,
+        goals: [],
+        badges: [], calendar: [], tasbihCount: 0, onboarded: true,
         loginStreak: 1,
         lastLoginDate: today,
         tasbihSessionBest: 0,
         settings: { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' },
       };
       setUserData(initial);
-      setShowOnboarding(true);
     }
   }, []);
 
@@ -1556,27 +1604,42 @@ export default function App() {
 
       <main className={cn('flex-1 p-4 md:p-12 overflow-y-auto pb-24 md:pb-12 relative z-10', lang === 'ar' ? 'text-right' : 'text-left')}>
         <div className="max-w-7xl mx-auto h-full">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.35, ease: 'easeInOut' }}
-              className="h-full"
-            >
-              {activeTab === 'dashboard'    && <Dashboard userData={userData} lang={lang} />}
-              {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-              {activeTab === 'coloring'     && <ColoringGrid userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-              {activeTab === 'goals'        && <GoalsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-              {activeTab === 'tasbih'       && <TasbihSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-              {activeTab === 'memorization' && <MemorizationSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-              {activeTab === 'calendar'     && <CalendarSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-              {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked} />}
-              {activeTab === 'kanban'       && <KanbanSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-              {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-            </motion.div>
-          </AnimatePresence>
+          {!userData ? (
+            // Loading state
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center space-y-4">
+                <motion.div 
+                  animate={{ rotate: 360 }} 
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                  className="w-12 h-12 rounded-full border-4 mx-auto"
+                  style={{ borderColor: 'var(--brand-primary)', borderTopColor: 'transparent' }}
+                />
+                <p style={{ color: 'var(--brand-text-muted)' }}>Chargement...</p>
+              </div>
+            </div>
+          ) : (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.35, ease: 'easeInOut' }}
+                className="h-full"
+              >
+                {activeTab === 'dashboard'    && <Dashboard userData={userData} lang={lang} />}
+                {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+                {activeTab === 'coloring'     && <ColoringGrid userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+                {activeTab === 'goals'        && <GoalsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+                {activeTab === 'tasbih'       && <TasbihSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+                {activeTab === 'memorization' && <MemorizationSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+                {activeTab === 'calendar'     && <CalendarSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+                {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked} />}
+                {activeTab === 'kanban'       && <KanbanSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+                {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+              </motion.div>
+            </AnimatePresence>
+          )}
         </div>
       </main>
 
