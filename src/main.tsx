@@ -23,17 +23,8 @@ if ('serviceWorker' in navigator) {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 // New version available
-                if (confirm('Une nouvelle version de l\'application est disponible. Voulez-vous la mettre à jour ?')) {
-                  // Wait for controller change before reloading
-                  let refreshing = false;
-                  navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    if (refreshing) return;
-                    refreshing = true;
-                    console.log('Controller changed, reloading...');
-                    window.location.reload();
-                  });
-                  newWorker.postMessage({ type: 'SKIP_WAITING' });
-                }
+                const updateEvent = new CustomEvent('mishkatUpdateAvailable', { detail: { waiting: newWorker } });
+                window.dispatchEvent(updateEvent);
               }
             });
           }
