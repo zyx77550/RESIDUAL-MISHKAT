@@ -232,7 +232,7 @@ export const SettingsSection = ({ userData, setUserData, lang }: { userData: Use
             </div>
 
             <button 
-              onClick={() => window.dispatchEvent(new CustomEvent('sw-update', { detail: { reg: null } }))}
+              onClick={() => window.dispatchEvent(new CustomEvent('mishkatUpdateAvailable', { detail: { reg: null } }))}
               className="w-full flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 rounded-2xl border border-primary/10 transition-all group"
             >
               <div className="flex items-center gap-3">
