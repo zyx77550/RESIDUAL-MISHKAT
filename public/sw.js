@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'mishkat-cache-v' + new Date().getTime();
+const CACHE_VERSION = 'mishkat-cache-v4';
 
 self.addEventListener('install', (event) => {
   console.log('SW: Installing version', CACHE_VERSION);
@@ -12,7 +12,7 @@ self.addEventListener('activate', (event) => {
       console.log('SW: Found cache keys:', keys);
       return Promise.all(
         keys
-          .filter((key) => !key.startsWith('mishkat-cache-v'))
+          .filter((key) => key.startsWith('mishkat-cache-v') && key !== CACHE_VERSION)
           .map((key) => {
             console.log('SW: Deleting old cache', key);
             return caches.delete(key);
