@@ -17,12 +17,15 @@ export interface Stroke {
   timestamp: number;
 }
 
-export interface Sticker {
+export interface Shape {
   id: string;
-  svg: string;
+  type: 'circle' | 'square' | 'triangle' | 'line' | 'arrow';
   x: number;
   y: number;
-  scale?: number;
+  width: number;
+  height: number;
+  color: string;
+  rotation?: number;
 }
 
 export interface DiftarPage {
@@ -30,7 +33,7 @@ export interface DiftarPage {
   title: string;
   type: 'revision' | 'tafsir' | 'dates' | 'objectives' | 'custom';
   strokes: Stroke[];
-  stickers?: Sticker[];
+  shapes?: Shape[];
   height?: number;
   paperStyle?: 'blank' | 'lines' | 'grid' | 'dots' | 'arabesque';
   paperColor?: string;

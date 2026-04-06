@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mishkat (مِشْكَاة)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#8B2635" />
+    <link rel="apple-touch-icon" href="https://picsum.photos/seed/mishkat/192/192" />
+    <script type="module" crossorigin src="/assets/index-BB9oCZsD.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-WV_P2uBm.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('SW registered!', reg))
+            .catch(err => console.log('SW error!', err));
+        });
+      }
+    </script>
+  </body>
+</html>
+

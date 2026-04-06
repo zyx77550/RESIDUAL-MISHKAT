@@ -266,71 +266,21 @@ const Dashboard = ({ userData, lang }: { userData: UserData; lang: string }) => 
 // DIFTAR — NOTEBOOK
 // ═══════════════════════════════════════════════════════
 
-// All stickers, organized by category
-const STICKER_CATEGORIES = [
+// All shapes, organized by category
+const SHAPE_CATEGORIES = [
   {
-    label: { fr: 'Islamique', ar: 'إسلامي' },
-    icons: [
-      { id: 'crescent',   svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>' },
-      { id: 'star',       svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>' },
-      { id: 'mosque',     svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M4 20v-7c0-2 1-4 3-4s3 2 3 4v7M14 20v-7c0-2 1-4 3-4s3 2 3 4v7M12 9V3m0 0-2 2m2-2 2 2"/></svg>' },
-      { id: 'lantern',    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2h8M12 2v3M7 5h10l1 3H6l1-3zM6 8h12v10H6V8zM8 18l-1 4h10l-1-4H8zM12 8v10M9 11h6M9 15h6"/></svg>' },
-      { id: 'book',       svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20M4 19.5V4.5A2.5 2.5 0 0 1 6.5 2H20v15H6.5a2.5 2.5 0 0 0-2.5 2.5z"/></svg>' },
-      { id: 'prayer',     svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6c0-1.1.9-2 2-2h2a2 2 0 0 1 2 2v2H9V6z"/><path d="M7 8h10l1 8H6L7 8z"/><path d="M10 16v4m4-4v4"/></svg>' },
-      { id: 'tasbih',     svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2"/><path d="M12 7v10"/><circle cx="12" cy="19" r="2"/><path d="M8 12h8"/><circle cx="4" cy="12" r="1.5"/><circle cx="20" cy="12" r="1.5"/></svg>' },
-      { id: 'quran-open', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h9a1 1 0 0 1 1 1v16a1 1 0 0 0-1-1H2V3z"/><path d="M22 3h-9a1 1 0 0 0-1 1v16a1 1 0 0 1 1-1h9V3z"/></svg>' },
+    label: { fr: 'Géométriques', ar: 'هندسية' },
+    shapes: [
+      { id: 'circle',   type: 'circle' as const,   label: { fr: 'Cercle', ar: 'دائرة' } },
+      { id: 'square',   type: 'square' as const,   label: { fr: 'Carré', ar: 'مربع' } },
+      { id: 'triangle', type: 'triangle' as const, label: { fr: 'Triangle', ar: 'مثلث' } },
     ],
   },
   {
-    label: { fr: 'Nature', ar: 'طبيعة' },
-    icons: [
-      { id: 'flower', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 7.5a4.5 4.5 0 1 1 4.5 4.5M12 7.5A4.5 4.5 0 1 0 7.5 12M12 7.5V12m4.5 0a4.5 4.5 0 1 1-4.5 4.5M16.5 12H12m-4.5 0a4.5 4.5 0 1 0 4.5 4.5M7.5 12H12m0 0v4.5"/></svg>' },
-      { id: 'leaf',   svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>' },
-      { id: 'sun',    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>' },
-      { id: 'moon',   svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/><path d="M19 3v4M17 5h4M15 10v2M14 11h2"/></svg>' },
-      { id: 'cloud',  svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>' },
-      { id: 'tree',   svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V12"/><path d="m4 12 8-8 8 8"/><path d="m2 17 10-10 10 10"/></svg>' },
-      { id: 'wave',   svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>' },
-      { id: 'rain',   svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6"/></svg>' },
-    ],
-  },
-  {
-    label: { fr: 'Étoiles & Joie', ar: 'نجوم وفرح' },
-    icons: [
-      { id: 'sparkles',  svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.91 5.81L20 10.72l-4.5 4.38 1.06 6.19L12 18.37l-4.56 2.92 1.06-6.19L4 10.72l6.09-1.91L12 3z"/><path d="M5 3v4M3 5h4M21 17v4M19 19h4"/></svg>' },
-      { id: 'star-fill', svg: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>' },
-      { id: 'heart',     svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' },
-      { id: 'trophy',    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>' },
-      { id: 'check-ok',  svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>' },
-      { id: 'confetti',  svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m14.5 4 3 3"/><path d="m8 5 1.5 1.5"/><path d="M13 20 4 4l16 4-7 7"/><path d="m8.5 14.5 3.5 5"/></svg>' },
-      { id: 'crown',     svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L20.07 6.31a.5.5 0 0 1 .782.498l-2.074 9.061a1 1 0 0 1-.966.765H6.188a1 1 0 0 1-.966-.765L3.148 6.808a.5.5 0 0 1 .782-.498l3.162 2.854a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></svg>' },
-      { id: 'gift',      svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>' },
-    ],
-  },
-  {
-    label: { fr: 'Géométrie', ar: 'هندسة' },
-    icons: [
-      { id: 'geo-diamond',  svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 12l10 10 10-10L12 2z"/><path d="M12 6l6 6-6 6-6-6 6-6z"/></svg>' },
-      { id: 'geo-compass',  svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>' },
-      { id: 'geo-hexagon',  svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 8.5 16 2 8 2 2 8.5 2 15.5 8 22 16 22 22 15.5 22 8.5"/></svg>' },
-      { id: 'geo-target',   svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>' },
-      { id: 'geo-ornament', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
-      { id: 'geo-crosshair',svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20M5.6 5.6l12.8 12.8M5.6 18.4L18.4 5.6"/></svg>' },
-      { id: 'geo-infinity', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12c-2-2.5-4-4-6-4a4 4 0 0 0 0 8c2 0 4-1.5 6-4zm0 0c2 2.5 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.5-6 4z"/></svg>' },
-      { id: 'geo-octagram', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3-3-7z"/></svg>' },
-    ],
-  },
-  {
-    label: { fr: 'Écriture', ar: 'كتابة' },
-    icons: [
-      { id: 'pen-tool', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 5 5"/><path d="m11 8 2 2"/></svg>' },
-      { id: 'feather',  svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5l6.74-6.76z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>' },
-      { id: 'bookmark', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>' },
-      { id: 'anchor',   svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><path d="M12 22V8M5 12H2a10 10 0 0 0 20 0h-3"/></svg>' },
-      { id: 'tag',      svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>' },
-      { id: 'scroll',   svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-2M2 9V6a2 2 0 0 1 2-2h14M2 9v7a2 2 0 0 0 2 2h1"/><path d="M8 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v5"/></svg>' },
-      { id: 'note',     svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>' },
-      { id: 'award',    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>' },
+    label: { fr: 'Lignes', ar: 'خطوط' },
+    shapes: [
+      { id: 'line',  type: 'line' as const,  label: { fr: 'Ligne', ar: 'خط' } },
+      { id: 'arrow', type: 'arrow' as const, label: { fr: 'Flèche', ar: 'سهم' } },
     ],
   },
 ];
@@ -370,12 +320,12 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
   const [colorTab, setColorTab]             = useState<keyof typeof COLOR_PALETTE>('classiques');
   const [width, setWidth]                   = useState(3);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [undoStack, setUndoStack]           = useState<{ strokes: Stroke[]; stickers: any[] }[]>([]);
-  const [redoStack, setRedoStack]           = useState<{ strokes: Stroke[]; stickers: any[] }[]>([]);
+  const [undoStack, setUndoStack]           = useState<{ strokes: Stroke[]; shapes: Shape[] }[]>([]);
+  const [redoStack, setRedoStack]           = useState<{ strokes: Stroke[]; shapes: Shape[] }[]>([]);
   const [currentStrokes, setCurrentStrokes] = useState<Stroke[]>([]);
-  const [stickers, setStickers]             = useState<any[]>([]);
-  const [showStickerPicker, setShowStickerPicker]   = useState(false);
-  const [stickerCategory, setStickerCategory]       = useState(0);
+  const [shapes, setShapes]             = useState<Shape[]>([]);
+  const [showShapePicker, setShowShapePicker]   = useState(false);
+  const [shapeCategory, setShapeCategory]       = useState(0);
   const [showPaperSettings, setShowPaperSettings]   = useState(false);
   const [isSaving, setIsSaving]             = useState(false);
   const [paperStyle, setPaperStyle]         = useState<'blank' | 'lines' | 'grid' | 'dots' | 'arabesque'>('lines');
@@ -385,11 +335,11 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
   const isDrawingRef    = useRef(false);
   const activeStrokeRef = useRef<Stroke | null>(null);
   const stickerCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
-  const [activeStickerSvg, setActiveStickerSvg] = useState<string | null>(null);
-  const activeStickerSvgRef = useRef<string | null>(null);
-  const setActiveStickerSvgWithRef = useCallback((val: string | null) => {
-    activeStickerSvgRef.current = val;
-    setActiveStickerSvg(val);
+  const [activeShapeType, setActiveShapeType] = useState<'circle' | 'square' | 'triangle' | 'line' | 'arrow' | null>(null);
+  const activeShapeTypeRef = useRef<'circle' | 'square' | 'triangle' | 'line' | 'arrow' | null>(null);
+  const setActiveShapeTypeWithRef = useCallback((val: 'circle' | 'square' | 'triangle' | 'line' | 'arrow' | null) => {
+    activeShapeTypeRef.current = val;
+    setActiveShapeType(val);
   }, []);
   const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(null);
   const [showConfirmClear, setShowConfirmClear]   = useState(false);
@@ -471,7 +421,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
   useEffect(() => {
     if (activePage) {
       setCurrentStrokes(activePage.strokes || []);
-      setStickers((activePage.stickers as any) || []);
+      setShapes((activePage.shapes as any) || []);
       setPageHeight(activePage.height || 5000);
       setPaperStyle(activePage.paperStyle || 'lines');
       setPaperColor((activePage as any).paperColor || '#fdfcf8');
@@ -597,22 +547,49 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
 
     currentStrokes.forEach(renderStroke);
 
-    stickers.forEach((sticker: any) => {
-      const coloredSvg = getColoredStickerSvg(sticker.svg, paperColor);
-      const cachedImg = stickerCacheRef.current.get(coloredSvg);
-      if (cachedImg) {
-        ctx.drawImage(cachedImg, sticker.x - 30, sticker.y - 30, 60, 60);
-      } else {
-        const img = new Image();
-        const svgBlob = new Blob([coloredSvg], { type: 'image/svg+xml;charset=utf-8' });
-        const url = URL.createObjectURL(svgBlob);
-        img.onload = () => {
-          stickerCacheRef.current.set(coloredSvg, img);
-          ctx.drawImage(img, sticker.x - 30, sticker.y - 30, 60, 60);
-          URL.revokeObjectURL(url);
-        };
-        img.src = url;
+    shapes.forEach((shape: Shape) => {
+      ctx.save();
+      ctx.strokeStyle = shape.color;
+      ctx.fillStyle = shape.color;
+      ctx.lineWidth = 2;
+      ctx.translate(shape.x, shape.y);
+      if (shape.rotation) ctx.rotate(shape.rotation * Math.PI / 180);
+      
+      switch (shape.type) {
+        case 'circle':
+          ctx.beginPath();
+          ctx.arc(0, 0, shape.width / 2, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        case 'square':
+          ctx.fillRect(-shape.width / 2, -shape.height / 2, shape.width, shape.height);
+          break;
+        case 'triangle':
+          ctx.beginPath();
+          ctx.moveTo(0, -shape.height / 2);
+          ctx.lineTo(-shape.width / 2, shape.height / 2);
+          ctx.lineTo(shape.width / 2, shape.height / 2);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        case 'line':
+          ctx.beginPath();
+          ctx.moveTo(-shape.width / 2, 0);
+          ctx.lineTo(shape.width / 2, 0);
+          ctx.stroke();
+          break;
+        case 'arrow':
+          ctx.beginPath();
+          ctx.moveTo(-shape.width / 2, 0);
+          ctx.lineTo(shape.width / 2 - 10, 0);
+          ctx.moveTo(shape.width / 2 - 10, 0);
+          ctx.lineTo(shape.width / 2 - 15, -5);
+          ctx.moveTo(shape.width / 2 - 10, 0);
+          ctx.lineTo(shape.width / 2 - 15, 5);
+          ctx.stroke();
+          break;
       }
+      ctx.restore();
     });
   };
 
@@ -630,24 +607,32 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
   };
 
   const handleCanvasClick = (e: React.MouseEvent | React.TouchEvent) => {
-    if (activeStickerSvgRef.current) {
+    if (activeShapeTypeRef.current) {
       const { x, y } = getCoords(e);
-      setUndoStack(prev => [...prev, { strokes: currentStrokes, stickers }]);
+      setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
       setRedoStack([]);
-      setStickers(prev => [...prev, { id: Date.now().toString(), svg: activeStickerSvgRef.current!, x, y }]);
-      setActiveStickerSvgWithRef(null);
+      const newShape: Shape = {
+        id: Date.now().toString(),
+        type: activeShapeTypeRef.current,
+        x, y,
+        width: 50,
+        height: 50,
+        color: color,
+      };
+      setShapes(prev => [...prev, newShape]);
+      setActiveShapeTypeWithRef(null);
     }
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-    if (activeStickerSvgRef.current) { handleCanvasClick(e); return; }
+    if (activeShapeTypeRef.current) { handleCanvasClick(e); return; }
     const { x, y } = getCoords(e);
     if (tool === 'eraser') {
-      const idx = stickers.findIndex((s: any) => Math.sqrt(Math.pow(s.x - x, 2) + Math.pow(s.y - y, 2)) < 30);
+      const idx = shapes.findIndex((s: Shape) => Math.sqrt(Math.pow(s.x - x, 2) + Math.pow(s.y - y, 2)) < 30);
       if (idx !== -1) {
-        setUndoStack(prev => [...prev, { strokes: currentStrokes, stickers }]);
+        setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
         setRedoStack([]);
-        setStickers(prev => prev.filter((_, i) => i !== idx));
+        setShapes(prev => prev.filter((_, i) => i !== idx));
         return;
       }
     }
@@ -719,17 +704,17 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
   const undo = () => {
     if (undoStack.length === 0) return;
     const prev = undoStack[undoStack.length - 1];
-    setRedoStack(s => [...s, { strokes: currentStrokes, stickers }]);
+    setRedoStack(s => [...s, { strokes: currentStrokes, shapes }]);
     setUndoStack(s => s.slice(0, -1));
-    setCurrentStrokes(prev.strokes); setStickers(prev.stickers);
+    setCurrentStrokes(prev.strokes); setShapes(prev.shapes);
   };
 
   const redo = () => {
     if (redoStack.length === 0) return;
     const next = redoStack[redoStack.length - 1];
-    setUndoStack(s => [...s, { strokes: currentStrokes, stickers }]);
+    setUndoStack(s => [...s, { strokes: currentStrokes, shapes }]);
     setRedoStack(s => s.slice(0, -1));
-    setCurrentStrokes(next.strokes); setStickers(next.stickers);
+    setCurrentStrokes(next.strokes); setShapes(next.shapes);
   };
 
   const exportPDF = () => {
@@ -747,7 +732,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
       ...prev,
       diftarPages: prev.diftarPages.map(p =>
         p.id === activePageId
-          ? { ...p, strokes: currentStrokes, stickers, height: pageHeight, paperStyle, paperColor: paperColor, lastSaved: Date.now() }
+          ? { ...p, strokes: currentStrokes, shapes, height: pageHeight, paperStyle, paperColor: paperColor, lastSaved: Date.now() }
           : p
       ),
     }));
@@ -763,7 +748,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
     const newPage: DiftarPage = {
       id: Math.random().toString(36).substr(2, 9),
       title: lang === 'fr' ? 'Nouvelle Page' : 'صفحة جديدة',
-      type: 'custom', strokes: [], stickers: [], height: 5000, paperStyle: 'lines', lastSaved: Date.now(),
+      type: 'custom', strokes: [], shapes: [], height: 5000, paperStyle: 'lines', lastSaved: Date.now(),
     };
     setUserData((prev: UserData) => ({ ...prev, diftarPages: [newPage, ...prev.diftarPages] }));
     setActivePageId(newPage.id);
@@ -803,7 +788,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
     return () => window.removeEventListener('mousemove', handle);
   }, []);
 
-  const closeAllPanels = () => { setShowToolsMenu(false); setShowCustomizationMenu(false); setShowStickerPicker(false); setShowPaperSettings(false); setActiveStickerSvgWithRef(null); };
+  const closeAllPanels = () => { setShowToolsMenu(false); setShowCustomizationMenu(false); setShowShapePicker(false); setShowPaperSettings(false); setActiveShapeTypeWithRef(null); };
 
   // ──────────────────────────────────
   // PAGE LIST VIEW (Gallery)
@@ -939,16 +924,22 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
   return (
     <div className="flex-1 flex flex-col gap-3 relative h-full overflow-hidden">
       {/* Top Toolbar */}
-      <div className="w-full flex flex-col gap-3 z-50">
+      <div className="sticky top-0 w-full flex flex-col gap-3 z-50">
         <div
           className="backdrop-blur-2xl rounded-[2rem] shadow-xl border p-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar"
           style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}
         >
           {/* Left: back + title */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            <button onClick={() => { savePage(); setActivePageId(null); }} className="p-2.5 rounded-full transition-all hover:scale-105" style={{ color: 'var(--brand-primary)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}>
+            <motion.button 
+              onClick={() => { savePage(); setActivePageId(null); }} 
+              whileHover={{ scale: 1.05, x: -2 }}
+              whileTap={{ scale: 0.95 }}
+              className="p-2.5 rounded-full transition-all hover:scale-105" 
+              style={{ color: 'var(--brand-primary)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}
+            >
               <ChevronLeft size={20} />
-            </button>
+            </motion.button>
             <input
               value={activePage?.title}
               onChange={e => setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) }))}
@@ -962,18 +953,20 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
             {[
               { id: 'tools',    icon: Pencil,    title: lang === 'fr' ? 'Outils' : 'أدوات',       active: showToolsMenu,          action: () => { closeAllPanels(); setShowToolsMenu(v => !v); } },
               { id: 'colors',   icon: Palette,   title: lang === 'fr' ? 'Couleurs' : 'الألوان',    active: showCustomizationMenu,  action: () => { closeAllPanels(); setShowCustomizationMenu(v => !v); } },
-              { id: 'stickers', icon: Star,      title: lang === 'fr' ? 'Stickers' : 'ملصقات',    active: showStickerPicker,      action: () => { closeAllPanels(); setShowStickerPicker(v => !v); } },
+              { id: 'shapes',   icon: Star,      title: lang === 'fr' ? 'Formes' : 'الأشكال',      active: showShapePicker,        action: () => { closeAllPanels(); setShowShapePicker(v => !v); } },
               { id: 'paper',    icon: Settings2, title: lang === 'fr' ? 'Papier' : 'الورق',        active: showPaperSettings,      action: () => { closeAllPanels(); setShowPaperSettings(v => !v); } },
             ].map(btn => (
-              <button
+              <motion.button
                 key={btn.id}
                 onClick={btn.action}
                 title={btn.title}
-                className="p-2.5 rounded-full transition-all"
+                whileHover={{ scale: 1.05, y: -1 }}
+                whileTap={{ scale: 0.95 }}
+                className="p-2.5 rounded-full transition-all duration-200"
                 style={btn.active ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 2px 12px color-mix(in srgb, var(--brand-primary) 30%, transparent)' } : { color: 'var(--brand-primary)' }}
               >
                 <btn.icon size={16} />
-              </button>
+              </motion.button>
             ))}
           </div>
 
@@ -985,22 +978,30 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
             </div>
             <button onClick={() => setShowConfirmClear(true)} className="p-2.5 rounded-full transition-all" style={{ color: 'rgba(239,68,68,0.6)' }} title="Effacer"><Trash2 size={16} /></button>
             <button onClick={exportPDF} className="p-2.5 rounded-full transition-all hidden sm:block" style={{ color: 'var(--brand-primary)' }} title="Exporter"><Download size={16} /></button>
-            <button
+            <motion.button
               onClick={savePage}
               disabled={isSaving}
+              whileHover={{ scale: 1.02, y: -1 }}
+              whileTap={{ scale: 0.98 }}
               className="flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-white shadow-md transition-all active:scale-95"
               style={{ background: isSaving ? '#22c55e' : 'var(--brand-primary)' }}
             >
               {isSaving ? <Check size={15} /> : <Save size={15} />}
               <span className="text-xs hidden sm:inline">{isSaving ? (lang === 'fr' ? 'Sauvegardé' : 'تم') : (lang === 'fr' ? 'Sauvegarder' : 'حفظ')}</span>
-            </button>
+            </motion.button>
           </div>
         </div>
 
         {/* Floating Panels */}
         <AnimatePresence>
-          {(showToolsMenu || showCustomizationMenu || showStickerPicker || showPaperSettings) && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="w-full max-w-2xl mx-auto">
+          {(showToolsMenu || showCustomizationMenu || showShapePicker || showPaperSettings) && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10, scale: 0.95 }} 
+              animate={{ opacity: 1, y: 0, scale: 1 }} 
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="w-full max-w-2xl mx-auto"
+            >
 
               {/* TOOLS PANEL */}
               {showToolsMenu && (
@@ -1124,37 +1125,47 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
                 </div>
               )}
 
-              {/* STICKER PANEL */}
-              {showStickerPicker && (
+              {/* SHAPES PANEL */}
+              {showShapePicker && (
                 <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
                   {/* Category tabs */}
                   <div className="flex flex-wrap gap-1.5">
-                    {STICKER_CATEGORIES.map((cat, i) => (
+                    {SHAPE_CATEGORIES.map((cat, i) => (
                       <button
                         key={i}
-                        onClick={() => setStickerCategory(i)}
+                        onClick={() => setShapeCategory(i)}
                         className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all"
-                        style={stickerCategory === i ? { background: 'var(--brand-primary)', color: '#fff' } : { background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-text-muted)' }}
+                        style={shapeCategory === i ? { background: 'var(--brand-primary)', color: '#fff' } : { background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-text-muted)' }}
                       >
                         {cat.label[lang as 'fr' | 'ar']}
                       </button>
                     ))}
                   </div>
-                  {/* Icons grid */}
-                  <div className="grid grid-cols-6 sm:grid-cols-8 gap-3">
-                    {STICKER_CATEGORIES[stickerCategory].icons.map(icon => (
-                      <button
-                        key={icon.id}
-                        onClick={() => { setActiveStickerSvgWithRef(icon.svg); setShowStickerPicker(false); }}
-                        className="aspect-square flex items-center justify-center p-2 rounded-2xl border transition-all hover:scale-110"
+                  {/* Shapes grid */}
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {SHAPE_CATEGORIES[shapeCategory].shapes.map(shape => (
+                      <motion.button
+                        key={shape.id}
+                        onClick={() => { setActiveShapeTypeWithRef(shape.type); setShowShapePicker(false); }}
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="aspect-square flex flex-col items-center justify-center p-3 rounded-2xl border transition-all hover:shadow-lg"
                         style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', borderColor: 'transparent', color: 'var(--brand-primary)' }}
-                        dangerouslySetInnerHTML={{ __html: icon.svg }}
-                      />
+                      >
+                        <div className="w-8 h-8 flex items-center justify-center">
+                          {shape.type === 'circle' && <div className="w-6 h-6 rounded-full border-2 border-current" />}
+                          {shape.type === 'square' && <div className="w-6 h-6 border-2 border-current" />}
+                          {shape.type === 'triangle' && <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-current" />}
+                          {shape.type === 'line' && <div className="w-6 h-0.5 bg-current" />}
+                          {shape.type === 'arrow' && <div className="flex items-center"><div className="w-4 h-0.5 bg-current"></div><div className="w-0 h-0 border-l-[4px] border-l-current border-t-[2px] border-t-transparent border-b-[2px] border-b-transparent"></div></div>}
+                        </div>
+                        <span className="text-[8px] font-bold mt-1">{shape.label[lang as 'fr' | 'ar']}</span>
+                      </motion.button>
                     ))}
                   </div>
-                  {activeStickerSvg && (
+                  {activeShapeType && (
                     <div className="text-center text-xs font-bold animate-pulse" style={{ color: 'var(--brand-secondary)' }}>
-                      {lang === 'fr' ? 'Cliquez sur la page pour placer le sticker' : 'انقر على الصفحة لوضع الملصق'}
+                      {lang === 'fr' ? 'Cliquez sur la page pour placer la forme' : 'انقر على الصفحة لوضع الشكل'}
                     </div>
                   )}
                 </div>
@@ -1210,7 +1221,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
       <div
         ref={scrollContainerRef}
         className="flex-1 rounded-[2rem] shadow-2xl overflow-y-auto relative border group cursor-none custom-scrollbar"
-        style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)' }}
+        style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', scrollBehavior: 'smooth' }}
       >
         {/* Scroll buttons */}
         <div className="fixed right-4 md:right-20 bottom-36 md:bottom-8 z-50 flex flex-col gap-2">
@@ -1259,19 +1270,25 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
           <motion.div
             layout initial={false}
             animate={{
-              width: activeStickerSvg ? 60 : (tool === 'highlighter' ? width * 6 : width + 16) * canvasScale,
-              height: activeStickerSvg ? 60 : (tool === 'highlighter' ? width * 5 : width + 16) * canvasScale,
+              width: activeShapeType ? 60 : (tool === 'highlighter' ? width * 6 : width + 16) * canvasScale,
+              height: activeShapeType ? 60 : (tool === 'highlighter' ? width * 5 : width + 16) * canvasScale,
               borderRadius: tool === 'highlighter' ? '4px' : '50%',
-              backgroundColor: activeStickerSvg ? 'transparent' : (tool === 'eraser' ? 'rgba(255,255,255,0.4)' : color),
+              backgroundColor: activeShapeType ? 'transparent' : (tool === 'eraser' ? 'rgba(255,255,255,0.4)' : color),
               opacity: tool === 'highlighter' ? 0.35 : 0.85,
-              border: activeStickerSvg ? '2px dashed var(--brand-secondary)' : '1px solid rgba(255,255,255,0.8)',
+              border: activeShapeType ? '2px dashed var(--brand-secondary)' : '1px solid rgba(255,255,255,0.8)',
               scale: isDrawing ? 0.8 : 1,
             }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
             className="relative flex items-center justify-center shadow-lg"
           >
-            {activeStickerSvg ? (
-              <div className="w-full h-full opacity-60 animate-pulse" dangerouslySetInnerHTML={{ __html: activeStickerSvg }} />
+            {activeShapeType ? (
+              <div className="w-full h-full opacity-60 animate-pulse flex items-center justify-center">
+                {activeShapeType === 'circle' && <div className="w-6 h-6 rounded-full border-2 border-current" style={{ color: 'var(--brand-secondary)' }} />}
+                {activeShapeType === 'square' && <div className="w-6 h-6 border-2 border-current" style={{ color: 'var(--brand-secondary)' }} />}
+                {activeShapeType === 'triangle' && <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-current" style={{ color: 'var(--brand-secondary)' }} />}
+                {activeShapeType === 'line' && <div className="w-6 h-0.5 bg-current" style={{ backgroundColor: 'var(--brand-secondary)' }} />}
+                {activeShapeType === 'arrow' && <div className="flex items-center" style={{ color: 'var(--brand-secondary)' }}><div className="w-4 h-0.5 bg-current"></div><div className="w-0 h-0 border-l-[4px] border-l-current border-t-[2px] border-t-transparent border-b-[2px] border-b-transparent"></div></div>}
+              </div>
             ) : (
               <span className="text-white/50">
                 {tool === 'pen' && <Pencil size={Math.max(10, 12 * canvasScale)} />}
