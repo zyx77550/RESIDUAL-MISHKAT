@@ -593,7 +593,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
     });
   };
 
-  useEffect(() => { redrawCanvas(); }, [currentStrokes, stickers, lang, pageHeight, paperStyle, paperColor]);
+  useEffect(() => { redrawCanvas(); }, [currentStrokes, shapes, lang, pageHeight, paperStyle, paperColor]);
 
   const getCoords = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
@@ -645,7 +645,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
       type: tool,
       timestamp: Date.now(),
     };
-    setUndoStack(prev => [...prev, { strokes: currentStrokes, stickers }]);
+    setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
     setRedoStack([]);
   };
 
@@ -742,7 +742,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
   useEffect(() => {
     const timer = setInterval(() => { if (activePageId) savePage(); }, 5000);
     return () => clearInterval(timer);
-  }, [currentStrokes, stickers, activePageId]);
+  }, [currentStrokes, shapes, activePageId]);
 
   const createPage = () => {
     const newPage: DiftarPage = {
@@ -1312,7 +1312,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
               <h3 className="text-2xl font-serif italic" style={{ color: 'var(--brand-primary)' }}>{lang === 'fr' ? 'Effacer la page ?' : 'مسح الصفحة؟'}</h3>
               <div className="flex gap-3">
                 <button onClick={() => setShowConfirmClear(false)} className="flex-1 py-3 rounded-2xl border font-bold text-xs uppercase" style={{ borderColor: 'var(--brand-primary)', color: 'var(--brand-primary)', opacity: 0.4 }}>{lang === 'fr' ? 'Annuler' : 'إلغاء'}</button>
-                <button onClick={() => { setUndoStack(prev => [...prev, { strokes: currentStrokes, stickers }]); setCurrentStrokes([]); setStickers([]); setShowConfirmClear(false); }} className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-xs uppercase">{lang === 'fr' ? 'Effacer' : 'مسح'}</button>
+                <button onClick={() => { setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]); setCurrentStrokes([]); setShapes([]); setShowConfirmClear(false); }} className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-xs uppercase">{lang === 'fr' ? 'Effacer' : 'مسح'}</button>
               </div>
             </motion.div>
           </motion.div>
