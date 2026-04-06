@@ -529,8 +529,8 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
         ctx.shadowBlur = 4;
         ctx.shadowColor = stroke.color;
       } else if (stroke.type === 'eraser') {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.strokeStyle = paperColor;
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.strokeStyle = 'rgba(0,0,0,1)';
         ctx.lineCap = 'round';
         ctx.lineWidth = stroke.width * 4;
       } else if (stroke.type === 'ruler') {
@@ -701,7 +701,9 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
       ctx.globalAlpha = 0.75; ctx.lineWidth = stroke.width * 2;
       ctx.setLineDash([2, 3]); ctx.shadowBlur = 4; ctx.shadowColor = stroke.color;
     } else if (stroke.type === 'eraser') {
-      ctx.globalCompositeOperation = 'source-over'; ctx.lineWidth = stroke.width * 4;
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.lineWidth = stroke.width * 4;
     }
     const p1 = points[points.length - 2], p2 = points[points.length - 1];
     ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); ctx.restore();
@@ -937,14 +939,8 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
   // ──────────────────────────────────
   return (
     <div className="flex-1 flex flex-col gap-3 relative h-full overflow-hidden">
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 rounded-[2rem] shadow-2xl overflow-y-auto relative border group cursor-none custom-scrollbar"
-        style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', scrollBehavior: 'smooth' }}
-      >
-        <div className="flex flex-col gap-3">
           <div
-            className="backdrop-blur-2xl rounded-[2rem] shadow-xl border p-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar"
+            className="backdrop-blur-2xl rounded-[2rem] shadow-xl border p-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar flex-shrink-0"
             style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}
           >
             {/* Left: back + title */}
@@ -1221,8 +1217,12 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
 
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 rounded-[2rem] shadow-2xl overflow-y-auto relative border group cursor-none custom-scrollbar"
+        style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', scrollBehavior: 'smooth' }}
+      >
         {toastMessage && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
