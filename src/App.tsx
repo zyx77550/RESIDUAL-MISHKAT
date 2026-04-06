@@ -942,7 +942,7 @@ const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserDa
         className="flex-1 rounded-[2rem] shadow-2xl overflow-y-auto relative border group cursor-none custom-scrollbar"
         style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', scrollBehavior: 'smooth' }}
       >
-        <div className="sticky top-0 z-50 flex flex-col gap-3 bg-[rgba(255,255,255,0.84)] backdrop-blur-xl" style={{ background: 'rgba(255,255,255,0.84)' }}>
+        <div className="flex flex-col gap-3 bg-[rgba(255,255,255,0.84)] backdrop-blur-xl" style={{ background: 'rgba(255,255,255,0.84)' }}>
           <div
             className="backdrop-blur-2xl rounded-[2rem] shadow-xl border p-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar"
             style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}

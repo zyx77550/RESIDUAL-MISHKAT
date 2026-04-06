@@ -232,12 +232,17 @@ export const SettingsSection = ({ userData, setUserData, lang }: { userData: Use
             </div>
 
             <button 
-              onClick={() => {
-                if (confirm(lang === 'fr' ? 'Voulez-vous vraiment tout réinitialiser ?' : 'هل تريد حقاً إعادة ضبط كل شيء؟')) {
-                  localStorage.removeItem('mishkat_user_data');
-                  window.location.reload();
-                }
-              }}
+              onClick={() => window.dispatchEvent(new CustomEvent('sw-update', { detail: { reg: null } }))}
+              className="w-full flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 rounded-2xl border border-primary/10 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <SettingsIcon size={18} className="text-secondary group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-bold text-primary">{lang === 'fr' ? 'Tester la mise à jour' : 'اختبار التحديث'}</span>
+              </div>
+              <ChevronRight size={16} className="text-primary/20" />
+            </button>
+
+            <button
               className="w-full flex items-center justify-between p-4 bg-red-500/5 hover:bg-red-500/10 rounded-2xl border border-red-500/10 transition-all group"
             >
               <div className="flex items-center gap-3">
