@@ -1,14 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Star, ChevronRight } from 'lucide-react';
-import { Surah } from '../types';
+import { Surah, UserData } from '../types';
 import { cn } from '../lib/utils';
 
-export const MemorizationSection = ({ userData, setUserData, lang }: { userData: any, setUserData: any, lang: string }) => {
+export const MemorizationSection = ({ userData, setUserData, lang }: { userData: UserData, setUserData: React.Dispatch<React.SetStateAction<UserData>>, lang: string }) => {
   const updateStatus = (id: number, status: Surah['status']) => {
-    setUserData((prev: any) => ({
+    setUserData((prev: UserData) => ({
       ...prev,
-      surahs: prev.surahs.map((s: any) => s.id === id ? { ...s, status } : s)
+      surahs: prev.surahs.map((s: Surah) => s.id === id ? { ...s, status } : s)
     }));
   };
 
@@ -24,7 +24,7 @@ export const MemorizationSection = ({ userData, setUserData, lang }: { userData:
       </motion.header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {userData.surahs.slice(0, 114).map((surah: any, idx: number) => (
+        {userData.surahs.slice(0, 114).map((surah: Surah, idx: number) => (
           <motion.div 
             key={surah.id}
             initial={{ opacity: 0, y: 20 }}

@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion, Reorder } from 'framer-motion';
-import { Surah } from '../types';
+import { Surah, UserData } from '../types';
 import { cn } from '../lib/utils';
 
-export const KanbanSection = ({ userData, setUserData, lang }: { userData: any, setUserData: any, lang: string }) => {
+export const KanbanSection = ({ userData, setUserData, lang }: { userData: UserData, setUserData: React.Dispatch<React.SetStateAction<UserData>>, lang: string }) => {
   const columns = [
     { id: 'not_started', title: lang === 'fr' ? 'Non commencé' : 'لم يبدأ' },
     { id: 'in_progress', title: lang === 'fr' ? 'En apprentissage' : 'قيد الحفظ' },
@@ -12,9 +12,9 @@ export const KanbanSection = ({ userData, setUserData, lang }: { userData: any, 
   ];
 
   const updateStatus = (id: number, status: string) => {
-    setUserData((prev: any) => ({
+    setUserData((prev: UserData) => ({
       ...prev,
-      surahs: prev.surahs.map((s: any) => s.id === id ? { ...s, status } : s)
+      surahs: prev.surahs.map((s: Surah) => s.id === id ? { ...s, status } : s)
     }));
   };
 
@@ -31,11 +31,11 @@ export const KanbanSection = ({ userData, setUserData, lang }: { userData: any, 
             <h3 className="font-bold text-primary px-2 flex justify-between items-center">
               {col.title}
               <span className="text-[10px] bg-surface text-primary px-2 py-1 rounded-full shadow-sm">
-                {userData.surahs.filter((s: any) => s.status === col.id).length}
+                {userData.surahs.filter((s: Surah) => s.status === col.id).length}
               </span>
             </h3>
             <div className="flex-1 space-y-3 overflow-y-auto pr-2">
-              {userData.surahs.filter((s: any) => s.status === col.id).map((surah: any) => (
+              {userData.surahs.filter((s: Surah) => s.status === col.id).map((surah: Surah) => (
                 <motion.div 
                   layoutId={surah.id.toString()}
                   key={surah.id} 

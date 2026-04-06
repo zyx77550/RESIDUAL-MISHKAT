@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
+import { UserData } from '../types';
 
-export const TasbihSection = ({ userData, setUserData, lang }: { userData: any, setUserData: any, lang: string }) => {
+export const TasbihSection = ({ userData, setUserData, lang }: { userData: UserData, setUserData: React.Dispatch<React.SetStateAction<UserData>>, lang: string }) => {
   const [count, setCount] = useState(0);
   const [target, setTarget] = useState(33);
   const [sessionComplete, setSessionComplete] = useState(false);
@@ -15,7 +16,7 @@ export const TasbihSection = ({ userData, setUserData, lang }: { userData: any, 
       // Session terminée → sauvegarder dans userData
       if (newCount === target) {
         setSessionComplete(true);
-        setUserData((prev: any) => ({
+        setUserData((prev: UserData) => ({
           ...prev,
           tasbihCount: (prev.tasbihCount || 0) + target,
           tasbihSessionBest: Math.max(prev.tasbihSessionBest || 0, target)

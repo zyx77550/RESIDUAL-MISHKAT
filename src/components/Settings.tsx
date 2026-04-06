@@ -18,7 +18,7 @@ import {
 import { cn } from '../lib/utils';
 import { UserData, UserSettings } from '../types';
 
-export const SettingsSection = ({ userData, setUserData, lang }: { userData: UserData, setUserData: any, lang: string }) => {
+export const SettingsSection = ({ userData, setUserData, lang }: { userData: UserData, setUserData: React.Dispatch<React.SetStateAction<UserData>>, lang: string }) => {
   const settings = userData.settings;
 
   const updateSettings = (newSettings: Partial<UserSettings>) => {

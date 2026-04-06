@@ -3,8 +3,9 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMont
 import { fr, ar } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, CheckCircle2, Circle, BookOpen } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { UserData } from '../types';
 
-export const CalendarSection = ({ userData, setUserData, lang }: { userData: any, setUserData: any, lang: string }) => {
+export const CalendarSection = ({ userData, setUserData, lang }: { userData: UserData, setUserData: React.Dispatch<React.SetStateAction<UserData>>, lang: string }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   
   const days = eachDayOfInterval({
@@ -16,7 +17,7 @@ export const CalendarSection = ({ userData, setUserData, lang }: { userData: any
 
   const togglePrayer = (date: Date, prayer: string) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    setUserData((prev: any) => {
+    setUserData((prev: UserData) => {
       const existing = prev.calendar.find((c: any) => c.date === dateStr);
       let newCalendar;
       if (existing) {
