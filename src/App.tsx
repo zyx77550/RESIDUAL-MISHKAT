@@ -51,14 +51,6 @@ import { Surah, DiftarPage, UserData, Badge, generateAllSurahs, Stroke, Shape, c
 import confetti from 'canvas-confetti';
 import { checkAndUnlockBadges, celebrateBadgeUnlock } from './lib/badgeEngine';
 
-// ═══════════════════════════════════════════════════════
-// SIDEBAR
-// ═══════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════
-// MAIN APP
-// ═══════════════════════════════════════════════════════
-
 export default function App() {
   const [activeTab, setActiveTab]           = useState('dashboard');
   const [lang, setLang]                     = useState<'fr' | 'ar'>('fr');
@@ -68,7 +60,6 @@ export default function App() {
   const [newlyUnlocked, setNewlyUnlocked]   = useState<Badge[]>([]);
   const [updateWorker, setUpdateWorker]     = useState<ServiceWorker | null>(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
-  const [pendingUpdateUsername, setPendingUpdateUsername] = useState('');
 
   const updateUserDataWithBadges = useCallback((updater: UserData | ((prev: UserData) => UserData)) => {
     setUserData(prev => {
@@ -98,7 +89,6 @@ export default function App() {
           parsed = JSON.parse(saved);
         } catch (parseError) {
           console.error('Failed to parse user data from localStorage, creating fresh data:', parseError);
-          // If localStorage is corrupted, create new data
           const initial: UserData = {
             surahs: generateAllSurahs(),
             diftarPages: [],
@@ -117,7 +107,6 @@ export default function App() {
           return;
         }
 
-        // Ensure all required fields exist
         if (!parsed.surahs || !Array.isArray(parsed.surahs)) parsed.surahs = generateAllSurahs();
         if (!parsed.diftarPages || !Array.isArray(parsed.diftarPages)) parsed.diftarPages = [];
         if (!parsed.goals || !Array.isArray(parsed.goals)) parsed.goals = [];
@@ -125,13 +114,11 @@ export default function App() {
         if (!parsed.calendar || !Array.isArray(parsed.calendar)) parsed.calendar = [];
         if (!parsed.settings) parsed.settings = { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' };
 
-        // Validate critical fields
         if (typeof parsed.tasbihCount !== 'number') parsed.tasbihCount = 0;
         if (typeof parsed.loginStreak !== 'number') parsed.loginStreak = 1;
         if (typeof parsed.tasbihSessionBest !== 'number') parsed.tasbihSessionBest = 0;
         if (typeof parsed.onboarded !== 'boolean') parsed.onboarded = false;
 
-        // Migrate surahs to add real names if they're missing
         if (parsed.surahs && parsed.surahs[0]?.name === 'Surah 1') {
           const freshSurahs = generateAllSurahs();
           parsed.surahs = freshSurahs.map((fresh: any, i: number) => ({
@@ -141,7 +128,6 @@ export default function App() {
           }));
         }
 
-        // Update login streak via the canonical helper
         if (parsed.lastLoginDate !== today) {
           const { newStreak } = checkLoginStreak(parsed);
           parsed.loginStreak = newStreak;
@@ -168,7 +154,6 @@ export default function App() {
       }
     } catch (error) {
       console.error('Fatal error loading user data:', error);
-      // Emergency fallback
       const today = new Date().toISOString().split('T')[0];
       const initial: UserData = {
         surahs: generateAllSurahs(),
@@ -194,14 +179,6 @@ export default function App() {
   }, []);
 
   const applyUpdate = () => {
-    const trimmedUsername = pendingUpdateUsername.trim();
-    if (!trimmedUsername) {
-      alert(lang === 'fr' ? 'Veuillez saisir votre nom avant de mettre à jour.' : 'يرجى إدخال اسمك قبل التحديث.');
-      return;
-    }
-    if (userData) {
-      setUserData({ ...userData, settings: { ...userData.settings, username: trimmedUsername } });
-    }
     if (updateWorker) {
       let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -210,8 +187,9 @@ export default function App() {
         window.location.reload();
       });
       updateWorker.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      window.location.reload();
     }
-    setShowUpdatePrompt(false);
   };
 
   if (!userData) return null;
@@ -238,20 +216,6 @@ export default function App() {
 
       <main className={cn('flex-1 p-4 md:p-12 pb-32 md:pb-12 relative z-10', activeTab === 'diftar' ? 'overflow-hidden' : 'overflow-y-auto', lang === 'ar' ? 'text-right' : 'text-left')}>
         <div className="max-w-7xl mx-auto h-full">
-          {!userData ? (
-            // Loading state
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center space-y-4">
-                <motion.div 
-                  animate={{ rotate: 360 }} 
-                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                  className="w-12 h-12 rounded-full border-4 mx-auto"
-                  style={{ borderColor: 'var(--brand-primary)', borderTopColor: 'transparent' }}
-                />
-                <p style={{ color: 'var(--brand-text-muted)' }}>Chargement...</p>
-              </div>
-            </div>
-          ) : (
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
@@ -273,7 +237,6 @@ export default function App() {
                 {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
               </motion.div>
             </AnimatePresence>
-          )}
         </div>
       </main>
 
@@ -292,7 +255,7 @@ export default function App() {
                 <p className="text-lg mt-1" style={{ color: 'var(--brand-secondary)', fontFamily: 'Amiri, serif' }}>مِشْكَاة · تَطْبِيقُ الحِفْظِ</p>
               </div>
               <p className="text-sm leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>
-                {lang === 'fr' ? 'Bienvenue dans votre compagnon de mémorisation. Suivez vos progrès, coloriez vos réussites et écrivez vos notes dans votre Diftar numérique.' : 'مرحباً بك في رفيقك في الحفظ. تتبع تقدمك، لون إنجازاتك، واكتب ملاحظاتك في دفترك الرقمي.'}
+                {lang === 'fr' ? 'Bienvenue dans votre compagnon de mémorisation. Suivez vos progrès, coloriez vos réussites et écrivez vos notes dans votre Diftar numérique.' : 'مرحباً بك في رفيقك في الحفظ. تتبع تقدمك، لون إنجaserاتك، واكتب ملاحظاتك في دفترك الرقمي.'}
               </p>
               <button onClick={() => setShowOnboarding(false)} className="premium-button w-full text-lg">
                 {lang === 'fr' ? "Commencer l'aventure ✦" : 'ابدأ الرحلة ✦'}
