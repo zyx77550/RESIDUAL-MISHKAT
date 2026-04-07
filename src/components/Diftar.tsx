@@ -308,53 +308,69 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // 1. CLEAR & DRAW BACKGROUND (PAPER)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = paperColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     drawPaperLines(ctx, canvas.width, canvas.height);
 
+    // 2. DRAW ALL STROKES ON A TEMPORARY LAYER (to allow eraser transparency over lines)
+    if (!offscreenRef.current) offscreenRef.current = document.createElement('canvas');
+    const strokesLayer = offscreenRef.current;
+    if (strokesLayer.width !== canvas.width || strokesLayer.height !== canvas.height) { 
+      strokesLayer.width = canvas.width; 
+      strokesLayer.height = canvas.height; 
+    }
+    const sctx = strokesLayer.getContext('2d')!;
+    sctx.clearRect(0, 0, strokesLayer.width, strokesLayer.height);
+
+    // Draw completed strokes (from static buffer)
     if (staticBufferRef.current) {
-        ctx.drawImage(staticBufferRef.current, 0, 0);
+      sctx.drawImage(staticBufferRef.current, 0, 0);
     }
 
+    // Draw active stroke (if any)
     if (activeStrokeRef.current) {
-      if (!offscreenRef.current) offscreenRef.current = document.createElement('canvas');
-      const off = offscreenRef.current;
-      if (off.width !== canvas.width || off.height !== canvas.height) { off.width = canvas.width; off.height = canvas.height; }
-      const octx = off.getContext('2d')!;
-      octx.clearRect(0, 0, off.width, off.height);
-      
       const stroke = activeStrokeRef.current;
-      octx.save(); octx.beginPath(); octx.strokeStyle = getStrokeStyle(octx, stroke); octx.lineJoin = 'round';
-      if (stroke.type === 'highlighter') {
-        octx.globalCompositeOperation = 'multiply'; octx.globalAlpha = 0.4; octx.lineCap = 'square'; octx.lineWidth = stroke.width * 2.5;
-      } else if (stroke.type === 'fountain-pen') {
-        octx.globalCompositeOperation = 'source-over'; octx.lineCap = 'butt'; octx.lineWidth = stroke.width * 1.2; octx.setTransform(1, 0, 0.4, 1, 0, 0);
-      } else if (stroke.type === 'chalk') {
-        octx.globalCompositeOperation = 'source-over'; octx.globalAlpha = 0.75; octx.lineCap = 'round'; octx.lineWidth = stroke.width * 2; octx.setLineDash([2, 3]); octx.shadowBlur = 4; octx.shadowColor = stroke.color;
-      } else if (stroke.type === 'eraser') {
-        octx.globalCompositeOperation = 'destination-out'; octx.strokeStyle = 'rgba(0,0,0,1)'; octx.lineCap = 'round'; octx.lineWidth = stroke.width * 4;
+      sctx.save();
+      sctx.beginPath();
+      
+      if (stroke.type === 'eraser') {
+        sctx.globalCompositeOperation = 'destination-out';
+        sctx.strokeStyle = 'rgba(0,0,0,1)';
+        sctx.lineCap = 'round';
+        sctx.lineWidth = stroke.width * 4;
       } else {
-        octx.globalCompositeOperation = 'source-over'; octx.lineCap = 'round'; octx.lineWidth = stroke.width;
+        sctx.strokeStyle = getStrokeStyle(sctx, stroke);
+        sctx.lineJoin = 'round';
+        if (stroke.type === 'highlighter') {
+          sctx.globalCompositeOperation = 'multiply'; sctx.globalAlpha = 0.4; sctx.lineCap = 'square'; sctx.lineWidth = stroke.width * 2.5;
+        } else if (stroke.type === 'fountain-pen') {
+          sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'butt'; sctx.lineWidth = stroke.width * 1.2; sctx.setTransform(1, 0, 0.4, 1, 0, 0);
+        } else if (stroke.type === 'chalk') {
+          sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.75; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width * 2; sctx.setLineDash([2, 3]); sctx.shadowBlur = 4; sctx.shadowColor = stroke.color;
+        } else {
+          sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width;
+        }
       }
-      octx.moveTo(stroke.points[0].x, stroke.points[0].y);
+
+      sctx.moveTo(stroke.points[0].x, stroke.points[0].y);
       if (stroke.type === 'ruler') {
-        const last = stroke.points[stroke.points.length - 1]; octx.lineTo(last.x, last.y);
+        const last = stroke.points[stroke.points.length - 1]; sctx.lineTo(last.x, last.y);
       } else {
         for (let i = 1; i < stroke.points.length - 1; i++) {
           const xc = (stroke.points[i].x + stroke.points[i + 1].x) / 2;
           const yc = (stroke.points[i].y + stroke.points[i + 1].y) / 2;
-          octx.quadraticCurveTo(stroke.points[i].x, stroke.points[i].y, xc, yc);
+          sctx.quadraticCurveTo(stroke.points[i].x, stroke.points[i].y, xc, yc);
         }
-        const last = stroke.points[stroke.points.length - 1]; octx.lineTo(last.x, last.y);
+        const last = stroke.points[stroke.points.length - 1]; sctx.lineTo(last.x, last.y);
       }
-      octx.stroke(); octx.restore();
-      
-      // If eraser, we must mask the CURRENT canvas background too? 
-      // Actually, pixel eraser usually erases from the buffer.
-      // For active stroke eraser, we just draw it on top of the buffer.
-      ctx.drawImage(off, 0, 0);
+      sctx.stroke();
+      sctx.restore();
     }
+
+    // 3. COMPOSITE STROKES OVER PAPER
+    ctx.drawImage(strokesLayer, 0, 0);
   };
 
   useEffect(() => { updateStaticBuffer(); redrawCanvas(); }, [currentStrokes, shapes, paperColor, paperStyle, pageHeight]);
@@ -695,7 +711,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   return (
     <div className="flex-1 flex flex-col gap-3 relative h-full overflow-hidden">
           <motion.div
-            className="absolute top-2 left-2 right-2 z-[100] flex flex-col gap-2 pointer-events-none"
+            className="sticky top-2 left-2 right-2 z-[100] flex flex-col gap-2 pointer-events-none"
           >
           <div
             className="backdrop-blur-2xl rounded-[2rem] shadow-xl border p-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar flex-shrink-0 pointer-events-auto"

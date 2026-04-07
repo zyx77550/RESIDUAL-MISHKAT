@@ -184,6 +184,15 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    const handleUpdate = (e: any) => {
+      setUpdateWorker(e.detail.waiting);
+      setShowUpdatePrompt(true);
+    };
+    window.addEventListener('mishkatUpdateAvailable', handleUpdate);
+    return () => window.removeEventListener('mishkatUpdateAvailable', handleUpdate);
+  }, []);
+
   const applyUpdate = () => {
     const trimmedUsername = pendingUpdateUsername.trim();
     if (!trimmedUsername) {
@@ -290,6 +299,35 @@ export default function App() {
               </button>
               <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--brand-text-muted)', opacity: 0.6 }}>Par Rahima & hamda_wa_chakra</p>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showUpdatePrompt && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[110] w-[calc(100%-3rem)] max-w-sm"
+          >
+            <div className="glass-card p-4 flex items-center justify-between gap-4 shadow-2xl border-white/20 bg-white/5 backdrop-blur-3xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#8B2635] text-white shadow-lg">
+                  <span className="text-xl">✨</span>
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-[#8B2635]">Mise à jour</p>
+                  <p className="text-[10px] text-muted-foreground">{lang === 'fr' ? 'Nouvelle version disponible !' : 'إصدار جديد متاح !'}</p>
+                </div>
+              </div>
+              <button 
+                onClick={applyUpdate}
+                className="px-4 py-2 rounded-xl bg-[#8B2635] text-white text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all"
+              >
+                {lang === 'fr' ? 'Actualiser' : 'تحديث'}
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
