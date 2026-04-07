@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Calendar as CalendarIcon, BookOpen, Target, Award, Palette, NotebookPen, Settings, ChevronRight, ChevronLeft, Languages, Trash2, Wind } from 'lucide-react';
+import { LayoutDashboard, Calendar as CalendarIcon, BookOpen, Target, Award, Palette, NotebookPen, Settings, ChevronRight, ChevronLeft, Languages, Trash2, Wind, Kanban } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export const Sidebar = ({ activeTab, setActiveTab, lang, setLang, isCollapsed, setIsCollapsed }: { activeTab: string, setActiveTab: any, lang: string, setLang: any, isCollapsed: boolean, setIsCollapsed: any }) => {
@@ -13,7 +13,7 @@ export const Sidebar = ({ activeTab, setActiveTab, lang, setLang, isCollapsed, s
     { id: 'tasbih',       icon: Wind,             label: lang === 'fr' ? 'Tasbih'           : 'تسبيح'       },
     { id: 'coloring',     icon: Palette,          label: lang === 'fr' ? 'Coloriage'        : 'التلوين'     },
     { id: 'diftar',       icon: NotebookPen,      label: lang === 'fr' ? 'Diftar'           : 'الدفتر'      },
-    { id: 'kanban',       icon: LayoutDashboard,  label: lang === 'fr' ? 'Suivi'            : 'المتابعة'    },
+    { id: 'kanban',       icon: Kanban,           label: lang === 'fr' ? 'Suivi'            : 'المتابعة'    },
     { id: 'settings',     icon: Settings,         label: lang === 'fr' ? 'Réglages'         : 'الإعدادات'   },
   ];
 
@@ -47,7 +47,7 @@ export const Sidebar = ({ activeTab, setActiveTab, lang, setLang, isCollapsed, s
           className="p-2.5 rounded-xl transition-all hover:scale-105 flex-shrink-0"
           style={{ background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-primary)' }}
         >
-          {isCollapsed ? (lang === 'ar' ? <ChevronLeft size={17} /> : <ChevronRight size={17} />) : (lang === 'ar' ? <ChevronRight size={17} /> : <ChevronLeft size={17} />)}
+          {isCollapsed ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}
         </button>
       </div>
 

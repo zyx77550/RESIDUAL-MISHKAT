@@ -25,7 +25,7 @@ export const TasbihSection = ({ userData, setUserData, lang }: { userData: UserD
       }
     } else {
       // Reset pour nouvelle session
-      setCount(1);
+      setCount(0);
       setSessionComplete(false);
     }
   };
@@ -71,7 +71,6 @@ export const TasbihSection = ({ userData, setUserData, lang }: { userData: UserD
             stroke="url(#tasbihGrad)"
             strokeWidth="6"
             fill="transparent"
-            strokeDasharray="100 100"
             pathLength="1"
             animate={{ pathLength: progress }}
             transition={{ type: 'spring', stiffness: 50, damping: 20 }}

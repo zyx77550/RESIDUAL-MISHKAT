@@ -4,7 +4,7 @@ export interface Surah {
   arabicName: string;
   verses: number;
   difficulty: number;
-  status: 'not_started' | 'in_progress' | 'memorized';
+  status: 'not_started' | 'in_progress' | 'review' | 'memorized';
   color?: string;
   juz?: number;
 }

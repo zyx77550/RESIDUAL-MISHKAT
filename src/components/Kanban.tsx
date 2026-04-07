@@ -4,14 +4,14 @@ import { Surah, UserData } from '../types';
 import { cn } from '../lib/utils';
 
 export const KanbanSection = ({ userData, setUserData, lang }: { userData: UserData, setUserData: React.Dispatch<React.SetStateAction<UserData>>, lang: string }) => {
-  const columns = [
+  const columns: { id: Surah['status'], title: string }[] = [
     { id: 'not_started', title: lang === 'fr' ? 'Non commencé' : 'لم يبدأ' },
     { id: 'in_progress', title: lang === 'fr' ? 'En apprentissage' : 'قيد الحفظ' },
     { id: 'review', title: lang === 'fr' ? 'En révision' : 'قيد المراجعة' },
     { id: 'memorized', title: lang === 'fr' ? 'Maîtrisé' : 'تم الحفظ' },
   ];
 
-  const updateStatus = (id: number, status: string) => {
+  const updateStatus = (id: number, status: Surah['status']) => {
     setUserData((prev: UserData) => ({
       ...prev,
       surahs: prev.surahs.map((s: Surah) => s.id === id ? { ...s, status } : s)

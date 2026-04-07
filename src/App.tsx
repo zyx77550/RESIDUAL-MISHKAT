@@ -184,30 +184,6 @@ export default function App() {
     }
   }, []);
 
-  useEffect(() => {
-    if (userData) localStorage.setItem('mishkat_user_data', JSON.stringify(userData));
-  }, [userData]);
-
-  useEffect(() => {
-    if (newlyUnlocked.length > 0) {
-      const timer = setTimeout(() => setNewlyUnlocked([]), 10000);
-      return () => clearTimeout(timer);
-    }
-  }, [newlyUnlocked]);
-
-  useEffect(() => {
-    const handleUpdateAvailable = (event: any) => {
-      const worker = event.detail?.waiting || event.detail?.installing || null;
-      if (!worker) return;
-      setUpdateWorker(worker);
-      setPendingUpdateUsername(userData?.settings?.username || '');
-      setShowUpdatePrompt(true);
-    };
-
-    window.addEventListener('mishkatUpdateAvailable', handleUpdateAvailable);
-    return () => window.removeEventListener('mishkatUpdateAvailable', handleUpdateAvailable);
-  }, [userData]);
-
   const applyUpdate = () => {
     const trimmedUsername = pendingUpdateUsername.trim();
     if (!trimmedUsername) {
@@ -251,7 +227,7 @@ export default function App() {
 
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
 
-      <main className={cn('flex-1 p-4 md:p-12 overflow-y-auto pb-24 md:pb-12 relative z-10', lang === 'ar' ? 'text-right' : 'text-left')}>
+      <main className={cn('flex-1 p-4 md:p-12 overflow-y-auto pb-32 md:pb-12 relative z-10', lang === 'ar' ? 'text-right' : 'text-left')}>
         <div className="max-w-7xl mx-auto h-full">
           {!userData ? (
             // Loading state
@@ -273,7 +249,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.35, ease: 'easeInOut' }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
                 className="h-full"
               >
                 {activeTab === 'dashboard'    && <Dashboard userData={userData} lang={lang} />}

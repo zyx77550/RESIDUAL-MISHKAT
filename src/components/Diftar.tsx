@@ -67,7 +67,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [shapeCategory, setShapeCategory]       = useState(0);
   const [showPaperSettings, setShowPaperSettings]   = useState(false);
   const [isSaving, setIsSaving]             = useState(false);
-  const [paperStyle, setPaperStyle]         = useState<string>('lines');
+  const [paperStyle, setPaperStyle]         = useState<'lines'|'blank'|'grid'|'dots'|'arabesque'>('lines');
   const [paperColor, setPaperColor]         = useState('#fdfcf8');
   const [pageHeight, setPageHeight]         = useState(5000);
   const [canvasScale, setCanvasScale]       = useState(1);
@@ -85,6 +85,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [isDrawing, setIsDrawing]           = useState(false);
   const [toastMessage, setToastMessage]     = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const offscreenRef = useRef<HTMLCanvasElement | null>(null);
 
   const activePage = userData.diftarPages.find(p => p.id === activePageId);
 
@@ -221,14 +222,14 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     }
     ctx.stroke();
 
-    if (paperStyle !== 'blank') {
+    
       ctx.beginPath();
       ctx.strokeStyle = marginColor;
       ctx.lineWidth = 1.5;
       const marginX = lang === 'ar' ? w - 80 : 80;
       ctx.moveTo(marginX, 0); ctx.lineTo(marginX, h);
       ctx.stroke();
-    }
+    
     ctx.restore();
   };
 
@@ -242,108 +243,101 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     drawPaperLines(ctx, canvas.width, canvas.height);
 
-    const renderStroke = (stroke: Stroke) => {
+    if (!offscreenRef.current) {
+        offscreenRef.current = document.createElement('canvas');
+    }
+    const off = offscreenRef.current;
+    if (off.width !== canvas.width || off.height !== canvas.height) {
+        off.width = canvas.width;
+        off.height = canvas.height;
+    }
+    const octx = off.getContext('2d');
+    if (!octx) return;
+    octx.clearRect(0, 0, off.width, off.height);
+
+    const renderStroke = (stroke, targetCtx = octx) => {
       if (stroke.points.length < 2) return;
-      ctx.save();
-      ctx.beginPath();
-      ctx.strokeStyle = getStrokeStyle(ctx, stroke);
-      ctx.lineJoin = 'round';
+      targetCtx.save();
+      targetCtx.beginPath();
+      targetCtx.strokeStyle = getStrokeStyle(targetCtx, stroke);
+      targetCtx.lineJoin = 'round';
 
       if (stroke.type === 'highlighter') {
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.globalAlpha = 0.4;
-        ctx.lineCap = 'square';
-        ctx.lineWidth = stroke.width * 2.5;
+        targetCtx.globalCompositeOperation = 'multiply';
+        targetCtx.globalAlpha = 0.4;
+        targetCtx.lineCap = 'square';
+        targetCtx.lineWidth = stroke.width * 2.5;
       } else if (stroke.type === 'fountain-pen') {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.lineCap = 'butt';
-        ctx.lineWidth = stroke.width * 1.2;
-        ctx.setTransform(1, 0, 0.4, 1, 0, 0);
+        targetCtx.globalCompositeOperation = 'source-over';
+        targetCtx.lineCap = 'butt';
+        targetCtx.lineWidth = stroke.width * 1.2;
+        targetCtx.setTransform(1, 0, 0.4, 1, 0, 0);
       } else if (stroke.type === 'chalk') {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = 0.75;
-        ctx.lineCap = 'round';
-        ctx.lineWidth = stroke.width * 2;
-        ctx.setLineDash([2, 3]);
-        ctx.shadowBlur = 4;
-        ctx.shadowColor = stroke.color;
+        targetCtx.globalCompositeOperation = 'source-over';
+        targetCtx.globalAlpha = 0.75;
+        targetCtx.lineCap = 'round';
+        targetCtx.lineWidth = stroke.width * 2;
+        targetCtx.setLineDash([2, 3]);
+        targetCtx.shadowBlur = 4;
+        targetCtx.shadowColor = stroke.color;
       } else if (stroke.type === 'eraser') {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.strokeStyle = paperColor;
-        ctx.lineCap = 'round';
-        ctx.lineWidth = stroke.width * 4;
+        targetCtx.globalCompositeOperation = 'destination-out';
+        targetCtx.strokeStyle = 'rgba(0,0,0,1)';
+        targetCtx.lineCap = 'round';
+        targetCtx.lineWidth = stroke.width * 4;
       } else if (stroke.type === 'ruler') {
-        ctx.lineCap = 'butt';
-        ctx.lineWidth = stroke.width;
+        targetCtx.lineCap = 'butt';
+        targetCtx.lineWidth = stroke.width;
       } else {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.lineCap = 'round';
-        ctx.lineWidth = stroke.width;
+        targetCtx.globalCompositeOperation = 'source-over';
+        targetCtx.lineCap = 'round';
+        targetCtx.lineWidth = stroke.width;
       }
 
-      ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+      targetCtx.moveTo(stroke.points[0].x, stroke.points[0].y);
       if (stroke.type === 'ruler') {
         const last = stroke.points[stroke.points.length - 1];
-        ctx.lineTo(last.x, last.y);
+        targetCtx.lineTo(last.x, last.y);
       } else {
         for (let i = 1; i < stroke.points.length - 1; i++) {
           const xc = (stroke.points[i].x + stroke.points[i + 1].x) / 2;
           const yc = (stroke.points[i].y + stroke.points[i + 1].y) / 2;
-          ctx.quadraticCurveTo(stroke.points[i].x, stroke.points[i].y, xc, yc);
+          targetCtx.quadraticCurveTo(stroke.points[i].x, stroke.points[i].y, xc, yc);
         }
         const last = stroke.points[stroke.points.length - 1];
-        ctx.lineTo(last.x, last.y);
+        targetCtx.lineTo(last.x, last.y);
       }
-      ctx.stroke();
-      ctx.restore();
+      targetCtx.stroke();
+      targetCtx.restore();
     };
 
-    currentStrokes.forEach(renderStroke);
+    currentStrokes.forEach(s => renderStroke(s, octx));
+    if (activeStrokeRef.current) renderStroke(activeStrokeRef.current, octx);
 
-    shapes.forEach((shape: Shape) => {
-      ctx.save();
-      ctx.strokeStyle = shape.color;
-      ctx.fillStyle = shape.color;
-      ctx.lineWidth = 2;
-      ctx.translate(shape.x, shape.y);
-      if (shape.rotation) ctx.rotate(shape.rotation * Math.PI / 180);
+    shapes.forEach((shape) => {
+      octx.save();
+      octx.strokeStyle = shape.color;
+      octx.fillStyle = shape.color;
+      octx.lineWidth = 2;
+      octx.translate(shape.x, shape.y);
+      if (shape.rotation) octx.rotate((shape.rotation * Math.PI) / 180);
       
       switch (shape.type) {
         case 'circle':
-          ctx.beginPath();
-          ctx.arc(0, 0, shape.width / 2, 0, Math.PI * 2);
-          ctx.fill();
-          break;
+          octx.beginPath(); octx.arc(0, 0, shape.width / 2, 0, Math.PI * 2); octx.fill(); break;
         case 'square':
-          ctx.fillRect(-shape.width / 2, -shape.height / 2, shape.width, shape.height);
-          break;
+          octx.fillRect(-shape.width / 2, -shape.height / 2, shape.width, shape.height); break;
         case 'triangle':
-          ctx.beginPath();
-          ctx.moveTo(0, -shape.height / 2);
-          ctx.lineTo(-shape.width / 2, shape.height / 2);
-          ctx.lineTo(shape.width / 2, shape.height / 2);
-          ctx.closePath();
-          ctx.fill();
-          break;
+          octx.beginPath(); octx.moveTo(0, -shape.height / 2); octx.lineTo(-shape.width / 2, shape.height / 2); octx.lineTo(shape.width / 2, shape.height / 2); octx.closePath(); octx.fill(); break;
         case 'line':
-          ctx.beginPath();
-          ctx.moveTo(-shape.width / 2, 0);
-          ctx.lineTo(shape.width / 2, 0);
-          ctx.stroke();
-          break;
+          octx.beginPath(); octx.moveTo(-shape.width / 2, 0); octx.lineTo(shape.width / 2, 0); octx.stroke(); break;
         case 'arrow':
-          ctx.beginPath();
-          ctx.moveTo(-shape.width / 2, 0);
-          ctx.lineTo(shape.width / 2 - 10, 0);
-          ctx.moveTo(shape.width / 2 - 10, 0);
-          ctx.lineTo(shape.width / 2 - 15, -5);
-          ctx.moveTo(shape.width / 2 - 10, 0);
-          ctx.lineTo(shape.width / 2 - 15, 5);
-          ctx.stroke();
-          break;
+          octx.beginPath(); octx.moveTo(-shape.width / 2, 0); octx.lineTo(shape.width / 2 - 10, 0); octx.moveTo(shape.width / 2 - 10, 0); octx.lineTo(shape.width / 2 - 15, -5); octx.moveTo(shape.width / 2 - 10, 0); octx.lineTo(shape.width / 2 - 15, 5); octx.stroke(); break;
       }
-      ctx.restore();
+      octx.restore();
     });
+
+    ctx.drawImage(off, 0, 0);
   };
 
   useEffect(() => { redrawCanvas(); }, [currentStrokes, shapes, lang, pageHeight, paperStyle, paperColor]);
@@ -393,7 +387,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     setIsDrawing(true);
     activeStrokeRef.current = {
       points: [{ x, y }],
-      color: tool === 'eraser' ? paperColor : color,
+      color: tool === 'eraser' ? 'rgba(0,0,0,1)' : color,
       width: tool === 'highlighter' ? width * 5 : width,
       type: tool,
       timestamp: Date.now(),
@@ -402,6 +396,8 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     setRedoStack([]);
   };
 
+  const drawFrameRef = useRef<number>(undefined);
+
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawingRef.current || !activeStrokeRef.current) return;
     const { x, y } = getCoords(e);
@@ -409,41 +405,21 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       const start = activeStrokeRef.current.points[0];
       const dx = Math.abs(x - start.x), dy = Math.abs(y - start.y);
       activeStrokeRef.current.points = dx > dy ? [start, { x, y: start.y }] : [start, { x: start.x, y }];
-      redrawCanvas();
-      const canvas = canvasRef.current; if (!canvas) return;
-      const ctx = canvas.getContext('2d'); if (!ctx) return;
-      ctx.save();
-      ctx.beginPath();
-      ctx.strokeStyle = getStrokeStyle(ctx, activeStrokeRef.current);
-      ctx.lineWidth = activeStrokeRef.current.width;
-      ctx.moveTo(start.x, start.y);
-      ctx.lineTo(activeStrokeRef.current.points[1].x, activeStrokeRef.current.points[1].y);
-      ctx.stroke(); ctx.restore();
+      if (!drawFrameRef.current) {
+        drawFrameRef.current = requestAnimationFrame(() => {
+          redrawCanvas();
+          drawFrameRef.current = undefined;
+        });
+      }
       return;
     }
     activeStrokeRef.current.points.push({ x, y });
-    const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext('2d'); if (!ctx) return;
-    const stroke = activeStrokeRef.current;
-    const points = stroke.points;
-    if (points.length < 2) return;
-    ctx.save();
-    ctx.beginPath();
-    ctx.strokeStyle = getStrokeStyle(ctx, stroke);
-    ctx.lineWidth = stroke.width;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    if (stroke.type === 'highlighter') {
-      ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.4;
-      ctx.lineCap = 'square'; ctx.lineWidth = stroke.width * 2.5;
-    } else if (stroke.type === 'chalk') {
-      ctx.globalAlpha = 0.75; ctx.lineWidth = stroke.width * 2;
-      ctx.setLineDash([2, 3]); ctx.shadowBlur = 4; ctx.shadowColor = stroke.color;
-    } else if (stroke.type === 'eraser') {
-      ctx.globalCompositeOperation = 'source-over'; ctx.lineWidth = stroke.width * 4;
+    if (!drawFrameRef.current) {
+      drawFrameRef.current = requestAnimationFrame(() => {
+        redrawCanvas();
+        drawFrameRef.current = undefined;
+      });
     }
-    const p1 = points[points.length - 2], p2 = points[points.length - 1];
-    ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); ctx.restore();
   };
 
   const stopDrawing = () => {
@@ -472,9 +448,21 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
 
   const exportPDF = () => {
     const canvas = canvasRef.current; if (!canvas) return;
-    const imgData = canvas.toDataURL('image/png');
+    const imgData = canvas.toDataURL('image/png', 1.0);
     const pdf = new jsPDF('p', 'mm', 'a4');
-    pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    const pageHeightNum = pdf.internal.pageSize.getHeight();
+    let position = 0;
+
+    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+    position -= pageHeightNum;
+
+    while (position > -pdfHeight) {
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      position -= pageHeightNum;
+    }
     pdf.save(`${activePage?.title || 'diftar'}.pdf`);
   };
 
@@ -544,21 +532,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const closeAllPanels = () => { setShowToolsMenu(false); setShowCustomizationMenu(false); setShowShapePicker(false); setShowPaperSettings(false); setActiveShapeTypeWithRef(null); };
 
   const { scrollY } = useScroll({ container: scrollContainerRef });
-  const [isToolbarHidden, setIsToolbarHidden] = useState(false);
-  const lastYRef = useRef(0);
-
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    const diff = latest - lastYRef.current;
-    if (diff > 15 && latest > 50) { 
-      if (!isToolbarHidden) {
-        setIsToolbarHidden(true);
-        closeAllPanels(); 
-      }
-    } else if (diff < -15 || latest < 50) { 
-      if (isToolbarHidden) setIsToolbarHidden(false);
-    }
-    lastYRef.current = latest;
-  });
 
   // ──────────────────────────────────
   // PAGE LIST VIEW (Gallery)
@@ -694,8 +667,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   return (
     <div className="flex-1 flex flex-col gap-3 relative h-full overflow-hidden">
           <motion.div
-            animate={{ y: isToolbarHidden ? -150 : 0, opacity: isToolbarHidden ? 0 : 1 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="absolute top-2 left-2 right-2 z-[100] flex flex-col gap-2 pointer-events-none"
           >
           <div
