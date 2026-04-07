@@ -227,7 +227,7 @@ export default function App() {
 
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
 
-      <main className={cn('flex-1 p-4 md:p-12 overflow-y-auto pb-32 md:pb-12 relative z-10', lang === 'ar' ? 'text-right' : 'text-left')}>
+      <main className={cn('flex-1 p-4 md:p-12 pb-32 md:pb-12 relative z-10', activeTab === 'diftar' ? 'overflow-hidden' : 'overflow-y-auto', lang === 'ar' ? 'text-right' : 'text-left')}>
         <div className="max-w-7xl mx-auto h-full">
           {!userData ? (
             // Loading state
