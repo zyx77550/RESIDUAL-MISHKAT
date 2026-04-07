@@ -36,10 +36,12 @@ self.addEventListener('fetch', (event) => {
             return response;
           }
           // Cache successful HTML responses
-          const responseClone = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => {
-            cache.put(request, responseClone);
-          });
+          if (request.url.startsWith('http')) {
+            const responseClone = response.clone();
+            caches.open(CACHE_VERSION).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
           return response;
         })
         .catch(() => {
@@ -68,10 +70,12 @@ self.addEventListener('fetch', (event) => {
           if (!response || response.status !== 200) {
             return response;
           }
-          const responseClone = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => {
-            cache.put(request, responseClone);
-          });
+          if (request.url.startsWith('http')) {
+            const responseClone = response.clone();
+            caches.open(CACHE_VERSION).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
           return response;
         })
         .catch((error) => {
