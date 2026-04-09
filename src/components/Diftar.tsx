@@ -170,14 +170,12 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   ];
 
   const getBrandColorForPaper = (pc: string) => {
-    // For dark paper, use gold; for light papers use the brand primary red
     if (pc === '#0f172a') return '#D4AF37';
     return '#8B2635';
   };
 
   const getColoredStickerSvg = (svg: string, pc: string) => {
     const brandColor = getBrandColorForPaper(pc);
-    // Inject explicit dimensions and replace currentColor with brand color
     let colored = svg
       .replace('<svg ', `<svg width="60" height="60" `)
       .replace(/currentColor/g, brandColor);
@@ -270,7 +268,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     }
     if (paperStyle === 'arabesque') {
       for (let y = 60; y < h; y += 32) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
-      // decorative side patterns
       for (let y = 80; y < h; y += 96) {
         ctx.save();
         ctx.strokeStyle = isDark ? 'rgba(212,175,55,0.15)' : '#D4AF3720';
@@ -285,18 +282,17 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     }
     ctx.stroke();
 
-    
-      ctx.beginPath();
-      ctx.strokeStyle = marginColor;
-      ctx.lineWidth = 1.5;
-      const marginX = lang === 'ar' ? w - 80 : 80;
-      ctx.moveTo(marginX, 0); ctx.lineTo(marginX, h);
-      ctx.stroke();
-    
+    ctx.beginPath();
+    ctx.strokeStyle = marginColor;
+    ctx.lineWidth = 1.5;
+    const marginX = lang === 'ar' ? w - 80 : 80;
+    ctx.moveTo(marginX, 0); ctx.lineTo(marginX, h);
+    ctx.stroke();
+
     ctx.restore();
   };
 
-    const handleManualScroll = (yPercent: number) => {
+  const handleManualScroll = (yPercent: number) => {
     const sc = scrollContainerRef.current;
     if (!sc) return;
     sc.scrollTop = yPercent * (sc.scrollHeight - sc.clientHeight);
@@ -308,33 +304,29 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // 1. CLEAR & DRAW BACKGROUND (PAPER)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = paperColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     drawPaperLines(ctx, canvas.width, canvas.height);
 
-    // 2. DRAW ALL STROKES ON A TEMPORARY LAYER (to allow eraser transparency over lines)
     if (!offscreenRef.current) offscreenRef.current = document.createElement('canvas');
     const strokesLayer = offscreenRef.current;
-    if (strokesLayer.width !== canvas.width || strokesLayer.height !== canvas.height) { 
-      strokesLayer.width = canvas.width; 
-      strokesLayer.height = canvas.height; 
+    if (strokesLayer.width !== canvas.width || strokesLayer.height !== canvas.height) {
+      strokesLayer.width = canvas.width;
+      strokesLayer.height = canvas.height;
     }
     const sctx = strokesLayer.getContext('2d')!;
     sctx.clearRect(0, 0, strokesLayer.width, strokesLayer.height);
 
-    // Draw completed strokes (from static buffer)
     if (staticBufferRef.current) {
       sctx.drawImage(staticBufferRef.current, 0, 0);
     }
 
-    // Draw active stroke (if any)
     if (activeStrokeRef.current) {
       const stroke = activeStrokeRef.current;
       sctx.save();
       sctx.beginPath();
-      
+
       if (stroke.type === 'eraser') {
         sctx.globalCompositeOperation = 'destination-out';
         sctx.strokeStyle = 'rgba(0,0,0,1)';
@@ -369,7 +361,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       sctx.restore();
     }
 
-    // 3. COMPOSITE STROKES OVER PAPER
     ctx.drawImage(strokesLayer, 0, 0);
   };
 
@@ -656,7 +647,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                 </div>
               </div>
 
-              {/* Action buttons — ALWAYS VISIBLE (tablet + desktop) */}
+              {/* Action buttons */}
               <div className="flex gap-1 mt-2">
                 <button
                   onClick={() => setActivePageId(page.id)}
@@ -709,326 +700,335 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   // CANVAS / EDITOR VIEW
   // ──────────────────────────────────
   return (
-    <div className="flex-1 flex flex-col gap-3 relative h-full overflow-hidden">
-          <motion.div
-            className="sticky top-2 left-2 right-2 z-[100] flex flex-col gap-2 pointer-events-none"
-          >
-          <div
-            className="backdrop-blur-2xl rounded-[2rem] shadow-xl border p-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar flex-shrink-0 pointer-events-auto"
-            style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}
-          >
-            {/* Left: back + title */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <motion.button 
-                onClick={() => { savePage(); setActivePageId(null); }} 
-                whileHover={{ scale: 1.05, x: -2 }}
-                whileTap={{ scale: 0.95 }}
-                className="p-2.5 rounded-full transition-all hover:scale-105" 
-                style={{ color: 'var(--brand-primary)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}
-              >
-                <ChevronLeft size={20} />
-              </motion.button>
-              <input
-                value={activePage?.title}
-                onChange={e => setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) }))}
-                className="font-serif italic text-base w-28 sm:w-40 bg-transparent border-none focus:ring-0 focus:outline-none"
-                style={{ color: 'var(--brand-primary)' }}
-              />
-            </div>
+    // FIX 1 : overflow-hidden supprimé + relative gardé pour le curseur custom
+    <div className="flex-1 flex flex-col relative h-full">
 
-            {/* Center: tool buttons */}
-            <div className="flex items-center gap-1 rounded-full p-1" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
-              {[
-                { id: 'tools',    icon: Pencil,    title: lang === 'fr' ? 'Outils' : 'أدوات',       active: showToolsMenu,          action: () => { closeAllPanels(); setShowToolsMenu(v => !v); } },
-                { id: 'colors',   icon: Palette,   title: lang === 'fr' ? 'Couleurs' : 'الألوان',    active: showCustomizationMenu,  action: () => { closeAllPanels(); setShowCustomizationMenu(v => !v); } },
-                { id: 'shapes',   icon: Star,      title: lang === 'fr' ? 'Formes' : 'الأشكال',      active: showShapePicker,        action: () => { closeAllPanels(); setShowShapePicker(v => !v); } },
-                { id: 'paper',    icon: Settings2, title: lang === 'fr' ? 'Papier' : 'الورق',        active: showPaperSettings,      action: () => { closeAllPanels(); setShowPaperSettings(v => !v); } },
-              ].map(btn => (
-                <motion.button
-                  key={btn.id}
-                  onClick={btn.action}
-                  title={btn.title}
-                  whileHover={{ scale: 1.05, y: -1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2.5 rounded-full transition-all duration-200"
-                  style={btn.active ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 2px 12px color-mix(in srgb, var(--brand-primary) 30%, transparent)' } : { color: 'var(--brand-primary)' }}
-                >
-                  <btn.icon size={16} />
-                </motion.button>
-              ))}
-            </div>
+      {/* ─── TOOLBAR FIXÉE ─────────────────────────────────────────────────────
+          FIX 2 : fixed au lieu de sticky — complètement hors du flow scrollable.
+          pointer-events-none sur le wrapper, pointer-events-auto sur les enfants
+          pour ne pas bloquer les clics sur le canvas derrière.
+      ──────────────────────────────────────────────────────────────────────── */}
+      <div className="fixed top-2 left-0 right-0 z-[100] px-4 flex flex-col gap-2 pointer-events-none">
 
-            {/* Right: undo/redo + save */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <div className="flex rounded-full p-1" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
-                <button onClick={undo} className="p-2.5 rounded-full transition-all hover:scale-110" style={{ color: 'var(--brand-primary)' }} title="Annuler"><Undo size={16} /></button>
-                <button onClick={redo} className="p-2.5 rounded-full transition-all hover:scale-110" style={{ color: 'var(--brand-primary)' }} title="Refaire"><Redo size={16} /></button>
-              </div>
-              <button onClick={() => setShowConfirmClear(true)} className="p-2.5 rounded-full transition-all" style={{ color: 'rgba(239,68,68,0.6)' }} title="Effacer"><Trash2 size={16} /></button>
-              <button onClick={exportPDF} className="p-2.5 rounded-full transition-all hidden sm:block" style={{ color: 'var(--brand-primary)' }} title="Exporter"><Download size={16} /></button>
-              <motion.button
-                onClick={savePage}
-                disabled={isSaving}
-                whileHover={{ scale: 1.02, y: -1 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-white shadow-md transition-all active:scale-95"
-                style={{ background: isSaving ? '#22c55e' : 'var(--brand-primary)' }}
-              >
-                {isSaving ? <Check size={15} /> : <Save size={15} />}
-                <span className="text-xs hidden sm:inline">{isSaving ? (lang === 'fr' ? 'Sauvegardé' : 'تم') : (lang === 'fr' ? 'Sauvegarder' : 'حفظ')}</span>
-              </motion.button>
-            </div>
-          </div>
-
-          <AnimatePresence>
-            {(showToolsMenu || showCustomizationMenu || showShapePicker || showPaperSettings) && (
-              <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className="w-full max-w-2xl mx-auto"
-              >
-                {showToolsMenu && (
-                  <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
-                    <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Outil' : 'الأداة'}</p>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                      {[
-                        { id: 'pen',          icon: Pencil,      label: lang === 'fr' ? 'Stylo'      : 'قلم'          },
-                        { id: 'fountain-pen', icon: Brush,       label: lang === 'fr' ? 'Plume'      : 'ريشة'         },
-                        { id: 'highlighter',  icon: Highlighter, label: lang === 'fr' ? 'Surligneur' : 'تحديد'        },
-                        { id: 'chalk',        icon: Edit2,       label: lang === 'fr' ? 'Craie'      : 'طباشير'       },
-                        { id: 'ruler',        icon: Ruler,       label: lang === 'fr' ? 'Règle'      : 'مسطرة'        },
-                        { id: 'eraser',       icon: Eraser,      label: lang === 'fr' ? 'Gomme'      : 'ممحاة'        },
-                      ].map(t => (
-                        <button
-                          key={t.id}
-                          onClick={() => { setTool(t.id as any); setShowToolsMenu(false); }}
-                          className="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all font-bold text-[9px] uppercase tracking-wider"
-                          style={tool === t.id ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 4px 14px color-mix(in srgb, var(--brand-primary) 30%, transparent)' } : { background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', color: 'var(--brand-text-muted)' }}
-                        >
-                          <t.icon size={20} />
-                          <span>{t.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Taille' : 'الحجم'}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {SIZE_PRESETS.map(p => (
-                          <button
-                            key={p.value}
-                            onClick={() => { setWidth(p.value); setShowToolsMenu(false); }}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all font-bold text-[10px]"
-                            style={width === p.value ? { background: 'var(--brand-primary)', color: '#fff' } : { background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-text-muted)' }}
-                          >
-                            <div className="rounded-full bg-current" style={{ width: `${Math.min(p.value, 16)}px`, height: `${Math.min(p.value, 16)}px` }} />
-                            {p.label}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <input type="range" min="1" max="50" value={width} onChange={e => setWidth(parseInt(e.target.value))} className="flex-1 accent-primary" style={{ accentColor: 'var(--brand-primary)' }} />
-                        <span className="text-xs font-mono w-10 text-right" style={{ color: 'var(--brand-text-muted)' }}>{width}px</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {showCustomizationMenu && (
-                  <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl border-2 shadow-inner" style={{ background: color, borderColor: 'color-mix(in srgb, var(--brand-primary) 20%, transparent)' }} />
-                      <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Couleur active' : 'اللون المحدد'}</p>
-                        <p className="text-xs font-mono" style={{ color: 'var(--brand-text-muted)' }}>{color}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5">
-                      {(Object.keys(COLOR_PALETTE) as (keyof typeof COLOR_PALETTE)[]).map(cat => (
-                        <button
-                          key={cat}
-                          onClick={() => setColorTab(cat)}
-                          className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all"
-                          style={colorTab === cat ? { background: 'var(--brand-primary)', color: '#fff' } : { background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-text-muted)' }}
-                        >
-                          {cat === 'classiques' ? (lang === 'fr' ? 'Classiques' : 'كلاسيك')
-                            : cat === 'pastels' ? (lang === 'fr' ? 'Pastels' : 'باستيل')
-                            : cat === 'vives' ? (lang === 'fr' ? 'Vives' : 'زاهية')
-                            : cat === 'sombres' ? (lang === 'fr' ? 'Sombres' : 'داكنة')
-                            : (lang === 'fr' ? 'Spéciaux' : 'خاصة')}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="grid grid-cols-6 sm:grid-cols-9 gap-2">
-                      {COLOR_PALETTE[colorTab].map(c => (
-                        <button
-                          key={c}
-                          onClick={() => { setColor(c); setShowCustomizationMenu(false); }}
-                          className="aspect-square rounded-xl border-2 transition-all hover:scale-110"
-                          style={{
-                            background: c.startsWith('gradient:')
-                              ? { 'gradient:gold-red': 'linear-gradient(135deg,#D4AF37,#8B2635)', 'gradient:blue-cyan': 'linear-gradient(135deg,#1D3557,#A8DADC)', 'gradient:purple-pink': 'linear-gradient(135deg,#6D597A,#FF99C8)', 'gradient:green-teal': 'linear-gradient(135deg,#2D6A4F,#95D5B2)', 'gradient:sunset': 'linear-gradient(135deg,#F4A261,#E76F51)', 'gradient:ocean': 'linear-gradient(135deg,#03045E,#90E0EF)' }[c] || '#888'
-                              : c.startsWith('pattern:') ? '#f5f5f5' : c,
-                            borderColor: color === c ? 'var(--brand-primary)' : 'transparent',
-                            boxShadow: color === c ? '0 0 0 3px color-mix(in srgb, var(--brand-primary) 25%, transparent)' : 'none',
-                          }}
-                        >
-                          {c.startsWith('pattern:') && (
-                            <span className="text-[8px] font-bold" style={{ color: '#888' }}>
-                              {c === 'pattern:dots' ? '•••' : c === 'pattern:stripes' ? '///' : '+++'}
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <label className="text-[9px] font-black uppercase tracking-[0.3em] flex-shrink-0" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>HEX</label>
-                      <input
-                        type="color"
-                        value={color.startsWith('#') ? color : '#8B2635'}
-                        onChange={e => setColor(e.target.value)}
-                        className="w-10 h-8 rounded-lg cursor-pointer border-none"
-                      />
-                      <input
-                        type="text"
-                        value={color.startsWith('#') ? color : ''}
-                        onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setColor(e.target.value); }}
-                        className="flex-1 px-3 py-1.5 rounded-xl text-xs font-mono bg-transparent border focus:outline-none"
-                        style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)', color: 'var(--brand-text-muted)' }}
-                        placeholder="#8B2635"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {showShapePicker && (
-                  <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
-                    <div className="flex flex-wrap gap-1.5">
-                      {SHAPE_CATEGORIES.map((cat, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setShapeCategory(i)}
-                          className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all"
-                          style={shapeCategory === i ? { background: 'var(--brand-primary)', color: '#fff' } : { background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-text-muted)' }}
-                        >
-                          {cat.label[lang as 'fr' | 'ar']}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                      {SHAPE_CATEGORIES[shapeCategory].shapes.map(shape => (
-                        <motion.button
-                          key={shape.id}
-                          onClick={() => { setActiveShapeTypeWithRef(shape.type); setShowShapePicker(false); }}
-                          whileHover={{ scale: 1.1, rotate: 5 }}
-                          whileTap={{ scale: 0.9 }}
-                          className="aspect-square flex flex-col items-center justify-center p-3 rounded-2xl border transition-all hover:shadow-lg"
-                          style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', borderColor: 'transparent', color: 'var(--brand-primary)' }}
-                        >
-                          <div className="w-8 h-8 flex items-center justify-center">
-                            {shape.type === 'circle' && <div className="w-6 h-6 rounded-full border-2 border-current" />}
-                            {shape.type === 'square' && <div className="w-6 h-6 border-2 border-current" />}
-                            {shape.type === 'triangle' && <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-current" />}
-                            {shape.type === 'line' && <div className="w-6 h-0.5 bg-current" />}
-                            {shape.type === 'arrow' && <div className="flex items-center"><div className="w-4 h-0.5 bg-current"></div><div className="w-0 h-0 border-l-[4px] border-l-current border-t-[2px] border-t-transparent border-b-[2px] border-b-transparent"></div></div>}
-                          </div>
-                          <span className="text-[8px] font-bold mt-1">{shape.label[lang as 'fr' | 'ar']}</span>
-                        </motion.button>
-                      ))}
-                    </div>
-                    {activeShapeType && (
-                      <div className="text-center text-xs font-bold animate-pulse" style={{ color: 'var(--brand-secondary)' }}>
-                        {lang === 'fr' ? 'Cliquez sur la page pour placer la forme' : 'انقر على الصفحة لوضع الشكل'}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {showPaperSettings && (
-                  <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
-                    <div className="space-y-2">
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Style de papier' : 'نوع الورق'}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          { id: 'blank',      label: lang === 'fr' ? 'Blanc'       : 'أبيض'   },
-                          { id: 'lines',      label: lang === 'fr' ? 'Lignes'      : 'سطور'   },
-                          { id: 'grid',       label: lang === 'fr' ? 'Grille'      : 'شبكة'   },
-                          { id: 'dots',       label: lang === 'fr' ? 'Points'      : 'نقاط'   },
-                          { id: 'arabesque',  label: lang === 'fr' ? 'Arabesque'   : 'عربسك'  },
-                        ].map(s => (
-                          <button
-                            key={s.id}
-                            onClick={() => { setPaperStyle(s.id as any); setShowPaperSettings(false); }}
-                            className="px-4 py-2 rounded-2xl font-bold text-[10px] uppercase tracking-wider transition-all border"
-                            style={paperStyle === s.id ? { background: 'var(--brand-primary)', color: '#fff', borderColor: 'var(--brand-primary)' } : { background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', color: 'var(--brand-text-muted)', borderColor: 'transparent' }}
-                          >
-                            {s.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Couleur de papier' : 'لون الورق'}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {PAPER_COLORS.map(pc => (
-                          <button
-                            key={pc.value}
-                            onClick={() => { setPaperColor(pc.value); setShowPaperSettings(false); }}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all"
-                            style={{ background: pc.value, borderColor: paperColor === pc.value ? 'var(--brand-primary)' : 'rgba(139,38,53,0.15)', color: pc.value === '#0f172a' ? '#fff' : 'var(--brand-primary)', boxShadow: paperColor === pc.value ? '0 0 0 2px var(--brand-primary)' : 'none' }}
-                          >
-                            {pc.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-        </motion.div>
-
-        {/* Touch Scrollbar Track */}
-        <div 
-          className="fixed right-2 top-32 bottom-20 w-8 z-[70] flex flex-col items-center group/scroll pointer-events-none"
+        {/* Barre principale */}
+        <div
+          className="backdrop-blur-2xl rounded-[2rem] shadow-xl border p-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar flex-shrink-0 pointer-events-auto"
+          style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}
         >
-          <div className="h-full w-1.5 rounded-full relative pointer-events-auto bg-white/10 backdrop-blur-sm border border-white/10 overflow-hidden" 
-               onClick={(e) => {
-                 const rect = e.currentTarget.getBoundingClientRect();
-                 const y = (e.clientY - rect.top) / rect.height;
-                 handleManualScroll(Math.max(0, Math.min(1, y)));
-               }}
-          >
-            <motion.div
-              className="absolute top-0 left-0 right-0 bg-primary/40"
-              style={{ height: `${scrollProgress * 100}%`, background: 'color-mix(in srgb, var(--brand-primary) 20%, transparent)' }}
-            />
-            <motion.div
-              className="absolute w-full rounded-full shadow-lg transition-all"
-              style={{ 
-                height: '40px',
-                top: `${scrollProgress * 100}%`,
-                transform: 'translateY(-50%)',
-                background: 'var(--brand-primary)',
-                boxShadow: '0 4px 12px color-mix(in srgb, var(--brand-primary) 40%, transparent)'
-              }}
+          {/* Left: back + title */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <motion.button
+              onClick={() => { savePage(); setActivePageId(null); }}
+              whileHover={{ scale: 1.05, x: -2 }}
+              whileTap={{ scale: 0.95 }}
+              className="p-2.5 rounded-full transition-all hover:scale-105"
+              style={{ color: 'var(--brand-primary)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}
+            >
+              <ChevronLeft size={20} />
+            </motion.button>
+            <input
+              value={activePage?.title}
+              onChange={e => setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) }))}
+              className="font-serif italic text-base w-28 sm:w-40 bg-transparent border-none focus:ring-0 focus:outline-none"
+              style={{ color: 'var(--brand-primary)' }}
             />
           </div>
-          {/* Label for clarity */}
-          <div className="mt-4 -rotate-90 text-[8px] font-black uppercase tracking-widest text-primary/40 select-none whitespace-nowrap">
-             Navigation
+
+          {/* Center: tool buttons */}
+          <div className="flex items-center gap-1 rounded-full p-1" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
+            {[
+              { id: 'tools',  icon: Pencil,    title: lang === 'fr' ? 'Outils' : 'أدوات',     active: showToolsMenu,         action: () => { closeAllPanels(); setShowToolsMenu(v => !v); } },
+              { id: 'colors', icon: Palette,   title: lang === 'fr' ? 'Couleurs' : 'الألوان',  active: showCustomizationMenu, action: () => { closeAllPanels(); setShowCustomizationMenu(v => !v); } },
+              { id: 'shapes', icon: Star,      title: lang === 'fr' ? 'Formes' : 'الأشكال',    active: showShapePicker,       action: () => { closeAllPanels(); setShowShapePicker(v => !v); } },
+              { id: 'paper',  icon: Settings2, title: lang === 'fr' ? 'Papier' : 'الورق',      active: showPaperSettings,     action: () => { closeAllPanels(); setShowPaperSettings(v => !v); } },
+            ].map(btn => (
+              <motion.button
+                key={btn.id}
+                onClick={btn.action}
+                title={btn.title}
+                whileHover={{ scale: 1.05, y: -1 }}
+                whileTap={{ scale: 0.95 }}
+                className="p-2.5 rounded-full transition-all duration-200"
+                style={btn.active ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 2px 12px color-mix(in srgb, var(--brand-primary) 30%, transparent)' } : { color: 'var(--brand-primary)' }}
+              >
+                <btn.icon size={16} />
+              </motion.button>
+            ))}
+          </div>
+
+          {/* Right: undo/redo + save */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="flex rounded-full p-1" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
+              <button onClick={undo} className="p-2.5 rounded-full transition-all hover:scale-110" style={{ color: 'var(--brand-primary)' }} title="Annuler"><Undo size={16} /></button>
+              <button onClick={redo} className="p-2.5 rounded-full transition-all hover:scale-110" style={{ color: 'var(--brand-primary)' }} title="Refaire"><Redo size={16} /></button>
+            </div>
+            <button onClick={() => setShowConfirmClear(true)} className="p-2.5 rounded-full transition-all" style={{ color: 'rgba(239,68,68,0.6)' }} title="Effacer"><Trash2 size={16} /></button>
+            <button onClick={exportPDF} className="p-2.5 rounded-full transition-all hidden sm:block" style={{ color: 'var(--brand-primary)' }} title="Exporter"><Download size={16} /></button>
+            <motion.button
+              onClick={savePage}
+              disabled={isSaving}
+              whileHover={{ scale: 1.02, y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-white shadow-md transition-all active:scale-95"
+              style={{ background: isSaving ? '#22c55e' : 'var(--brand-primary)' }}
+            >
+              {isSaving ? <Check size={15} /> : <Save size={15} />}
+              <span className="text-xs hidden sm:inline">{isSaving ? (lang === 'fr' ? 'Sauvegardé' : 'تم') : (lang === 'fr' ? 'Sauvegarder' : 'حفظ')}</span>
+            </motion.button>
           </div>
         </div>
 
+        {/* Panels (tools / colors / shapes / paper) */}
+        <AnimatePresence>
+          {(showToolsMenu || showCustomizationMenu || showShapePicker || showPaperSettings) && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="w-full max-w-2xl mx-auto pointer-events-auto"
+            >
+              {showToolsMenu && (
+                <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
+                  <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Outil' : 'الأداة'}</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    {[
+                      { id: 'pen',          icon: Pencil,      label: lang === 'fr' ? 'Stylo'      : 'قلم'    },
+                      { id: 'fountain-pen', icon: Brush,       label: lang === 'fr' ? 'Plume'      : 'ريشة'   },
+                      { id: 'highlighter',  icon: Highlighter, label: lang === 'fr' ? 'Surligneur' : 'تحديد'  },
+                      { id: 'chalk',        icon: Edit2,       label: lang === 'fr' ? 'Craie'      : 'طباشير' },
+                      { id: 'ruler',        icon: Ruler,       label: lang === 'fr' ? 'Règle'      : 'مسطرة'  },
+                      { id: 'eraser',       icon: Eraser,      label: lang === 'fr' ? 'Gomme'      : 'ممحاة'  },
+                    ].map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => { setTool(t.id as any); setShowToolsMenu(false); }}
+                        className="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all font-bold text-[9px] uppercase tracking-wider"
+                        style={tool === t.id ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 4px 14px color-mix(in srgb, var(--brand-primary) 30%, transparent)' } : { background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', color: 'var(--brand-text-muted)' }}
+                      >
+                        <t.icon size={20} />
+                        <span>{t.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Taille' : 'الحجم'}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {SIZE_PRESETS.map(p => (
+                        <button
+                          key={p.value}
+                          onClick={() => { setWidth(p.value); setShowToolsMenu(false); }}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all font-bold text-[10px]"
+                          style={width === p.value ? { background: 'var(--brand-primary)', color: '#fff' } : { background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-text-muted)' }}
+                        >
+                          <div className="rounded-full bg-current" style={{ width: `${Math.min(p.value, 16)}px`, height: `${Math.min(p.value, 16)}px` }} />
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input type="range" min="1" max="50" value={width} onChange={e => setWidth(parseInt(e.target.value))} className="flex-1 accent-primary" style={{ accentColor: 'var(--brand-primary)' }} />
+                      <span className="text-xs font-mono w-10 text-right" style={{ color: 'var(--brand-text-muted)' }}>{width}px</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {showCustomizationMenu && (
+                <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl border-2 shadow-inner" style={{ background: color, borderColor: 'color-mix(in srgb, var(--brand-primary) 20%, transparent)' }} />
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Couleur active' : 'اللون المحدد'}</p>
+                      <p className="text-xs font-mono" style={{ color: 'var(--brand-text-muted)' }}>{color}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {(Object.keys(COLOR_PALETTE) as (keyof typeof COLOR_PALETTE)[]).map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setColorTab(cat)}
+                        className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all"
+                        style={colorTab === cat ? { background: 'var(--brand-primary)', color: '#fff' } : { background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-text-muted)' }}
+                      >
+                        {cat === 'classiques' ? (lang === 'fr' ? 'Classiques' : 'كلاسيك')
+                          : cat === 'pastels' ? (lang === 'fr' ? 'Pastels' : 'باستيل')
+                          : cat === 'vives' ? (lang === 'fr' ? 'Vives' : 'زاهية')
+                          : cat === 'sombres' ? (lang === 'fr' ? 'Sombres' : 'داكنة')
+                          : (lang === 'fr' ? 'Spéciaux' : 'خاصة')}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-6 sm:grid-cols-9 gap-2">
+                    {COLOR_PALETTE[colorTab].map(c => (
+                      <button
+                        key={c}
+                        onClick={() => { setColor(c); setShowCustomizationMenu(false); }}
+                        className="aspect-square rounded-xl border-2 transition-all hover:scale-110"
+                        style={{
+                          background: c.startsWith('gradient:')
+                            ? { 'gradient:gold-red': 'linear-gradient(135deg,#D4AF37,#8B2635)', 'gradient:blue-cyan': 'linear-gradient(135deg,#1D3557,#A8DADC)', 'gradient:purple-pink': 'linear-gradient(135deg,#6D597A,#FF99C8)', 'gradient:green-teal': 'linear-gradient(135deg,#2D6A4F,#95D5B2)', 'gradient:sunset': 'linear-gradient(135deg,#F4A261,#E76F51)', 'gradient:ocean': 'linear-gradient(135deg,#03045E,#90E0EF)' }[c] || '#888'
+                            : c.startsWith('pattern:') ? '#f5f5f5' : c,
+                          borderColor: color === c ? 'var(--brand-primary)' : 'transparent',
+                          boxShadow: color === c ? '0 0 0 3px color-mix(in srgb, var(--brand-primary) 25%, transparent)' : 'none',
+                        }}
+                      >
+                        {c.startsWith('pattern:') && (
+                          <span className="text-[8px] font-bold" style={{ color: '#888' }}>
+                            {c === 'pattern:dots' ? '•••' : c === 'pattern:stripes' ? '///' : '+++'}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="text-[9px] font-black uppercase tracking-[0.3em] flex-shrink-0" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>HEX</label>
+                    <input
+                      type="color"
+                      value={color.startsWith('#') ? color : '#8B2635'}
+                      onChange={e => setColor(e.target.value)}
+                      className="w-10 h-8 rounded-lg cursor-pointer border-none"
+                    />
+                    <input
+                      type="text"
+                      value={color.startsWith('#') ? color : ''}
+                      onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setColor(e.target.value); }}
+                      className="flex-1 px-3 py-1.5 rounded-xl text-xs font-mono bg-transparent border focus:outline-none"
+                      style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)', color: 'var(--brand-text-muted)' }}
+                      placeholder="#8B2635"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {showShapePicker && (
+                <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SHAPE_CATEGORIES.map((cat, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setShapeCategory(i)}
+                        className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all"
+                        style={shapeCategory === i ? { background: 'var(--brand-primary)', color: '#fff' } : { background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-text-muted)' }}
+                      >
+                        {cat.label[lang as 'fr' | 'ar']}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {SHAPE_CATEGORIES[shapeCategory].shapes.map(shape => (
+                      <motion.button
+                        key={shape.id}
+                        onClick={() => { setActiveShapeTypeWithRef(shape.type); setShowShapePicker(false); }}
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="aspect-square flex flex-col items-center justify-center p-3 rounded-2xl border transition-all hover:shadow-lg"
+                        style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', borderColor: 'transparent', color: 'var(--brand-primary)' }}
+                      >
+                        <div className="w-8 h-8 flex items-center justify-center">
+                          {shape.type === 'circle' && <div className="w-6 h-6 rounded-full border-2 border-current" />}
+                          {shape.type === 'square' && <div className="w-6 h-6 border-2 border-current" />}
+                          {shape.type === 'triangle' && <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-current" />}
+                          {shape.type === 'line' && <div className="w-6 h-0.5 bg-current" />}
+                          {shape.type === 'arrow' && <div className="flex items-center"><div className="w-4 h-0.5 bg-current"></div><div className="w-0 h-0 border-l-[4px] border-l-current border-t-[2px] border-t-transparent border-b-[2px] border-b-transparent"></div></div>}
+                        </div>
+                        <span className="text-[8px] font-bold mt-1">{shape.label[lang as 'fr' | 'ar']}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                  {activeShapeType && (
+                    <div className="text-center text-xs font-bold animate-pulse" style={{ color: 'var(--brand-secondary)' }}>
+                      {lang === 'fr' ? 'Cliquez sur la page pour placer la forme' : 'انقر على الصفحة لوضع الشكل'}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {showPaperSettings && (
+                <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
+                  <div className="space-y-2">
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Style de papier' : 'نوع الورق'}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { id: 'blank',     label: lang === 'fr' ? 'Blanc'     : 'أبيض'  },
+                        { id: 'lines',     label: lang === 'fr' ? 'Lignes'    : 'سطور'  },
+                        { id: 'grid',      label: lang === 'fr' ? 'Grille'    : 'شبكة'  },
+                        { id: 'dots',      label: lang === 'fr' ? 'Points'    : 'نقاط'  },
+                        { id: 'arabesque', label: lang === 'fr' ? 'Arabesque' : 'عربسك' },
+                      ].map(s => (
+                        <button
+                          key={s.id}
+                          onClick={() => { setPaperStyle(s.id as any); setShowPaperSettings(false); }}
+                          className="px-4 py-2 rounded-2xl font-bold text-[10px] uppercase tracking-wider transition-all border"
+                          style={paperStyle === s.id ? { background: 'var(--brand-primary)', color: '#fff', borderColor: 'var(--brand-primary)' } : { background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', color: 'var(--brand-text-muted)', borderColor: 'transparent' }}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Couleur de papier' : 'لون الورق'}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {PAPER_COLORS.map(pc => (
+                        <button
+                          key={pc.value}
+                          onClick={() => { setPaperColor(pc.value); setShowPaperSettings(false); }}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all"
+                          style={{ background: pc.value, borderColor: paperColor === pc.value ? 'var(--brand-primary)' : 'rgba(139,38,53,0.15)', color: pc.value === '#0f172a' ? '#fff' : 'var(--brand-primary)', boxShadow: paperColor === pc.value ? '0 0 0 2px var(--brand-primary)' : 'none' }}
+                        >
+                          {pc.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+      </div>
+      {/* ─── FIN TOOLBAR FIXÉE ──────────────────────────────────────────────── */}
+
+      {/* Touch Scrollbar Track */}
+      <div className="fixed right-2 top-32 bottom-20 w-8 z-[70] flex flex-col items-center group/scroll pointer-events-none">
+        <div
+          className="h-full w-1.5 rounded-full relative pointer-events-auto bg-white/10 backdrop-blur-sm border border-white/10 overflow-hidden"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const y = (e.clientY - rect.top) / rect.height;
+            handleManualScroll(Math.max(0, Math.min(1, y)));
+          }}
+        >
+          <motion.div
+            className="absolute top-0 left-0 right-0"
+            style={{ height: `${scrollProgress * 100}%`, background: 'color-mix(in srgb, var(--brand-primary) 20%, transparent)' }}
+          />
+          <motion.div
+            className="absolute w-full rounded-full shadow-lg"
+            style={{
+              height: '40px',
+              top: `${scrollProgress * 100}%`,
+              transform: 'translateY(-50%)',
+              background: 'var(--brand-primary)',
+              boxShadow: '0 4px 12px color-mix(in srgb, var(--brand-primary) 40%, transparent)',
+            }}
+          />
+        </div>
+        <div className="mt-4 -rotate-90 text-[8px] font-black uppercase tracking-widest text-primary/40 select-none whitespace-nowrap">
+          Navigation
+        </div>
+      </div>
+
+      {/* ─── ZONE SCROLLABLE (canvas) ───────────────────────────────────────── */}
+      {/* FIX 3 : pt-20 pour compenser la hauteur de la toolbar fixed (~72px + gap) */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 rounded-[2rem] shadow-2xl overflow-y-auto relative border group cursor-none custom-scrollbar pt-28"
+        className="flex-1 rounded-[2rem] shadow-2xl overflow-y-auto relative border group cursor-none custom-scrollbar pt-20"
         onScroll={e => { const s = e.currentTarget; setScrollProgress(s.scrollTop / (s.scrollHeight - s.clientHeight || 1)); }}
         style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', scrollBehavior: 'smooth' }}
       >
@@ -1044,7 +1044,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           </motion.div>
         )}
 
-      {/* Canvas area */}
         {/* Scroll buttons */}
         <div className="fixed right-4 md:right-20 bottom-36 md:bottom-8 z-50 flex flex-col gap-2">
           <button onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })} className="p-3 rounded-full shadow-lg border transition-all hover:scale-105" style={{ background: 'var(--brand-surface)', color: 'var(--brand-primary)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}><ChevronUp size={18} /></button>
@@ -1142,4 +1141,4 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       </AnimatePresence>
     </div>
   );
-};
+};
