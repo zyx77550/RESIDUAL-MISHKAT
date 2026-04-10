@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useScroll, useMotionValueEvent } from 'framer-motion';
-import { NotebookPen, Edit2, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Plus, Save, Check, Undo, Redo, Trash2, Eraser, Ruler, Download, X, Settings2, Pencil, Brush, Highlighter, Palette, Star, Wind } from 'lucide-react';
+import { NotebookPen, Edit2, ChevronRight, ChevronLeft, Plus, Save, Check, Undo, Redo, Trash2, Eraser, Ruler, Download, X, Settings2, Pencil, Brush, Highlighter, Palette, Star, Wind, Zap, Pen } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { cn } from '../lib/utils';
 import { Stroke, Shape, DiftarPage, UserData } from '../types';
@@ -66,7 +66,7 @@ const COLOR_PALETTE = {
 export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const [activePageId, setActivePageId]     = useState<string | null>(null);
   const [editingPageId, setEditingPageId]   = useState<string | null>(null);
-  const [tool, setTool]                     = useState<'pen' | 'highlighter' | 'fountain-pen' | 'chalk' | 'eraser' | 'ruler'>('pen');
+  const [tool, setTool]                     = useState<'pen' | 'highlighter' | 'fountain-pen' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon'>('pen');
   const [showToolsMenu, setShowToolsMenu]           = useState(false);
   const [showCustomizationMenu, setShowCustomizationMenu] = useState(false);
   const [color, setColor]                   = useState('#8B2635');
@@ -117,6 +117,21 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     sctx.clearRect(0, 0, sb.width, sb.height);
 
     const renderStroke = (stroke, targetCtx) => {
+      if (stroke.type === 'spray') {
+        if (stroke.points.length === 0) return;
+        targetCtx.save(); targetCtx.fillStyle = stroke.color; targetCtx.globalAlpha = 0.75;
+        stroke.points.forEach((point: {x:number;y:number}, pi: number) => {
+          const base = ((point.x * 97 + point.y * 31 + pi * 17) | 0);
+          for (let i = 0; i < 10; i++) {
+            const h1 = ((base + i * 1103515245 + 12345) >>> 0) % 1000;
+            const h2 = ((h1 * 22695477 + 1) >>> 0) % 1000;
+            targetCtx.beginPath();
+            targetCtx.arc(point.x + Math.cos((h1/1000)*Math.PI*2)*(h2/1000)*stroke.width*2.5, point.y + Math.sin((h1/1000)*Math.PI*2)*(h2/1000)*stroke.width*2.5, 0.7, 0, Math.PI*2);
+            targetCtx.fill();
+          }
+        });
+        targetCtx.restore(); return;
+      }
       if (stroke.points.length < 2) return;
       targetCtx.save();
       targetCtx.beginPath();
@@ -135,6 +150,13 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       } else if (stroke.type === 'eraser') {
         targetCtx.globalCompositeOperation = 'destination-out'; targetCtx.strokeStyle = 'rgba(0,0,0,1)';
         targetCtx.lineCap = 'round'; targetCtx.lineWidth = stroke.width * 4;
+      } else if (stroke.type === 'marker') {
+        targetCtx.globalCompositeOperation = 'source-over'; targetCtx.globalAlpha = 0.65;
+        targetCtx.lineCap = 'square'; targetCtx.lineWidth = stroke.width * 2;
+      } else if (stroke.type === 'neon') {
+        targetCtx.globalCompositeOperation = 'source-over'; targetCtx.lineCap = 'round';
+        targetCtx.lineWidth = stroke.width; targetCtx.shadowBlur = stroke.width * 5;
+        targetCtx.shadowColor = stroke.color; targetCtx.globalAlpha = 0.95;
       } else {
         targetCtx.globalCompositeOperation = 'source-over'; targetCtx.lineCap = 'round'; targetCtx.lineWidth = stroke.width;
       }
@@ -340,39 +362,57 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     if (activeStrokeRef.current) {
       const stroke = activeStrokeRef.current;
       sctx.save();
-      sctx.beginPath();
-
-      if (stroke.type === 'eraser') {
-        sctx.globalCompositeOperation = 'destination-out';
-        sctx.strokeStyle = 'rgba(0,0,0,1)';
-        sctx.lineCap = 'round';
-        sctx.lineWidth = stroke.width * 4;
+      if (stroke.type === 'spray') {
+        sctx.fillStyle = stroke.color; sctx.globalAlpha = 0.75;
+        stroke.points.forEach((point: {x:number;y:number}, pi: number) => {
+          const base = ((point.x * 97 + point.y * 31 + pi * 17) | 0);
+          for (let i = 0; i < 10; i++) {
+            const h1 = ((base + i * 1103515245 + 12345) >>> 0) % 1000;
+            const h2 = ((h1 * 22695477 + 1) >>> 0) % 1000;
+            sctx.beginPath();
+            sctx.arc(point.x + Math.cos((h1/1000)*Math.PI*2)*(h2/1000)*stroke.width*2.5, point.y + Math.sin((h1/1000)*Math.PI*2)*(h2/1000)*stroke.width*2.5, 0.7, 0, Math.PI*2);
+            sctx.fill();
+          }
+        });
       } else {
-        sctx.strokeStyle = getStrokeStyle(sctx, stroke);
-        sctx.lineJoin = 'round';
-        if (stroke.type === 'highlighter') {
-          sctx.globalCompositeOperation = 'multiply'; sctx.globalAlpha = 0.4; sctx.lineCap = 'square'; sctx.lineWidth = stroke.width * 2.5;
-        } else if (stroke.type === 'fountain-pen') {
-          sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'butt'; sctx.lineWidth = stroke.width * 1.2; sctx.setTransform(1, 0, 0.4, 1, 0, 0);
-        } else if (stroke.type === 'chalk') {
-          sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.75; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width * 2; sctx.setLineDash([2, 3]); sctx.shadowBlur = 4; sctx.shadowColor = stroke.color;
+        sctx.beginPath();
+        if (stroke.type === 'eraser') {
+          sctx.globalCompositeOperation = 'destination-out';
+          sctx.strokeStyle = 'rgba(0,0,0,1)';
+          sctx.lineCap = 'round';
+          sctx.lineWidth = stroke.width * 4;
         } else {
-          sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width;
+          sctx.strokeStyle = getStrokeStyle(sctx, stroke);
+          sctx.lineJoin = 'round';
+          if (stroke.type === 'highlighter') {
+            sctx.globalCompositeOperation = 'multiply'; sctx.globalAlpha = 0.4; sctx.lineCap = 'square'; sctx.lineWidth = stroke.width * 2.5;
+          } else if (stroke.type === 'fountain-pen') {
+            sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'butt'; sctx.lineWidth = stroke.width * 1.2; sctx.setTransform(1, 0, 0.4, 1, 0, 0);
+          } else if (stroke.type === 'chalk') {
+            sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.75; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width * 2; sctx.setLineDash([2, 3]); sctx.shadowBlur = 4; sctx.shadowColor = stroke.color;
+          } else if (stroke.type === 'marker') {
+            sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.65; sctx.lineCap = 'square'; sctx.lineWidth = stroke.width * 2;
+          } else if (stroke.type === 'neon') {
+            sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width; sctx.shadowBlur = stroke.width * 5; sctx.shadowColor = stroke.color; sctx.globalAlpha = 0.95;
+          } else {
+            sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width;
+          }
+        }
+        if (stroke.points.length > 0) {
+          sctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+          if (stroke.type === 'ruler') {
+            const last = stroke.points[stroke.points.length - 1]; sctx.lineTo(last.x, last.y);
+          } else {
+            for (let i = 1; i < stroke.points.length - 1; i++) {
+              const xc = (stroke.points[i].x + stroke.points[i + 1].x) / 2;
+              const yc = (stroke.points[i].y + stroke.points[i + 1].y) / 2;
+              sctx.quadraticCurveTo(stroke.points[i].x, stroke.points[i].y, xc, yc);
+            }
+            const last = stroke.points[stroke.points.length - 1]; sctx.lineTo(last.x, last.y);
+          }
+          sctx.stroke();
         }
       }
-
-      sctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-      if (stroke.type === 'ruler') {
-        const last = stroke.points[stroke.points.length - 1]; sctx.lineTo(last.x, last.y);
-      } else {
-        for (let i = 1; i < stroke.points.length - 1; i++) {
-          const xc = (stroke.points[i].x + stroke.points[i + 1].x) / 2;
-          const yc = (stroke.points[i].y + stroke.points[i + 1].y) / 2;
-          sctx.quadraticCurveTo(stroke.points[i].x, stroke.points[i].y, xc, yc);
-        }
-        const last = stroke.points[stroke.points.length - 1]; sctx.lineTo(last.x, last.y);
-      }
-      sctx.stroke();
       sctx.restore();
     }
 
@@ -604,6 +644,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       if (e.key === '4') setTool('chalk');
       if (e.key === '5') setTool('ruler');
       if (e.key === '6') setTool('eraser');
+      if (e.key === '7') setTool('spray');
+      if (e.key === '8') setTool('marker');
+      if (e.key === '9') setTool('neon');
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
@@ -1023,21 +1066,25 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               {showToolsMenu && (
                 <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
                   <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Outil' : 'الأداة'}</p>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     {[
-                      { id: 'pen',          icon: Pencil,      label: lang === 'fr' ? 'Stylo'      : 'قلم'    },
-                      { id: 'fountain-pen', icon: Brush,       label: lang === 'fr' ? 'Plume'      : 'ريشة'   },
-                      { id: 'highlighter',  icon: Highlighter, label: lang === 'fr' ? 'Surligneur' : 'تحديد'  },
-                      { id: 'chalk',        icon: Edit2,       label: lang === 'fr' ? 'Craie'      : 'طباشير' },
-                      { id: 'ruler',        icon: Ruler,       label: lang === 'fr' ? 'Règle'      : 'مسطرة'  },
-                      { id: 'eraser',       icon: Eraser,      label: lang === 'fr' ? 'Gomme'      : 'ممحاة'  },
+                      { id: 'pen',          icon: Pencil,      label: lang === 'fr' ? 'Stylo'      : 'قلم',     hint: '1' },
+                      { id: 'fountain-pen', icon: Brush,       label: lang === 'fr' ? 'Plume'      : 'ريشة',    hint: '2' },
+                      { id: 'highlighter',  icon: Highlighter, label: lang === 'fr' ? 'Surligneur' : 'تحديد',   hint: '3' },
+                      { id: 'chalk',        icon: Edit2,       label: lang === 'fr' ? 'Craie'      : 'طباشير',  hint: '4' },
+                      { id: 'ruler',        icon: Ruler,       label: lang === 'fr' ? 'Règle'      : 'مسطرة',   hint: '5' },
+                      { id: 'eraser',       icon: Eraser,      label: lang === 'fr' ? 'Gomme'      : 'ممحاة',   hint: '6' },
+                      { id: 'spray',        icon: Wind,        label: lang === 'fr' ? 'Aérosol'    : 'رذاذ',    hint: '7' },
+                      { id: 'marker',       icon: Pen,         label: lang === 'fr' ? 'Marqueur'   : 'ماركر',   hint: '8' },
+                      { id: 'neon',         icon: Zap,         label: lang === 'fr' ? 'Néon'       : 'نيون',    hint: '9' },
                     ].map(t => (
                       <button
                         key={t.id}
                         onClick={() => { setTool(t.id as any); setShowToolsMenu(false); }}
-                        className="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all font-bold text-[9px] uppercase tracking-wider"
+                        className="relative flex flex-col items-center gap-2 p-3 rounded-2xl transition-all font-bold text-[9px] uppercase tracking-wider"
                         style={tool === t.id ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 4px 14px color-mix(in srgb, var(--brand-primary) 30%, transparent)' } : { background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', color: 'var(--brand-text-muted)' }}
                       >
+                        <span className="absolute top-1.5 right-1.5 text-[7px] font-black opacity-30">{t.hint}</span>
                         <t.icon size={20} />
                         <span>{t.label}</span>
                       </button>
@@ -1226,35 +1273,62 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       </div>
       {/* ─── FIN TOOLBAR FIXÉE ──────────────────────────────────────────────── */}
 
-      {/* Touch Scrollbar Track */}
-      <div className="fixed right-2 top-32 bottom-20 w-8 z-[70] flex flex-col items-center group/scroll pointer-events-none">
+      {/* ─── Scroll Navigator ─── */}
+      <div className="fixed right-3 top-[88px] bottom-28 z-[70] flex flex-col items-center gap-2 pointer-events-none">
+        {/* Clickable track */}
         <div
-          className="h-full w-1.5 rounded-full relative pointer-events-auto bg-white/10 backdrop-blur-sm border border-white/10 overflow-hidden"
+          className="flex-1 w-1 rounded-full relative pointer-events-auto cursor-pointer group/track"
+          style={{ background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)' }}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            const y = (e.clientY - rect.top) / rect.height;
-            handleManualScroll(Math.max(0, Math.min(1, y)));
+            handleManualScroll(Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)));
           }}
         >
+          {/* Fill */}
+          <div className="absolute top-0 left-0 right-0 rounded-full transition-all duration-100"
+               style={{ height: `${scrollProgress * 100}%`, background: 'color-mix(in srgb, var(--brand-primary) 18%, transparent)' }} />
+          {/* Thumb */}
           <motion.div
-            className="absolute top-0 left-0 right-0"
-            style={{ height: `${scrollProgress * 100}%`, background: 'color-mix(in srgb, var(--brand-primary) 20%, transparent)' }}
-          />
-          <motion.div
-            className="absolute w-full rounded-full shadow-lg"
+            className="absolute left-1/2 -translate-x-1/2 w-3 h-8 rounded-full shadow-lg"
             style={{
-              height: '40px',
-              top: `${scrollProgress * 100}%`,
-              transform: 'translateY(-50%)',
+              top: `${Math.max(0, Math.min(scrollProgress * 100, 100))}%`,
+              translateY: '-50%',
               background: 'var(--brand-primary)',
-              boxShadow: '0 4px 12px color-mix(in srgb, var(--brand-primary) 40%, transparent)',
+              boxShadow: '0 2px 10px color-mix(in srgb, var(--brand-primary) 40%, transparent)',
+              opacity: 0.85,
             }}
           />
         </div>
-        <div className="mt-4 -rotate-90 text-[8px] font-black uppercase tracking-widest text-primary/40 select-none whitespace-nowrap">
-          Navigation
-        </div>
       </div>
+
+      {/* ─── Scroll Progress Ring (back-to-top) ─── */}
+      <AnimatePresence>
+        {scrollProgress > 0.04 && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.75 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.75 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-6 right-4 z-[70] w-12 h-12 rounded-full flex items-center justify-center pointer-events-auto shadow-xl"
+            style={{ background: 'var(--brand-surface)', border: '1.5px solid color-mix(in srgb, var(--brand-primary) 12%, transparent)' }}
+            title={lang === 'fr' ? 'Retour en haut' : 'أعلى الصفحة'}
+          >
+            <svg className="absolute inset-0 -rotate-90" width="48" height="48" viewBox="0 0 48 48">
+              <circle cx="24" cy="24" r="20" fill="none" stroke="color-mix(in srgb, var(--brand-primary) 8%, transparent)" strokeWidth="2.5" />
+              <circle cx="24" cy="24" r="20" fill="none" stroke="var(--brand-primary)" strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray={`${2 * Math.PI * 20}`}
+                strokeDashoffset={`${2 * Math.PI * 20 * (1 - scrollProgress)}`}
+                style={{ opacity: 0.75, transition: 'stroke-dashoffset 0.15s ease' }}
+              />
+            </svg>
+            <span className="text-[9px] font-black select-none" style={{ color: 'var(--brand-primary)' }}>
+              ↑
+            </span>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* ─── ZONE SCROLLABLE (canvas) ───────────────────────────────────────── */}
       {/* FIX 3 : pt-20 pour compenser la hauteur de la toolbar fixed (~72px + gap) */}
@@ -1275,12 +1349,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             {toastMessage}
           </motion.div>
         )}
-
-        {/* Scroll buttons */}
-        <div className="fixed right-4 md:right-20 bottom-36 md:bottom-8 z-50 flex flex-col gap-2">
-          <button onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })} className="p-3 rounded-full shadow-lg border transition-all hover:scale-105" style={{ background: 'var(--brand-surface)', color: 'var(--brand-primary)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}><ChevronUp size={18} /></button>
-          <button onClick={() => scrollContainerRef.current?.scrollTo({ top: pageHeight, behavior: 'smooth' })} className="p-3 rounded-full shadow-lg border transition-all hover:scale-105" style={{ background: 'var(--brand-surface)', color: 'var(--brand-primary)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}><ChevronDown size={18} /></button>
-        </div>
 
         {/* Binding */}
         <div
