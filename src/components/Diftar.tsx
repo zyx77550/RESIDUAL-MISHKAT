@@ -1,9 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useScroll, useMotionValueEvent } from 'framer-motion';
-import { NotebookPen, Edit2, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Plus, Save, Check, Undo, Redo, Trash2, Eraser, Ruler, Download, X, Settings2, Pencil, Brush, Highlighter, Palette, Star, Wind } from 'lucide-react';
+import { NotebookPen, Edit2, ChevronRight, ChevronLeft, Plus, Save, Check, Undo, Redo, Trash2, Eraser, Ruler, Download, X, Settings2, Pencil, Brush, Highlighter, Palette, Star, Wind, Zap, Pen } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { cn } from '../lib/utils';
 import { Stroke, Shape, DiftarPage, UserData } from '../types';
+
+// Page templates
+const PAGE_TEMPLATES = [
+  { type: 'revision',   icon: '📖', labelFr: 'Révision',   labelAr: 'مراجعة', paperStyle: 'lines'     as const, paperColor: '#fdfcf8', defaultTitle: { fr: 'Révision', ar: 'مراجعة' } },
+  { type: 'tafsir',     icon: '🔍', labelFr: 'Tafsir',     labelAr: 'تفسير',  paperStyle: 'arabesque' as const, paperColor: '#f4ecd8', defaultTitle: { fr: 'Tafsir', ar: 'تفسير' } },
+  { type: 'dates',      icon: '📅', labelFr: 'Planning',   labelAr: 'تخطيط',  paperStyle: 'grid'      as const, paperColor: '#fdfcf8', defaultTitle: { fr: 'Planning', ar: 'تخطيط' } },
+  { type: 'objectives', icon: '🎯', labelFr: 'Objectifs',  labelAr: 'أهداف',  paperStyle: 'dots'      as const, paperColor: '#fff0f3', defaultTitle: { fr: 'Objectifs', ar: 'أهداف' } },
+  { type: 'custom',     icon: '✨', labelFr: 'Libre',      labelAr: 'حر',     paperStyle: 'blank'     as const, paperColor: '#ffffff',  defaultTitle: { fr: 'Nouvelle Page', ar: 'صفحة جديدة' } },
+];
+
+const PAPER_COLOR_NAMES: Record<string, string> = {
+  '#fdfcf8': 'Crème', '#ffffff': 'Blanc', '#f4ecd8': 'Sépia',
+  '#0f172a': 'Nuit', '#f0f7f0': 'Sauge', '#fff0f3': 'Rose',
+};
 
 // All shapes, organized by category
 const SHAPE_CATEGORIES = [
@@ -52,7 +66,7 @@ const COLOR_PALETTE = {
 export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const [activePageId, setActivePageId]     = useState<string | null>(null);
   const [editingPageId, setEditingPageId]   = useState<string | null>(null);
-  const [tool, setTool]                     = useState<'pen' | 'highlighter' | 'fountain-pen' | 'chalk' | 'eraser' | 'ruler'>('pen');
+  const [tool, setTool]                     = useState<'pen' | 'highlighter' | 'fountain-pen' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon'>('pen');
   const [showToolsMenu, setShowToolsMenu]           = useState(false);
   const [showCustomizationMenu, setShowCustomizationMenu] = useState(false);
   const [color, setColor]                   = useState('#8B2635');
@@ -83,6 +97,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   }, []);
   const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(null);
   const [showConfirmClear, setShowConfirmClear]   = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [isDrawing, setIsDrawing]           = useState(false);
   const [toastMessage, setToastMessage]     = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -102,6 +117,21 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     sctx.clearRect(0, 0, sb.width, sb.height);
 
     const renderStroke = (stroke, targetCtx) => {
+      if (stroke.type === 'spray') {
+        if (stroke.points.length === 0) return;
+        targetCtx.save(); targetCtx.fillStyle = stroke.color; targetCtx.globalAlpha = 0.75;
+        stroke.points.forEach((point: {x:number;y:number}, pi: number) => {
+          const base = ((point.x * 97 + point.y * 31 + pi * 17) | 0);
+          for (let i = 0; i < 10; i++) {
+            const h1 = ((base + i * 1103515245 + 12345) >>> 0) % 1000;
+            const h2 = ((h1 * 22695477 + 1) >>> 0) % 1000;
+            targetCtx.beginPath();
+            targetCtx.arc(point.x + Math.cos((h1/1000)*Math.PI*2)*(h2/1000)*stroke.width*2.5, point.y + Math.sin((h1/1000)*Math.PI*2)*(h2/1000)*stroke.width*2.5, 0.7, 0, Math.PI*2);
+            targetCtx.fill();
+          }
+        });
+        targetCtx.restore(); return;
+      }
       if (stroke.points.length < 2) return;
       targetCtx.save();
       targetCtx.beginPath();
@@ -120,6 +150,13 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       } else if (stroke.type === 'eraser') {
         targetCtx.globalCompositeOperation = 'destination-out'; targetCtx.strokeStyle = 'rgba(0,0,0,1)';
         targetCtx.lineCap = 'round'; targetCtx.lineWidth = stroke.width * 4;
+      } else if (stroke.type === 'marker') {
+        targetCtx.globalCompositeOperation = 'source-over'; targetCtx.globalAlpha = 0.65;
+        targetCtx.lineCap = 'square'; targetCtx.lineWidth = stroke.width * 2;
+      } else if (stroke.type === 'neon') {
+        targetCtx.globalCompositeOperation = 'source-over'; targetCtx.lineCap = 'round';
+        targetCtx.lineWidth = stroke.width; targetCtx.shadowBlur = stroke.width * 5;
+        targetCtx.shadowColor = stroke.color; targetCtx.globalAlpha = 0.95;
       } else {
         targetCtx.globalCompositeOperation = 'source-over'; targetCtx.lineCap = 'round'; targetCtx.lineWidth = stroke.width;
       }
@@ -325,39 +362,57 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     if (activeStrokeRef.current) {
       const stroke = activeStrokeRef.current;
       sctx.save();
-      sctx.beginPath();
-
-      if (stroke.type === 'eraser') {
-        sctx.globalCompositeOperation = 'destination-out';
-        sctx.strokeStyle = 'rgba(0,0,0,1)';
-        sctx.lineCap = 'round';
-        sctx.lineWidth = stroke.width * 4;
+      if (stroke.type === 'spray') {
+        sctx.fillStyle = stroke.color; sctx.globalAlpha = 0.75;
+        stroke.points.forEach((point: {x:number;y:number}, pi: number) => {
+          const base = ((point.x * 97 + point.y * 31 + pi * 17) | 0);
+          for (let i = 0; i < 10; i++) {
+            const h1 = ((base + i * 1103515245 + 12345) >>> 0) % 1000;
+            const h2 = ((h1 * 22695477 + 1) >>> 0) % 1000;
+            sctx.beginPath();
+            sctx.arc(point.x + Math.cos((h1/1000)*Math.PI*2)*(h2/1000)*stroke.width*2.5, point.y + Math.sin((h1/1000)*Math.PI*2)*(h2/1000)*stroke.width*2.5, 0.7, 0, Math.PI*2);
+            sctx.fill();
+          }
+        });
       } else {
-        sctx.strokeStyle = getStrokeStyle(sctx, stroke);
-        sctx.lineJoin = 'round';
-        if (stroke.type === 'highlighter') {
-          sctx.globalCompositeOperation = 'multiply'; sctx.globalAlpha = 0.4; sctx.lineCap = 'square'; sctx.lineWidth = stroke.width * 2.5;
-        } else if (stroke.type === 'fountain-pen') {
-          sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'butt'; sctx.lineWidth = stroke.width * 1.2; sctx.setTransform(1, 0, 0.4, 1, 0, 0);
-        } else if (stroke.type === 'chalk') {
-          sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.75; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width * 2; sctx.setLineDash([2, 3]); sctx.shadowBlur = 4; sctx.shadowColor = stroke.color;
+        sctx.beginPath();
+        if (stroke.type === 'eraser') {
+          sctx.globalCompositeOperation = 'destination-out';
+          sctx.strokeStyle = 'rgba(0,0,0,1)';
+          sctx.lineCap = 'round';
+          sctx.lineWidth = stroke.width * 4;
         } else {
-          sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width;
+          sctx.strokeStyle = getStrokeStyle(sctx, stroke);
+          sctx.lineJoin = 'round';
+          if (stroke.type === 'highlighter') {
+            sctx.globalCompositeOperation = 'multiply'; sctx.globalAlpha = 0.4; sctx.lineCap = 'square'; sctx.lineWidth = stroke.width * 2.5;
+          } else if (stroke.type === 'fountain-pen') {
+            sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'butt'; sctx.lineWidth = stroke.width * 1.2; sctx.setTransform(1, 0, 0.4, 1, 0, 0);
+          } else if (stroke.type === 'chalk') {
+            sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.75; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width * 2; sctx.setLineDash([2, 3]); sctx.shadowBlur = 4; sctx.shadowColor = stroke.color;
+          } else if (stroke.type === 'marker') {
+            sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.65; sctx.lineCap = 'square'; sctx.lineWidth = stroke.width * 2;
+          } else if (stroke.type === 'neon') {
+            sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width; sctx.shadowBlur = stroke.width * 5; sctx.shadowColor = stroke.color; sctx.globalAlpha = 0.95;
+          } else {
+            sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width;
+          }
+        }
+        if (stroke.points.length > 0) {
+          sctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+          if (stroke.type === 'ruler') {
+            const last = stroke.points[stroke.points.length - 1]; sctx.lineTo(last.x, last.y);
+          } else {
+            for (let i = 1; i < stroke.points.length - 1; i++) {
+              const xc = (stroke.points[i].x + stroke.points[i + 1].x) / 2;
+              const yc = (stroke.points[i].y + stroke.points[i + 1].y) / 2;
+              sctx.quadraticCurveTo(stroke.points[i].x, stroke.points[i].y, xc, yc);
+            }
+            const last = stroke.points[stroke.points.length - 1]; sctx.lineTo(last.x, last.y);
+          }
+          sctx.stroke();
         }
       }
-
-      sctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-      if (stroke.type === 'ruler') {
-        const last = stroke.points[stroke.points.length - 1]; sctx.lineTo(last.x, last.y);
-      } else {
-        for (let i = 1; i < stroke.points.length - 1; i++) {
-          const xc = (stroke.points[i].x + stroke.points[i + 1].x) / 2;
-          const yc = (stroke.points[i].y + stroke.points[i + 1].y) / 2;
-          sctx.quadraticCurveTo(stroke.points[i].x, stroke.points[i].y, xc, yc);
-        }
-        const last = stroke.points[stroke.points.length - 1]; sctx.lineTo(last.x, last.y);
-      }
-      sctx.stroke();
       sctx.restore();
     }
 
@@ -520,13 +575,20 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     return () => clearInterval(timer);
   }, [currentStrokes, shapes, activePageId]);
 
-  const createPage = () => {
+  const createPage = (tpl?: typeof PAGE_TEMPLATES[0]) => {
+    const template = tpl || PAGE_TEMPLATES[4];
     const newPage: DiftarPage = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: lang === 'fr' ? 'Nouvelle Page' : 'صفحة جديدة',
-      type: 'custom', strokes: [], shapes: [], height: 5000, paperStyle: 'lines', lastSaved: Date.now(),
+      id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+      title: lang === 'fr' ? template.defaultTitle.fr : template.defaultTitle.ar,
+      type: template.type as any,
+      strokes: [], shapes: [],
+      height: 5000,
+      paperStyle: template.paperStyle,
+      paperColor: template.paperColor,
+      lastSaved: Date.now(),
     };
     setUserData((prev: UserData) => ({ ...prev, diftarPages: [newPage, ...prev.diftarPages] }));
+    setShowTemplateModal(false);
     setActivePageId(newPage.id);
   };
 
@@ -566,127 +628,340 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
 
   const closeAllPanels = () => { setShowToolsMenu(false); setShowCustomizationMenu(false); setShowShapePicker(false); setShowPaperSettings(false); setActiveShapeTypeWithRef(null); };
 
+  // ── Raccourcis clavier ──────────────────────────────────────────────────
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if (activePageId) savePage(); return; }
+      if (e.key === 'Escape') { closeAllPanels(); return; }
+      if (!activePageId || e.ctrlKey || e.metaKey) return;
+      if (e.key === '1') setTool('pen');
+      if (e.key === '2') setTool('fountain-pen');
+      if (e.key === '3') setTool('highlighter');
+      if (e.key === '4') setTool('chalk');
+      if (e.key === '5') setTool('ruler');
+      if (e.key === '6') setTool('eraser');
+      if (e.key === '7') setTool('spray');
+      if (e.key === '8') setTool('marker');
+      if (e.key === '9') setTool('neon');
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [activePageId, undo, redo, savePage]);
+
   const { scrollY } = useScroll({ container: scrollContainerRef });
 
   // ──────────────────────────────────
   // PAGE LIST VIEW (Gallery)
   // ──────────────────────────────────
   if (!activePageId) {
+    const lastModified = userData.diftarPages.length > 0
+      ? new Date(Math.max(...userData.diftarPages.map(p => p.lastSaved))).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'ar-SA')
+      : null;
+
     return (
-      <div className="flex-1 flex flex-col gap-8">
-        <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-7 pb-4">
+
+        {/* ── Header ── */}
+        <div className="flex flex-wrap justify-between items-end gap-4">
           <div>
-            <h2 className="text-4xl font-serif italic" style={{ color: 'var(--brand-primary)' }}>{lang === 'fr' ? 'Mon Diftar' : 'دفتري'}</h2>
-            <p className="text-sm mt-1 font-medium" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Vos notes et réflexions' : 'ملاحظاتك وتأملاتك'}</p>
+            <h2 className="text-4xl sm:text-5xl font-serif italic leading-tight" style={{ color: 'var(--brand-primary)' }}>
+              {lang === 'fr' ? 'Mon Diftar' : 'دفتري'}
+            </h2>
+            <p className="text-[10px] uppercase tracking-[0.4em] font-bold mt-1.5" style={{ color: 'var(--brand-secondary)', opacity: 0.65 }}>
+              دَفْتَرُ الحِفْظِ الرَّقْمِي
+            </p>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.96 }}
-            onClick={createPage}
-            className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-white shadow-lg transition-all"
-            style={{ background: 'var(--brand-primary)', boxShadow: '0 8px 24px color-mix(in srgb, var(--brand-primary) 35%, transparent)' }}
-          >
-            <Plus size={20} />
-            <span className="hidden sm:inline">{lang === 'fr' ? 'Nouvelle Page' : 'صفحة جديدة'}</span>
-          </motion.button>
+
+          <div className="flex items-center gap-3">
+            {/* Stats chips */}
+            {userData.diftarPages.length > 0 && (
+              <div className="hidden sm:flex items-center gap-2">
+                <span className="px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest"
+                      style={{ background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', color: 'var(--brand-primary)' }}>
+                  {userData.diftarPages.length} {lang === 'fr' ? 'page(s)' : 'صفحة'}
+                </span>
+                {lastModified && (
+                  <span className="px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest"
+                        style={{ background: 'color-mix(in srgb, var(--brand-secondary) 8%, transparent)', color: 'var(--brand-secondary)' }}>
+                    {lang === 'fr' ? `Modifié le ${lastModified}` : `آخر تعديل ${lastModified}`}
+                  </span>
+                )}
+              </div>
+            )}
+
+            <motion.button
+              whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.96 }}
+              onClick={() => setShowTemplateModal(true)}
+              className="premium-button flex items-center gap-2"
+            >
+              <Plus size={18} />
+              <span className="text-sm">{lang === 'fr' ? 'Nouvelle page' : 'صفحة جديدة'}</span>
+            </motion.button>
+          </div>
         </div>
 
+        {/* ── Empty state ── */}
         {userData.diftarPages.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-6 opacity-40 py-24">
-            <NotebookPen size={64} style={{ color: 'var(--brand-primary)' }} />
-            <p className="text-lg font-medium" style={{ color: 'var(--brand-text-muted)' }}>{lang === 'fr' ? 'Aucune page pour l\'instant' : 'لا توجد صفحات بعد'}</p>
-          </div>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            className="flex-1 flex flex-col items-center justify-center gap-6 py-24 glass-card relative overflow-hidden">
+            <div className="absolute inset-0 arabesque-pattern opacity-30" style={{ color: 'var(--brand-primary)' }} />
+            <div className="relative z-10 text-center space-y-4">
+              <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto shadow-xl"
+                   style={{ background: 'var(--brand-primary)' }}>
+                <NotebookPen size={36} className="text-white" />
+              </div>
+              <h3 className="text-2xl font-serif italic" style={{ color: 'var(--brand-primary)' }}>
+                {lang === 'fr' ? 'Votre Diftar est vide' : 'دفترك فارغ'}
+              </h3>
+              <p className="text-sm max-w-xs" style={{ color: 'var(--brand-text-muted)' }}>
+                {lang === 'fr'
+                  ? 'Créez votre première page pour commencer à écrire vos notes, révisions ou réflexions.'
+                  : 'أنشئ أول صفحة لك وابدأ في كتابة ملاحظاتك ومراجعاتك.'}
+              </p>
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                onClick={() => setShowTemplateModal(true)}
+                className="premium-button inline-flex items-center gap-2 mx-auto">
+                <Plus size={17} />
+                {lang === 'fr' ? 'Créer une page' : 'إنشاء صفحة'}
+              </motion.button>
+            </div>
+          </motion.div>
         )}
 
+        {/* ── Grid ── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
-          {userData.diftarPages.map((page) => (
-            <motion.div
-              key={page.id}
-              layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ y: -8 }}
-              className="group flex flex-col gap-0"
-            >
-              {/* Notebook cover */}
-              <div
-                className="relative aspect-[3/4] cursor-pointer rounded-r-2xl shadow-lg border-l-[10px] overflow-hidden transition-all group-hover:shadow-2xl"
-                style={{ background: '#ffffff', borderLeftColor: 'var(--brand-primary)' }}
-                onClick={() => setActivePageId(page.id)}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-transparent pointer-events-none" />
-                {/* Spiral holes */}
-                <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-around py-4 px-2">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="w-2.5 h-2.5 rounded-full border-2" style={{ borderColor: 'var(--brand-primary)', background: 'var(--brand-page)', opacity: 0.6 }} />
-                  ))}
-                </div>
-                <div className="p-5 h-full flex flex-col justify-between ml-3">
-                  <div className="space-y-3">
-                    {editingPageId === page.id ? (
-                      <div onClick={e => e.stopPropagation()}>
-                        <input
-                          autoFocus
-                          className="w-full bg-transparent border-b-2 px-1 py-0.5 text-base font-serif italic focus:outline-none"
-                          style={{ borderColor: 'var(--brand-primary)', color: 'var(--brand-primary)' }}
-                          value={page.title}
-                          onChange={e => renamePage(page.id, e.target.value)}
-                          onBlur={() => setEditingPageId(null)}
-                          onKeyDown={e => e.key === 'Enter' && setEditingPageId(null)}
-                        />
-                      </div>
-                    ) : (
-                      <h3 className="text-lg font-serif italic leading-tight transition-colors" style={{ color: 'var(--brand-primary)' }}>{page.title}</h3>
-                    )}
-                    <div className="w-8 h-0.5 rounded-full" style={{ background: 'var(--brand-secondary)', opacity: 0.4 }} />
-                  </div>
-                  <div>
-                    <p className="text-[9px] uppercase tracking-widest font-bold" style={{ color: 'var(--brand-primary)', opacity: 0.35 }}>
-                      {new Date(page.lastSaved).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'ar-SA')}
-                    </p>
-                  </div>
-                </div>
-              </div>
+          <AnimatePresence>
+            {userData.diftarPages.map((page, idx) => {
+              const paperBg = (page as any).paperColor || '#fdfcf8';
+              const isDark = paperBg === '#0f172a';
+              const borderColor = isDark ? '#D4AF37' : 'var(--brand-primary)';
+              const templateIcon = PAGE_TEMPLATES.find(t => t.type === page.type)?.icon || '📄';
 
-              {/* Action buttons */}
-              <div className="flex gap-1 mt-2">
-                <button
-                  onClick={() => setActivePageId(page.id)}
-                  className="flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
-                  style={{ background: 'var(--brand-primary)', color: '#fff' }}
+              return (
+                <motion.div
+                  key={page.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.88, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.88 }}
+                  transition={{ delay: idx * 0.04 }}
+                  whileHover={{ y: -8 }}
+                  className="group flex flex-col gap-2"
                 >
-                  {lang === 'fr' ? 'Ouvrir' : 'فتح'}
-                </button>
-                <button
-                  onClick={e => { e.stopPropagation(); setEditingPageId(editingPageId === page.id ? null : page.id); }}
-                  className="px-3 py-2 rounded-xl text-[10px] transition-all"
-                  style={{ background: 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)', color: 'var(--brand-primary)' }}
-                  title={lang === 'fr' ? 'Renommer' : 'تسمية'}
-                >
-                  <Edit2 size={13} />
-                </button>
-                <button
-                  onClick={e => { e.stopPropagation(); setShowConfirmDelete(page.id); }}
-                  className="px-3 py-2 rounded-xl text-[10px] transition-all"
-                  style={{ background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.7)' }}
-                  title={lang === 'fr' ? 'Supprimer' : 'حذف'}
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            </motion.div>
-          ))}
+                  {/* Notebook cover */}
+                  <div
+                    className="relative aspect-[3/4] cursor-pointer rounded-r-2xl overflow-hidden transition-all duration-300 group-hover:shadow-2xl"
+                    style={{ background: paperBg, borderLeft: `10px solid ${borderColor}`, boxShadow: '0 6px 24px rgba(0,0,0,0.1)' }}
+                    onClick={() => setActivePageId(page.id)}
+                  >
+                    {/* Paper texture */}
+                    {page.paperStyle && page.paperStyle !== 'blank' && (
+                      <div className="absolute inset-0 opacity-40" style={{
+                        backgroundImage: page.paperStyle === 'grid'
+                          ? `linear-gradient(${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(139,38,53,0.05)'} 1px, transparent 1px), linear-gradient(90deg, ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(139,38,53,0.05)'} 1px, transparent 1px)`
+                          : page.paperStyle === 'lines'
+                            ? `repeating-linear-gradient(transparent, transparent 19px, ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(139,38,53,0.07)'} 20px)`
+                            : 'none',
+                        backgroundSize: page.paperStyle === 'grid' ? '20px 20px' : 'auto',
+                      }} />
+                    )}
+
+                    {/* Spiral holes */}
+                    <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-around py-4 px-2">
+                      {[...Array(6)].map((_, i) => (
+                        <div key={i} className="w-2.5 h-2.5 rounded-full border-2 shadow-inner"
+                             style={{ borderColor, background: 'var(--brand-page)', opacity: 0.5 }} />
+                      ))}
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4 h-full flex flex-col justify-between ml-3 relative z-10">
+                      <div className="space-y-2">
+                        {/* Type badge + icon */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base">{templateIcon}</span>
+                          {page.type && page.type !== 'custom' && (
+                            <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full"
+                                  style={{ background: isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,38,53,0.08)', color: isDark ? '#D4AF37' : 'var(--brand-primary)' }}>
+                              {PAGE_TEMPLATES.find(t => t.type === page.type)?.[lang === 'fr' ? 'labelFr' : 'labelAr']}
+                            </span>
+                          )}
+                        </div>
+
+                        {editingPageId === page.id ? (
+                          <div onClick={e => e.stopPropagation()}>
+                            <input
+                              autoFocus
+                              className="w-full bg-transparent border-b-2 px-1 py-0.5 text-sm font-serif italic focus:outline-none"
+                              style={{ borderColor, color: isDark ? '#fff' : 'var(--brand-primary)' }}
+                              value={page.title}
+                              onChange={e => renamePage(page.id, e.target.value)}
+                              onBlur={() => setEditingPageId(null)}
+                              onKeyDown={e => e.key === 'Enter' && setEditingPageId(null)}
+                            />
+                          </div>
+                        ) : (
+                          <h3 className="text-sm font-serif italic leading-snug"
+                              style={{ color: isDark ? '#F5EFE6' : 'var(--brand-primary)' }}>
+                            {page.title}
+                          </h3>
+                        )}
+
+                        <div className="w-6 h-0.5 rounded-full" style={{ background: isDark ? '#D4AF37' : 'var(--brand-secondary)', opacity: 0.4 }} />
+                      </div>
+
+                      <div className="space-y-1">
+                        {/* Paper style tag */}
+                        <p className="text-[8px] uppercase tracking-widest font-bold"
+                           style={{ color: isDark ? 'rgba(255,255,255,0.3)' : 'var(--brand-primary)', opacity: 0.4 }}>
+                          {PAPER_COLOR_NAMES[paperBg] || 'Crème'} · {
+                            page.paperStyle === 'lines' ? '≡' :
+                            page.paperStyle === 'grid' ? '⊞' :
+                            page.paperStyle === 'dots' ? '⁝' :
+                            page.paperStyle === 'arabesque' ? '✦' : '□'
+                          }
+                        </p>
+                        <p className="text-[8px] uppercase tracking-widest font-bold"
+                           style={{ color: isDark ? 'rgba(255,255,255,0.25)' : 'var(--brand-primary)', opacity: 0.35 }}>
+                          {new Date(page.lastSaved).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'ar-SA')}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
+                         style={{ background: `color-mix(in srgb, ${borderColor} 8%, transparent)` }}>
+                      <div className="px-4 py-2 rounded-xl text-white text-xs font-black uppercase tracking-widest shadow-lg"
+                           style={{ background: borderColor }}>
+                        {lang === 'fr' ? 'Ouvrir' : 'فتح'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action row */}
+                  <div className="flex gap-1.5">
+                    <button onClick={() => setActivePageId(page.id)}
+                      className="flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all hover:scale-105"
+                      style={{ background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 3px 10px color-mix(in srgb, var(--brand-primary) 25%, transparent)' }}>
+                      {lang === 'fr' ? 'Ouvrir' : 'فتح'}
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); setEditingPageId(editingPageId === page.id ? null : page.id); }}
+                      className="px-2.5 py-2 rounded-xl transition-all hover:scale-105"
+                      style={{ background: 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)', color: 'var(--brand-primary)' }}
+                      title={lang === 'fr' ? 'Renommer' : 'تسمية'}>
+                      <Edit2 size={12} />
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); setShowConfirmDelete(page.id); }}
+                      className="px-2.5 py-2 rounded-xl transition-all hover:scale-105"
+                      style={{ background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.65)' }}
+                      title={lang === 'fr' ? 'Supprimer' : 'حذف'}>
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
 
-        {/* Confirm delete modal */}
+        {/* ── Template Modal ── */}
+        <AnimatePresence>
+          {showTemplateModal && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 backdrop-blur-md z-[200] flex items-center justify-center p-6"
+              style={{ background: 'color-mix(in srgb, var(--brand-primary) 25%, transparent)' }}
+              onClick={() => setShowTemplateModal(false)}>
+              <motion.div initial={{ scale: 0.88, y: 24 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.88, y: 24 }}
+                transition={{ type: 'spring', bounce: 0.3 }}
+                className="glass-card p-8 max-w-lg w-full space-y-6 relative overflow-hidden"
+                onClick={e => e.stopPropagation()}>
+                <div className="card-accent-bar" />
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-2xl font-serif italic" style={{ color: 'var(--brand-primary)' }}>
+                      {lang === 'fr' ? 'Choisir un modèle' : 'اختر نموذجاً'}
+                    </h3>
+                    <p className="text-[10px] uppercase tracking-widest font-bold mt-0.5"
+                       style={{ color: 'var(--brand-text-muted)' }}>
+                      {lang === 'fr' ? 'Sélectionnez le type de page' : 'اختر نوع الصفحة'}
+                    </p>
+                  </div>
+                  <button onClick={() => setShowTemplateModal(false)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', color: 'var(--brand-text-muted)' }}>
+                    <X size={15} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {PAGE_TEMPLATES.map(tpl => (
+                    <motion.button
+                      key={tpl.type}
+                      whileHover={{ y: -4, scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => createPage(tpl)}
+                      className="flex flex-col items-center gap-3 p-5 rounded-2xl border transition-all text-left"
+                      style={{
+                        background: tpl.paperColor,
+                        borderColor: 'var(--border-subtle)',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--brand-primary)')}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}
+                    >
+                      <span className="text-3xl">{tpl.icon}</span>
+                      <div>
+                        <p className="text-sm font-bold font-serif italic" style={{ color: tpl.paperColor === '#0f172a' ? '#fff' : 'var(--brand-primary)' }}>
+                          {lang === 'fr' ? tpl.labelFr : tpl.labelAr}
+                        </p>
+                        <p className="text-[8px] uppercase tracking-widest font-bold mt-0.5"
+                           style={{ color: tpl.paperColor === '#0f172a' ? 'rgba(255,255,255,0.4)' : 'var(--brand-text-muted)' }}>
+                          {tpl.paperStyle}
+                        </p>
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Confirm delete modal ── */}
         <AnimatePresence>
           {showConfirmDelete && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 backdrop-blur-md z-[200] flex items-center justify-center p-6" style={{ background: 'color-mix(in srgb, var(--brand-primary) 20%, transparent)' }}>
-              <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white p-10 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-6">
-                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto"><Trash2 size={32} className="text-red-500" /></div>
-                <h3 className="text-2xl font-serif italic" style={{ color: 'var(--brand-primary)' }}>{lang === 'fr' ? 'Supprimer la page ?' : 'حذف الصفحة؟'}</h3>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 backdrop-blur-md z-[200] flex items-center justify-center p-6"
+              style={{ background: 'color-mix(in srgb, var(--brand-primary) 20%, transparent)' }}>
+              <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+                className="glass-card p-10 max-w-sm w-full text-center space-y-6">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
+                     style={{ background: 'rgba(239,68,68,0.1)' }}>
+                  <Trash2 size={30} style={{ color: '#ef4444' }} />
+                </div>
+                <h3 className="text-2xl font-serif italic" style={{ color: 'var(--brand-primary)' }}>
+                  {lang === 'fr' ? 'Supprimer la page ?' : 'حذف الصفحة؟'}
+                </h3>
                 <div className="flex gap-3">
-                  <button onClick={() => setShowConfirmDelete(null)} className="flex-1 py-3 rounded-2xl border font-bold text-xs uppercase tracking-widest" style={{ borderColor: 'var(--brand-primary)', color: 'var(--brand-primary)', opacity: 0.4 }}>{lang === 'fr' ? 'Annuler' : 'إلغاء'}</button>
-                  <button onClick={() => { setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.filter(p => p.id !== showConfirmDelete) })); setShowConfirmDelete(null); }} className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-xs uppercase tracking-widest">{lang === 'fr' ? 'Supprimer' : 'حذف'}</button>
+                  <button onClick={() => setShowConfirmDelete(null)}
+                    className="flex-1 py-3 rounded-2xl border font-bold text-xs uppercase tracking-widest"
+                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--brand-text-muted)' }}>
+                    {lang === 'fr' ? 'Annuler' : 'إلغاء'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.filter(p => p.id !== showConfirmDelete) }));
+                      setShowConfirmDelete(null);
+                    }}
+                    className="flex-1 py-3 rounded-2xl text-white font-bold text-xs uppercase tracking-widest"
+                    style={{ background: '#ef4444' }}>
+                    {lang === 'fr' ? 'Supprimer' : 'حذف'}
+                  </button>
                 </div>
               </motion.div>
             </motion.div>
@@ -791,21 +1066,25 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               {showToolsMenu && (
                 <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
                   <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Outil' : 'الأداة'}</p>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     {[
-                      { id: 'pen',          icon: Pencil,      label: lang === 'fr' ? 'Stylo'      : 'قلم'    },
-                      { id: 'fountain-pen', icon: Brush,       label: lang === 'fr' ? 'Plume'      : 'ريشة'   },
-                      { id: 'highlighter',  icon: Highlighter, label: lang === 'fr' ? 'Surligneur' : 'تحديد'  },
-                      { id: 'chalk',        icon: Edit2,       label: lang === 'fr' ? 'Craie'      : 'طباشير' },
-                      { id: 'ruler',        icon: Ruler,       label: lang === 'fr' ? 'Règle'      : 'مسطرة'  },
-                      { id: 'eraser',       icon: Eraser,      label: lang === 'fr' ? 'Gomme'      : 'ممحاة'  },
+                      { id: 'pen',          icon: Pencil,      label: lang === 'fr' ? 'Stylo'      : 'قلم',     hint: '1' },
+                      { id: 'fountain-pen', icon: Brush,       label: lang === 'fr' ? 'Plume'      : 'ريشة',    hint: '2' },
+                      { id: 'highlighter',  icon: Highlighter, label: lang === 'fr' ? 'Surligneur' : 'تحديد',   hint: '3' },
+                      { id: 'chalk',        icon: Edit2,       label: lang === 'fr' ? 'Craie'      : 'طباشير',  hint: '4' },
+                      { id: 'ruler',        icon: Ruler,       label: lang === 'fr' ? 'Règle'      : 'مسطرة',   hint: '5' },
+                      { id: 'eraser',       icon: Eraser,      label: lang === 'fr' ? 'Gomme'      : 'ممحاة',   hint: '6' },
+                      { id: 'spray',        icon: Wind,        label: lang === 'fr' ? 'Aérosol'    : 'رذاذ',    hint: '7' },
+                      { id: 'marker',       icon: Pen,         label: lang === 'fr' ? 'Marqueur'   : 'ماركر',   hint: '8' },
+                      { id: 'neon',         icon: Zap,         label: lang === 'fr' ? 'Néon'       : 'نيون',    hint: '9' },
                     ].map(t => (
                       <button
                         key={t.id}
                         onClick={() => { setTool(t.id as any); setShowToolsMenu(false); }}
-                        className="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all font-bold text-[9px] uppercase tracking-wider"
+                        className="relative flex flex-col items-center gap-2 p-3 rounded-2xl transition-all font-bold text-[9px] uppercase tracking-wider"
                         style={tool === t.id ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 4px 14px color-mix(in srgb, var(--brand-primary) 30%, transparent)' } : { background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', color: 'var(--brand-text-muted)' }}
                       >
+                        <span className="absolute top-1.5 right-1.5 text-[7px] font-black opacity-30">{t.hint}</span>
                         <t.icon size={20} />
                         <span>{t.label}</span>
                       </button>
@@ -994,35 +1273,62 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       </div>
       {/* ─── FIN TOOLBAR FIXÉE ──────────────────────────────────────────────── */}
 
-      {/* Touch Scrollbar Track */}
-      <div className="fixed right-2 top-32 bottom-20 w-8 z-[70] flex flex-col items-center group/scroll pointer-events-none">
+      {/* ─── Scroll Navigator ─── */}
+      <div className="fixed right-3 top-[88px] bottom-28 z-[70] flex flex-col items-center gap-2 pointer-events-none">
+        {/* Clickable track */}
         <div
-          className="h-full w-1.5 rounded-full relative pointer-events-auto bg-white/10 backdrop-blur-sm border border-white/10 overflow-hidden"
+          className="flex-1 w-1 rounded-full relative pointer-events-auto cursor-pointer group/track"
+          style={{ background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)' }}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            const y = (e.clientY - rect.top) / rect.height;
-            handleManualScroll(Math.max(0, Math.min(1, y)));
+            handleManualScroll(Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)));
           }}
         >
+          {/* Fill */}
+          <div className="absolute top-0 left-0 right-0 rounded-full transition-all duration-100"
+               style={{ height: `${scrollProgress * 100}%`, background: 'color-mix(in srgb, var(--brand-primary) 18%, transparent)' }} />
+          {/* Thumb */}
           <motion.div
-            className="absolute top-0 left-0 right-0"
-            style={{ height: `${scrollProgress * 100}%`, background: 'color-mix(in srgb, var(--brand-primary) 20%, transparent)' }}
-          />
-          <motion.div
-            className="absolute w-full rounded-full shadow-lg"
+            className="absolute left-1/2 -translate-x-1/2 w-3 h-8 rounded-full shadow-lg"
             style={{
-              height: '40px',
-              top: `${scrollProgress * 100}%`,
-              transform: 'translateY(-50%)',
+              top: `${Math.max(0, Math.min(scrollProgress * 100, 100))}%`,
+              translateY: '-50%',
               background: 'var(--brand-primary)',
-              boxShadow: '0 4px 12px color-mix(in srgb, var(--brand-primary) 40%, transparent)',
+              boxShadow: '0 2px 10px color-mix(in srgb, var(--brand-primary) 40%, transparent)',
+              opacity: 0.85,
             }}
           />
         </div>
-        <div className="mt-4 -rotate-90 text-[8px] font-black uppercase tracking-widest text-primary/40 select-none whitespace-nowrap">
-          Navigation
-        </div>
       </div>
+
+      {/* ─── Scroll Progress Ring (back-to-top) ─── */}
+      <AnimatePresence>
+        {scrollProgress > 0.04 && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.75 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.75 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-6 right-4 z-[70] w-12 h-12 rounded-full flex items-center justify-center pointer-events-auto shadow-xl"
+            style={{ background: 'var(--brand-surface)', border: '1.5px solid color-mix(in srgb, var(--brand-primary) 12%, transparent)' }}
+            title={lang === 'fr' ? 'Retour en haut' : 'أعلى الصفحة'}
+          >
+            <svg className="absolute inset-0 -rotate-90" width="48" height="48" viewBox="0 0 48 48">
+              <circle cx="24" cy="24" r="20" fill="none" stroke="color-mix(in srgb, var(--brand-primary) 8%, transparent)" strokeWidth="2.5" />
+              <circle cx="24" cy="24" r="20" fill="none" stroke="var(--brand-primary)" strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray={`${2 * Math.PI * 20}`}
+                strokeDashoffset={`${2 * Math.PI * 20 * (1 - scrollProgress)}`}
+                style={{ opacity: 0.75, transition: 'stroke-dashoffset 0.15s ease' }}
+              />
+            </svg>
+            <span className="text-[9px] font-black select-none" style={{ color: 'var(--brand-primary)' }}>
+              ↑
+            </span>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* ─── ZONE SCROLLABLE (canvas) ───────────────────────────────────────── */}
       {/* FIX 3 : pt-20 pour compenser la hauteur de la toolbar fixed (~72px + gap) */}
@@ -1043,12 +1349,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             {toastMessage}
           </motion.div>
         )}
-
-        {/* Scroll buttons */}
-        <div className="fixed right-4 md:right-20 bottom-36 md:bottom-8 z-50 flex flex-col gap-2">
-          <button onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })} className="p-3 rounded-full shadow-lg border transition-all hover:scale-105" style={{ background: 'var(--brand-surface)', color: 'var(--brand-primary)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}><ChevronUp size={18} /></button>
-          <button onClick={() => scrollContainerRef.current?.scrollTo({ top: pageHeight, behavior: 'smooth' })} className="p-3 rounded-full shadow-lg border transition-all hover:scale-105" style={{ background: 'var(--brand-surface)', color: 'var(--brand-primary)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}><ChevronDown size={18} /></button>
-        </div>
 
         {/* Binding */}
         <div

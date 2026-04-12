@@ -13,7 +13,7 @@ export interface Stroke {
   points: { x: number; y: number; p?: number }[];
   color: string;
   width: number;
-  type: 'pen' | 'fountain-pen' | 'highlighter' | 'chalk' | 'eraser' | 'ruler';
+  type: 'pen' | 'fountain-pen' | 'highlighter' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon';
   timestamp: number;
 }
 

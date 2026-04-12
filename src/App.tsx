@@ -169,6 +169,17 @@ export default function App() {
     }
   }, []);
 
+  // ─── CRITICAL: save userData to localStorage whenever it changes ───
+  useEffect(() => {
+    if (userData) {
+      try {
+        localStorage.setItem('mishkat_user_data', JSON.stringify(userData));
+      } catch (err) {
+        console.error('Mishkat: failed to save data', err);
+      }
+    }
+  }, [userData]);
+
   useEffect(() => {
     const handleUpdate = (e: any) => {
       setUpdateWorker(e.detail.waiting);
@@ -212,7 +223,7 @@ export default function App() {
         <div className="absolute inset-0 geometric-pattern opacity-40" style={{ color: 'var(--brand-primary)' }} />
       </div>
 
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} loginStreak={userData.loginStreak} theme={userData.settings?.theme} />
 
       <main className={cn('flex-1 p-4 md:p-12 pb-32 md:pb-12 relative z-10', activeTab === 'diftar' ? 'overflow-hidden' : 'overflow-y-auto', lang === 'ar' ? 'text-right' : 'text-left')}>
         <div className="max-w-7xl mx-auto h-full">
