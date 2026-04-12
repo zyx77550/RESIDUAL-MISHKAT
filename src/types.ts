@@ -13,13 +13,13 @@ export interface Stroke {
   points: { x: number; y: number; p?: number }[];
   color: string;
   width: number;
-  type: 'pen' | 'fountain-pen' | 'highlighter' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon';
+  type: 'pen' | 'fountain-pen' | 'highlighter' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon' | 'pencil' | 'watercolor';
   timestamp: number;
 }
 
 export interface Shape {
   id: string;
-  type: 'circle' | 'square' | 'triangle' | 'line' | 'arrow';
+  type: 'circle' | 'square' | 'triangle' | 'line' | 'arrow' | 'rectangle' | 'diamond' | 'hexagon' | 'pentagon' | 'star' | 'heart' | 'crescent';
   x: number;
   y: number;
   width: number;

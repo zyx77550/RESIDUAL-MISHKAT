@@ -24,15 +24,27 @@ const SHAPE_CATEGORIES = [
   {
     label: { fr: 'Géométriques', ar: 'هندسية' },
     shapes: [
-      { id: 'circle',   type: 'circle' as const,   label: { fr: 'Cercle', ar: 'دائرة' } },
-      { id: 'square',   type: 'square' as const,   label: { fr: 'Carré', ar: 'مربع' } },
-      { id: 'triangle', type: 'triangle' as const, label: { fr: 'Triangle', ar: 'مثلث' } },
+      { id: 'circle',    type: 'circle'    as const, label: { fr: 'Cercle',    ar: 'دائرة'  } },
+      { id: 'square',    type: 'square'    as const, label: { fr: 'Carré',     ar: 'مربع'   } },
+      { id: 'rectangle', type: 'rectangle' as const, label: { fr: 'Rectangle', ar: 'مستطيل' } },
+      { id: 'triangle',  type: 'triangle'  as const, label: { fr: 'Triangle',  ar: 'مثلث'   } },
+      { id: 'diamond',   type: 'diamond'   as const, label: { fr: 'Losange',   ar: 'معين'   } },
+      { id: 'hexagon',   type: 'hexagon'   as const, label: { fr: 'Hexagone',  ar: 'سداسي'  } },
+      { id: 'pentagon',  type: 'pentagon'  as const, label: { fr: 'Pentagone', ar: 'خماسي'  } },
+    ],
+  },
+  {
+    label: { fr: 'Décoratifs', ar: 'زخرفية' },
+    shapes: [
+      { id: 'star',     type: 'star'     as const, label: { fr: 'Étoile',    ar: 'نجمة'  } },
+      { id: 'heart',    type: 'heart'    as const, label: { fr: 'Cœur',      ar: 'قلب'   } },
+      { id: 'crescent', type: 'crescent' as const, label: { fr: 'Croissant', ar: 'هلال'  } },
     ],
   },
   {
     label: { fr: 'Lignes', ar: 'خطوط' },
     shapes: [
-      { id: 'line',  type: 'line' as const,  label: { fr: 'Ligne', ar: 'خط' } },
+      { id: 'line',  type: 'line'  as const, label: { fr: 'Ligne', ar: 'خط'  } },
       { id: 'arrow', type: 'arrow' as const, label: { fr: 'Flèche', ar: 'سهم' } },
     ],
   },
@@ -66,7 +78,8 @@ const COLOR_PALETTE = {
 export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const [activePageId, setActivePageId]     = useState<string | null>(null);
   const [editingPageId, setEditingPageId]   = useState<string | null>(null);
-  const [tool, setTool]                     = useState<'pen' | 'highlighter' | 'fountain-pen' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon'>('pen');
+  const [tool, setTool]                     = useState<'pen' | 'highlighter' | 'fountain-pen' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon' | 'pencil' | 'watercolor'>('pen');
+  const [shapeSize, setShapeSize]           = useState(60);
   const [showToolsMenu, setShowToolsMenu]           = useState(false);
   const [showCustomizationMenu, setShowCustomizationMenu] = useState(false);
   const [color, setColor]                   = useState('#8B2635');
@@ -89,9 +102,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const isDrawingRef    = useRef(false);
   const activeStrokeRef = useRef<Stroke | null>(null);
   const stickerCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
-  const [activeShapeType, setActiveShapeType] = useState<'circle' | 'square' | 'triangle' | 'line' | 'arrow' | null>(null);
-  const activeShapeTypeRef = useRef<'circle' | 'square' | 'triangle' | 'line' | 'arrow' | null>(null);
-  const setActiveShapeTypeWithRef = useCallback((val: 'circle' | 'square' | 'triangle' | 'line' | 'arrow' | null) => {
+  const [activeShapeType, setActiveShapeType] = useState<Shape['type'] | null>(null);
+  const activeShapeTypeRef = useRef<Shape['type'] | null>(null);
+  const setActiveShapeTypeWithRef = useCallback((val: Shape['type'] | null) => {
     activeShapeTypeRef.current = val;
     setActiveShapeType(val);
   }, []);
@@ -157,6 +170,13 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         targetCtx.globalCompositeOperation = 'source-over'; targetCtx.lineCap = 'round';
         targetCtx.lineWidth = stroke.width; targetCtx.shadowBlur = stroke.width * 5;
         targetCtx.shadowColor = stroke.color; targetCtx.globalAlpha = 0.95;
+      } else if (stroke.type === 'pencil') {
+        targetCtx.globalCompositeOperation = 'source-over'; targetCtx.globalAlpha = 0.55;
+        targetCtx.lineCap = 'round'; targetCtx.lineWidth = stroke.width * 0.85; targetCtx.setLineDash([1, 1.2]);
+      } else if (stroke.type === 'watercolor') {
+        targetCtx.globalCompositeOperation = 'source-over'; targetCtx.globalAlpha = 0.16;
+        targetCtx.lineCap = 'round'; targetCtx.lineWidth = stroke.width * 5;
+        targetCtx.shadowBlur = stroke.width * 4; targetCtx.shadowColor = stroke.color;
       } else {
         targetCtx.globalCompositeOperation = 'source-over'; targetCtx.lineCap = 'round'; targetCtx.lineWidth = stroke.width;
       }
@@ -178,12 +198,20 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     shapes.forEach((shape) => {
       sctx.save(); sctx.strokeStyle = shape.color; sctx.fillStyle = shape.color; sctx.lineWidth = 2;
       sctx.translate(shape.x, shape.y); if (shape.rotation) sctx.rotate((shape.rotation * Math.PI) / 180);
+      const w = shape.width, h = shape.height;
       switch (shape.type) {
-        case 'circle': sctx.beginPath(); sctx.arc(0, 0, shape.width / 2, 0, Math.PI * 2); sctx.fill(); break;
-        case 'square': sctx.fillRect(-shape.width / 2, -shape.height / 2, shape.width, shape.height); break;
-        case 'triangle': sctx.beginPath(); sctx.moveTo(0, -shape.height / 2); sctx.lineTo(-shape.width / 2, shape.height / 2); sctx.lineTo(shape.width / 2, shape.height / 2); sctx.closePath(); sctx.fill(); break;
-        case 'line': sctx.beginPath(); sctx.moveTo(-shape.width / 2, 0); sctx.lineTo(shape.width / 2, 0); sctx.stroke(); break;
-        case 'arrow': sctx.beginPath(); sctx.moveTo(-shape.width / 2, 0); sctx.lineTo(shape.width / 2 - 10, 0); sctx.moveTo(shape.width / 2 - 10, 0); sctx.lineTo(shape.width / 2 - 15, -5); sctx.moveTo(shape.width / 2 - 10, 0); sctx.lineTo(shape.width / 2 - 15, 5); sctx.stroke(); break;
+        case 'circle':    sctx.beginPath(); sctx.arc(0, 0, w / 2, 0, Math.PI * 2); sctx.fill(); break;
+        case 'square':    sctx.fillRect(-w / 2, -h / 2, w, h); break;
+        case 'rectangle': sctx.fillRect(-w / 2, -h / 2, w, h); break;
+        case 'triangle':  sctx.beginPath(); sctx.moveTo(0, -h / 2); sctx.lineTo(-w / 2, h / 2); sctx.lineTo(w / 2, h / 2); sctx.closePath(); sctx.fill(); break;
+        case 'diamond':   sctx.beginPath(); sctx.moveTo(0, -h / 2); sctx.lineTo(w / 2, 0); sctx.lineTo(0, h / 2); sctx.lineTo(-w / 2, 0); sctx.closePath(); sctx.fill(); break;
+        case 'hexagon': { sctx.beginPath(); for (let i = 0; i < 6; i++) { const a = (i * Math.PI) / 3 - Math.PI / 6; i === 0 ? sctx.moveTo(Math.cos(a) * w / 2, Math.sin(a) * h / 2) : sctx.lineTo(Math.cos(a) * w / 2, Math.sin(a) * h / 2); } sctx.closePath(); sctx.fill(); break; }
+        case 'pentagon': { sctx.beginPath(); for (let i = 0; i < 5; i++) { const a = (i * 2 * Math.PI) / 5 - Math.PI / 2; i === 0 ? sctx.moveTo(Math.cos(a) * w / 2, Math.sin(a) * h / 2) : sctx.lineTo(Math.cos(a) * w / 2, Math.sin(a) * h / 2); } sctx.closePath(); sctx.fill(); break; }
+        case 'star': { sctx.beginPath(); for (let i = 0; i < 10; i++) { const a = (i * Math.PI) / 5 - Math.PI / 2; const r = i % 2 === 0 ? w / 2 : w / 4; i === 0 ? sctx.moveTo(Math.cos(a) * r, Math.sin(a) * r) : sctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); } sctx.closePath(); sctx.fill(); break; }
+        case 'heart': { const hw = w / 2, hh = h / 2; sctx.beginPath(); sctx.moveTo(0, hh * 0.9); sctx.bezierCurveTo(hw * 1.4, hh * 0.4, hw * 1.4, -hh * 0.4, hw, -hh * 0.2); sctx.bezierCurveTo(hw * 0.7, -hh * 0.9, 0, -hh * 0.8, 0, -hh * 0.3); sctx.bezierCurveTo(0, -hh * 0.8, -hw * 0.7, -hh * 0.9, -hw, -hh * 0.2); sctx.bezierCurveTo(-hw * 1.4, -hh * 0.4, -hw * 1.4, hh * 0.4, 0, hh * 0.9); sctx.closePath(); sctx.fill(); break; }
+        case 'crescent': { sctx.beginPath(); sctx.arc(0, 0, w / 2, 0, Math.PI * 2, false); sctx.arc(w * 0.22, -h * 0.08, w * 0.42, 0, Math.PI * 2, true); sctx.fill('evenodd'); break; }
+        case 'line':  sctx.beginPath(); sctx.moveTo(-w / 2, 0); sctx.lineTo(w / 2, 0); sctx.stroke(); break;
+        case 'arrow': { const aw = Math.min(15, w * 0.2); sctx.beginPath(); sctx.moveTo(-w / 2, 0); sctx.lineTo(w / 2 - aw, 0); sctx.moveTo(w / 2 - aw, 0); sctx.lineTo(w / 2 - aw - 6, -aw * 0.5); sctx.moveTo(w / 2 - aw, 0); sctx.lineTo(w / 2 - aw - 6, aw * 0.5); sctx.stroke(); break; }
       }
       sctx.restore();
     });
@@ -394,6 +422,10 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.65; sctx.lineCap = 'square'; sctx.lineWidth = stroke.width * 2;
           } else if (stroke.type === 'neon') {
             sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width; sctx.shadowBlur = stroke.width * 5; sctx.shadowColor = stroke.color; sctx.globalAlpha = 0.95;
+          } else if (stroke.type === 'pencil') {
+            sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.55; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width * 0.85; sctx.setLineDash([1, 1.2]);
+          } else if (stroke.type === 'watercolor') {
+            sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.16; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width * 5; sctx.shadowBlur = stroke.width * 4; sctx.shadowColor = stroke.color;
           } else {
             sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width;
           }
@@ -448,12 +480,13 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       const { x, y } = getCoords(e);
       setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
       setRedoStack([]);
+      const type = activeShapeTypeRef.current;
       const newShape: Shape = {
         id: Date.now().toString(),
-        type: activeShapeTypeRef.current,
+        type,
         x, y,
-        width: 50,
-        height: 50,
+        width:  type === 'rectangle' ? shapeSize * 1.7 : type === 'line' || type === 'arrow' ? shapeSize * 2 : shapeSize,
+        height: type === 'rectangle' ? shapeSize * 0.7 : shapeSize,
         color: color,
       };
       setShapes(prev => [...prev, newShape]);
@@ -647,6 +680,8 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       if (e.key === '7') setTool('spray');
       if (e.key === '8') setTool('marker');
       if (e.key === '9') setTool('neon');
+      if (e.key === '0') setTool('pencil');
+      if (e.key === '-') setTool('watercolor');
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
@@ -1076,7 +1111,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                       { id: 'eraser',       icon: Eraser,      label: lang === 'fr' ? 'Gomme'      : 'ممحاة',   hint: '6' },
                       { id: 'spray',        icon: Wind,        label: lang === 'fr' ? 'Aérosol'    : 'رذاذ',    hint: '7' },
                       { id: 'marker',       icon: Pen,         label: lang === 'fr' ? 'Marqueur'   : 'ماركر',   hint: '8' },
-                      { id: 'neon',         icon: Zap,         label: lang === 'fr' ? 'Néon'       : 'نيون',    hint: '9' },
+                      { id: 'neon',       icon: Zap,       label: lang === 'fr' ? 'Néon'       : 'نيون',        hint: '9' },
+                      { id: 'pencil',     icon: Pencil,    label: lang === 'fr' ? 'Crayon'     : 'رصاص',        hint: '0' },
+                      { id: 'watercolor', icon: Palette,   label: lang === 'fr' ? 'Aquarelle'  : 'ألوان مائية', hint: '-' },
                     ].map(t => (
                       <button
                         key={t.id}
@@ -1084,7 +1121,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                         className="relative flex flex-col items-center gap-2 p-3 rounded-2xl transition-all font-bold text-[9px] uppercase tracking-wider"
                         style={tool === t.id ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 4px 14px color-mix(in srgb, var(--brand-primary) 30%, transparent)' } : { background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', color: 'var(--brand-text-muted)' }}
                       >
-                        <span className="absolute top-1.5 right-1.5 text-[7px] font-black opacity-30">{t.hint}</span>
+                        {t.hint && <span className="absolute top-1.5 right-1.5 text-[7px] font-black opacity-30">{t.hint}</span>}
                         <t.icon size={20} />
                         <span>{t.label}</span>
                       </button>
@@ -1197,24 +1234,45 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                       </button>
                     ))}
                   </div>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+
+                  {/* Size slider */}
+                  <div className="flex items-center gap-3 px-1">
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em] flex-shrink-0" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>
+                      {lang === 'fr' ? 'Taille' : 'الحجم'}
+                    </p>
+                    <input type="range" min="20" max="200" value={shapeSize}
+                      onChange={e => setShapeSize(parseInt(e.target.value))}
+                      className="flex-1" style={{ accentColor: 'var(--brand-primary)' }} />
+                    <span className="text-xs font-mono w-12 text-right flex-shrink-0" style={{ color: 'var(--brand-text-muted)' }}>{shapeSize}px</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
                     {SHAPE_CATEGORIES[shapeCategory].shapes.map(shape => (
                       <motion.button
                         key={shape.id}
                         onClick={() => { setActiveShapeTypeWithRef(shape.type); setShowShapePicker(false); }}
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="aspect-square flex flex-col items-center justify-center p-3 rounded-2xl border transition-all hover:shadow-lg"
-                        style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', borderColor: 'transparent', color: 'var(--brand-primary)' }}
+                        whileHover={{ scale: 1.08, y: -2 }}
+                        whileTap={{ scale: 0.92 }}
+                        className="aspect-square flex flex-col items-center justify-center p-2 rounded-2xl border-2 transition-all hover:shadow-lg"
+                        style={activeShapeType === shape.type
+                          ? { background: 'var(--brand-primary)', borderColor: 'var(--brand-primary)', color: '#fff' }
+                          : { background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', borderColor: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)', color: 'var(--brand-primary)' }}
                       >
-                        <div className="w-8 h-8 flex items-center justify-center">
-                          {shape.type === 'circle' && <div className="w-6 h-6 rounded-full border-2 border-current" />}
-                          {shape.type === 'square' && <div className="w-6 h-6 border-2 border-current" />}
-                          {shape.type === 'triangle' && <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-current" />}
-                          {shape.type === 'line' && <div className="w-6 h-0.5 bg-current" />}
-                          {shape.type === 'arrow' && <div className="flex items-center"><div className="w-4 h-0.5 bg-current"></div><div className="w-0 h-0 border-l-[4px] border-l-current border-t-[2px] border-t-transparent border-b-[2px] border-b-transparent"></div></div>}
-                        </div>
-                        <span className="text-[8px] font-bold mt-1">{shape.label[lang as 'fr' | 'ar']}</span>
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="currentColor">
+                          {shape.type === 'circle'    && <circle cx="14" cy="14" r="11" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'square'    && <rect x="4" y="4" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'rectangle' && <rect x="2" y="7" width="24" height="14" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'triangle'  && <polygon points="14,3 25,25 3,25" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'diamond'   && <polygon points="14,2 26,14 14,26 2,14" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'hexagon'   && <polygon points="14,2 24,8 24,20 14,26 4,20 4,8" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'pentagon'  && <polygon points="14,2 25,10 21,24 7,24 3,10" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'star'      && <polygon points="14,2 17,11 26,11 19,17 22,26 14,20 6,26 9,17 2,11 11,11" fill="currentColor" />}
+                          {shape.type === 'heart'     && <path d="M14,24 C14,24 3,16 3,9 C3,5.5 5.5,3 9,3 C11,3 13,4.5 14,6 C15,4.5 17,3 19,3 C22.5,3 25,5.5 25,9 C25,16 14,24 14,24Z" fill="currentColor" />}
+                          {shape.type === 'crescent'  && <path d="M14,2 A12,12 0 1,1 14,26 A8,8 0 1,0 14,2Z" fill="currentColor" />}
+                          {shape.type === 'line'      && <line x1="3" y1="14" x2="25" y2="14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />}
+                          {shape.type === 'arrow'     && <><line x1="3" y1="14" x2="23" y2="14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /><polyline points="17,8 24,14 17,20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" /></>}
+                        </svg>
+                        <span className="text-[7px] font-bold mt-1 leading-tight text-center">{shape.label[lang as 'fr' | 'ar']}</span>
                       </motion.button>
                     ))}
                   </div>
