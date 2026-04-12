@@ -306,80 +306,169 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
         )}
       </AnimatePresence>
 
-      {/* Modal unlock */}
+      {/* ── Modal unlock — cinematic, fully responsive ── */}
       <AnimatePresence>
-        {showUnlockModal && currentUnlock && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-            style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}
-            onClick={() => setShowUnlockModal(false)}
-          >
+        {showUnlockModal && currentUnlock && (() => {
+          const rColor = getRarityColor(currentUnlock.rarity);
+          const IC = ICON_MAP[currentUnlock.icon] || Award;
+          const isLegendary = currentUnlock.rarity === 'legendary';
+          return (
             <motion.div
-              initial={{ scale: 0.5, y: 100, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.8, y: 50, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="glass-card p-8 md:p-12 max-w-sm w-full text-center relative overflow-hidden"
-              style={{ borderColor: getRarityColor(currentUnlock.rarity), borderWidth: '3px' }}
-              onClick={e => e.stopPropagation()}
+              key="unlock-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6"
+              style={{ backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px) saturate(160%)' }}
+              onClick={() => setShowUnlockModal(false)}
             >
-              <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-30 blur-3xl" style={{ backgroundColor: getRarityColor(currentUnlock.rarity) }} />
-              <div className="absolute -bottom-20 -left-20 w-40 h-40 rounded-full opacity-30 blur-3xl" style={{ backgroundColor: getRarityColor(currentUnlock.rarity) }} />
-
-              {newlyUnlocked && newlyUnlocked.length > 1 && (
-                <div className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold"
-                  style={{ backgroundColor: getRarityColor(currentUnlock.rarity), color: 'white' }}>
-                  {currentUnlockIndex + 1} / {newlyUnlocked.length}
-                </div>
+              {/* Animated background rays (legendary only) */}
+              {isLegendary && (
+                <motion.div
+                  className="absolute inset-0 pointer-events-none overflow-hidden"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute left-1/2 top-1/2 origin-bottom"
+                      style={{
+                        width: 3, height: '60vmax',
+                        background: `linear-gradient(to top, ${rColor}55, transparent)`,
+                        transform: `rotate(${i * 30}deg) translateX(-50%)`,
+                        transformOrigin: '50% 100%',
+                      }}
+                      animate={{ opacity: [0.3, 0.7, 0.3] }}
+                      transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.08 }}
+                    />
+                  ))}
+                </motion.div>
               )}
 
               <motion.div
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl"
-                style={{ backgroundColor: getRarityColor(currentUnlock.rarity), boxShadow: `0 20px 40px ${getRarityColor(currentUnlock.rarity)}40` }}
+                initial={{ scale: 0.4, y: 60, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.7, y: 40, opacity: 0 }}
+                transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+                className="relative w-full max-w-[92vw] sm:max-w-sm rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden text-center"
+                style={{ border: `3px solid ${rColor}`, boxShadow: `0 0 60px ${rColor}55, 0 24px 60px rgba(0,0,0,0.5)` }}
+                onClick={e => e.stopPropagation()}
               >
-                {(() => { const IC = ICON_MAP[currentUnlock.icon] || Award; return <IC size={40} color="white" strokeWidth={2} />; })()}
+                {/* Card background with gradient */}
+                <div
+                  className="absolute inset-0 -z-10"
+                  style={{ background: `radial-gradient(ellipse at 50% 0%, ${rColor}28 0%, var(--brand-surface) 65%)` }}
+                />
+
+                {/* Decorative blobs */}
+                <div className="absolute -top-16 -right-16 w-36 h-36 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: rColor, opacity: 0.25 }} />
+                <div className="absolute -bottom-16 -left-16 w-36 h-36 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: rColor, opacity: 0.25 }} />
+
+                {/* Counter (multiple unlocks) */}
+                {newlyUnlocked && newlyUnlocked.length > 1 && (
+                  <div className="absolute top-4 right-4 z-10 px-2.5 py-1 rounded-full text-[10px] font-black"
+                    style={{ backgroundColor: rColor, color: 'white' }}>
+                    {currentUnlockIndex + 1}/{newlyUnlocked.length}
+                  </div>
+                )}
+
+                <div className="px-5 pt-8 pb-6 sm:px-8 sm:pt-10 sm:pb-8 flex flex-col items-center gap-4">
+
+                  {/* Pulsing ring + icon */}
+                  <div className="relative flex items-center justify-center">
+                    {/* Outer pulse rings */}
+                    <motion.div
+                      className="absolute rounded-full"
+                      style={{ width: 100, height: 100, border: `2px solid ${rColor}` }}
+                      animate={{ scale: [1, 1.5, 1.5], opacity: [0.6, 0, 0] }}
+                      transition={{ duration: 1.8, repeat: Infinity, delay: 0.2 }}
+                    />
+                    <motion.div
+                      className="absolute rounded-full"
+                      style={{ width: 100, height: 100, border: `2px solid ${rColor}` }}
+                      animate={{ scale: [1, 1.8, 1.8], opacity: [0.4, 0, 0] }}
+                      transition={{ duration: 1.8, repeat: Infinity, delay: 0.5 }}
+                    />
+                    {/* Icon container */}
+                    <motion.div
+                      initial={{ scale: 0, rotate: -200 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ delay: 0.15, type: 'spring', stiffness: 220, damping: 16 }}
+                      className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-[1.5rem] flex items-center justify-center shadow-2xl z-10"
+                      style={{ backgroundColor: rColor, boxShadow: `0 16px 40px ${rColor}60` }}
+                    >
+                      <IC size={36} color="white" strokeWidth={1.8} className="sm:w-10 sm:h-10" />
+                      {/* Shine overlay */}
+                      <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden pointer-events-none">
+                        <div className="absolute -top-4 -left-4 w-16 h-16 rounded-full bg-white opacity-15 blur-md" />
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  {/* "Badge Débloqué" label */}
+                  <motion.p
+                    initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
+                    className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em]"
+                    style={{ color: rColor }}
+                  >
+                    {lang === 'fr' ? '✦ Badge débloqué ✦' : '✦ شارة جديدة ✦'}
+                  </motion.p>
+
+                  {/* Title */}
+                  <motion.h3
+                    initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+                    className="text-xl sm:text-2xl font-black leading-tight"
+                    style={{ color: 'var(--brand-primary)' }}
+                  >
+                    {lang === 'fr' ? currentUnlock.title : currentUnlock.titleAr}
+                  </motion.h3>
+
+                  {/* Description */}
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
+                    className="text-xs sm:text-sm leading-relaxed"
+                    style={{ color: 'var(--brand-text-muted)' }}
+                  >
+                    {lang === 'fr' ? currentUnlock.description : currentUnlock.descriptionAr}
+                  </motion.p>
+
+                  {/* Rarity pill */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5, type: 'spring' }}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest"
+                    style={{ backgroundColor: `${rColor}22`, border: `1px solid ${rColor}55`, color: rColor }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: rColor }} />
+                    {getRarityLabel(currentUnlock.rarity, lang)}
+                  </motion.div>
+
+                  {/* CTA button */}
+                  <motion.button
+                    initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.58 }}
+                    whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+                    onClick={handleNextUnlock}
+                    className="w-full py-3.5 rounded-2xl font-black text-sm sm:text-base text-white transition-all"
+                    style={{ background: `linear-gradient(135deg, ${rColor}, color-mix(in srgb, ${rColor} 70%, #000))`, boxShadow: `0 10px 28px ${rColor}55` }}
+                  >
+                    {newlyUnlocked && currentUnlockIndex < newlyUnlocked.length - 1
+                      ? (lang === 'fr' ? 'Suivant →' : 'التالي →')
+                      : (lang === 'fr' ? 'Excellent !' : 'ممتاز!')}
+                  </motion.button>
+
+                  {/* Tap-to-dismiss hint */}
+                  <motion.p
+                    initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} transition={{ delay: 1.2 }}
+                    className="text-[8px] uppercase tracking-widest"
+                    style={{ color: 'var(--brand-text-muted)' }}
+                  >
+                    {lang === 'fr' ? 'Tap en dehors pour fermer' : 'اضغط خارج للإغلاق'}
+                  </motion.p>
+                </div>
               </motion.div>
-
-              <motion.h3 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                className="text-xl sm:text-2xl font-bold mb-2" style={{ color: 'var(--brand-primary)' }}>
-                {lang === 'fr' ? 'Badge Débloqué !' : 'شارة جديدة!'}
-              </motion.h3>
-
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mb-4">
-                <h4 className="text-lg sm:text-xl font-bold" style={{ color: getRarityColor(currentUnlock.rarity) }}>
-                  {lang === 'fr' ? currentUnlock.title : currentUnlock.titleAr}
-                </h4>
-                <p className="text-sm mt-2" style={{ color: 'var(--brand-text-muted)' }}>
-                  {lang === 'fr' ? currentUnlock.description : currentUnlock.descriptionAr}
-                </p>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider mb-6"
-                style={{ backgroundColor: `color-mix(in srgb, ${getRarityColor(currentUnlock.rarity)} 20%, transparent)`, color: getRarityColor(currentUnlock.rarity) }}>
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getRarityColor(currentUnlock.rarity) }} />
-                {getRarityLabel(currentUnlock.rarity, lang)}
-              </motion.div>
-
-              <motion.button
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-                onClick={handleNextUnlock}
-                className="w-full py-3 rounded-2xl font-bold text-white transition-all hover:scale-105"
-                style={{ backgroundColor: getRarityColor(currentUnlock.rarity), boxShadow: `0 8px 24px ${getRarityColor(currentUnlock.rarity)}60` }}
-              >
-                {newlyUnlocked && currentUnlockIndex < newlyUnlocked.length - 1
-                  ? (lang === 'fr' ? 'Suivant →' : 'التالي →')
-                  : (lang === 'fr' ? 'Super ! 🎉' : 'رائع! 🎉')}
-              </motion.button>
             </motion.div>
-          </motion.div>
-        )}
+          );
+        })()}
       </AnimatePresence>
     </div>
   );

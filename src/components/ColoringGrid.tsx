@@ -358,23 +358,22 @@ export const ColoringGrid = ({
 
                   {/* ── Hex cells, clipped to heart ── */}
                   <g clipPath="url(#heart-clip)">
-                    {heartCells.slice(0, userData.surahs.length).map(({ cx, cy }, idx) => {
-                      const surah = userData.surahs[idx];
-                      if (!surah) return null;
-                      const isColored = !!surah.color;
-                      const nameLen = surah.arabicName.length;
+                    {heartCells.map(({ cx, cy }, idx) => {
+                      const surah = userData.surahs[idx]; // undefined for cells beyond 114
+                      const isColored = !!surah?.color;
+                      const nameLen = surah?.arabicName.length ?? 0;
                       const nameFontSize = nameLen > 7 ? 6.5 : nameLen > 5 ? 7.5 : 9;
 
                       return (
                         <g
-                          key={surah.id}
-                          onClick={() => updateSurahColor(surah.id)}
-                          style={{ cursor: 'pointer' }}
+                          key={idx}
+                          onClick={surah ? () => updateSurahColor(surah.id) : undefined}
+                          style={{ cursor: surah ? 'pointer' : 'default' }}
                         >
                           {/* Hex fill */}
                           <path
                             d={hexPath(cx, cy, HEX_R - 1.2)}
-                            fill={isColored ? surah.color! : '#fff0f4'}
+                            fill={isColored ? surah!.color! : '#fff0f4'}
                             stroke={isColored ? 'rgba(255,255,255,0.30)' : '#f0b8c4'}
                             strokeWidth="0.9"
                           />
@@ -387,30 +386,33 @@ export const ColoringGrid = ({
                               style={{ pointerEvents: 'none' }}
                             />
                           )}
-                          {/* Surah number — small, top of hex */}
-                          <text
-                            x={cx} y={cy - 9}
-                            textAnchor="middle"
-                            fontSize="5.5"
-                            fontFamily="monospace"
-                            fill={isColored ? 'rgba(255,255,255,0.60)' : '#c07080'}
-                            style={{ pointerEvents: 'none' }}
-                          >
-                            {surah.id}
-                          </text>
-                          {/* Arabic name — centred */}
-                          <text
-                            x={cx} y={cy + 5}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            fontSize={nameFontSize}
-                            fontFamily="'Noto Naskh Arabic', 'Traditional Arabic', serif"
-                            fontWeight="700"
-                            fill={isColored ? 'rgba(255,255,255,0.93)' : '#8B2635'}
-                            style={{ pointerEvents: 'none', direction: 'rtl' }}
-                          >
-                            {surah.arabicName}
-                          </text>
+                          {/* Only render text for the 114 surah cells */}
+                          {surah && (
+                            <>
+                              <text
+                                x={cx} y={cy - 9}
+                                textAnchor="middle"
+                                fontSize="5.5"
+                                fontFamily="monospace"
+                                fill={isColored ? 'rgba(255,255,255,0.60)' : '#c07080'}
+                                style={{ pointerEvents: 'none' }}
+                              >
+                                {surah.id}
+                              </text>
+                              <text
+                                x={cx} y={cy + 5}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                fontSize={nameFontSize}
+                                fontFamily="'Noto Naskh Arabic', 'Traditional Arabic', serif"
+                                fontWeight="700"
+                                fill={isColored ? 'rgba(255,255,255,0.93)' : '#8B2635'}
+                                style={{ pointerEvents: 'none', direction: 'rtl' }}
+                              >
+                                {surah.arabicName}
+                              </text>
+                            </>
+                          )}
                         </g>
                       );
                     })}

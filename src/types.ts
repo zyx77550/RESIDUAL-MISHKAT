@@ -13,7 +13,7 @@ export interface Stroke {
   points: { x: number; y: number; p?: number }[];
   color: string;
   width: number;
-  type: 'pen' | 'fountain-pen' | 'highlighter' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon' | 'pencil' | 'watercolor';
+  type: 'pen' | 'fountain-pen' | 'highlighter' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon' | 'pencil' | 'watercolor' | 'calligraphy' | 'dotted' | 'brush';
   timestamp: number;
 }
 
@@ -35,7 +35,7 @@ export interface DiftarPage {
   strokes: Stroke[];
   shapes?: Shape[];
   height?: number;
-  paperStyle?: 'blank' | 'lines' | 'grid' | 'dots' | 'arabesque';
+  paperStyle?: 'blank' | 'lines' | 'grid' | 'dots' | 'arabesque' | 'diamond' | 'hexagonal' | 'music';
   paperColor?: string;
   lastSaved: number;
 }

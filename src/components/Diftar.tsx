@@ -78,7 +78,7 @@ const COLOR_PALETTE = {
 export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const [activePageId, setActivePageId]     = useState<string | null>(null);
   const [editingPageId, setEditingPageId]   = useState<string | null>(null);
-  const [tool, setTool]                     = useState<'pen' | 'highlighter' | 'fountain-pen' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon' | 'pencil' | 'watercolor'>('pen');
+  const [tool, setTool]                     = useState<'pen' | 'highlighter' | 'fountain-pen' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon' | 'pencil' | 'watercolor' | 'calligraphy' | 'dotted' | 'brush'>('pen');
   const [shapeSize, setShapeSize]           = useState(60);
   const [showToolsMenu, setShowToolsMenu]           = useState(false);
   const [showCustomizationMenu, setShowCustomizationMenu] = useState(false);
@@ -95,7 +95,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [showPaperSettings, setShowPaperSettings]   = useState(false);
   const [isSaving, setIsSaving]             = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [paperStyle, setPaperStyle]         = useState<'lines'|'blank'|'grid'|'dots'|'arabesque'>('lines');
+  const [paperStyle, setPaperStyle]         = useState<'lines'|'blank'|'grid'|'dots'|'arabesque'|'diamond'|'hexagonal'|'music'>('lines');
   const [paperColor, setPaperColor]         = useState('#fdfcf8');
   const [pageHeight, setPageHeight]         = useState(5000);
   const [canvasScale, setCanvasScale]       = useState(1);
@@ -177,6 +177,18 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         targetCtx.globalCompositeOperation = 'source-over'; targetCtx.globalAlpha = 0.16;
         targetCtx.lineCap = 'round'; targetCtx.lineWidth = stroke.width * 5;
         targetCtx.shadowBlur = stroke.width * 4; targetCtx.shadowColor = stroke.color;
+      } else if (stroke.type === 'calligraphy') {
+        targetCtx.globalCompositeOperation = 'source-over'; targetCtx.globalAlpha = 0.88;
+        targetCtx.lineCap = 'butt'; targetCtx.lineWidth = stroke.width * 2.2;
+        targetCtx.setTransform(1, 0, 0.45, 1, 0, 0);
+      } else if (stroke.type === 'dotted') {
+        targetCtx.globalCompositeOperation = 'source-over'; targetCtx.globalAlpha = 0.9;
+        targetCtx.lineCap = 'round'; targetCtx.lineWidth = stroke.width;
+        targetCtx.setLineDash([stroke.width * 0.1, stroke.width * 2.5]);
+      } else if (stroke.type === 'brush') {
+        targetCtx.globalCompositeOperation = 'source-over'; targetCtx.globalAlpha = 0.72;
+        targetCtx.lineCap = 'round'; targetCtx.lineWidth = stroke.width * 3.5;
+        targetCtx.shadowBlur = stroke.width * 3; targetCtx.shadowColor = stroke.color;
       } else {
         targetCtx.globalCompositeOperation = 'source-over'; targetCtx.lineCap = 'round'; targetCtx.lineWidth = stroke.width;
       }
@@ -226,16 +238,22 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   ];
 
   const PAPER_COLORS = [
-    { label: lang === 'fr' ? 'Crème' : 'كريم',   value: '#fdfcf8' },
-    { label: lang === 'fr' ? 'Blanc' : 'أبيض',   value: '#ffffff' },
-    { label: lang === 'fr' ? 'Sépia' : 'بني',    value: '#f4ecd8' },
-    { label: lang === 'fr' ? 'Bleu nuit' : 'ليلي', value: '#0f172a' },
-    { label: lang === 'fr' ? 'Vert sage' : 'أخضر',value: '#f0f7f0' },
-    { label: lang === 'fr' ? 'Rose pâle' : 'وردي', value: '#fff0f3' },
+    { label: lang === 'fr' ? 'Crème'       : 'كريم',   value: '#fdfcf8' },
+    { label: lang === 'fr' ? 'Blanc'       : 'أبيض',   value: '#ffffff' },
+    { label: lang === 'fr' ? 'Sépia'       : 'بني',    value: '#f4ecd8' },
+    { label: lang === 'fr' ? 'Bleu nuit'   : 'ليلي',   value: '#0f172a' },
+    { label: lang === 'fr' ? 'Vert sage'   : 'أخضر',   value: '#f0f7f0' },
+    { label: lang === 'fr' ? 'Rose pâle'   : 'وردي',   value: '#fff0f3' },
+    { label: lang === 'fr' ? 'Lavande'     : 'خزامى',  value: '#f5e8ff' },
+    { label: lang === 'fr' ? 'Ciel'        : 'سماوي',  value: '#e8f4fb' },
+    { label: lang === 'fr' ? 'Beurre'      : 'زبدة',   value: '#fffbe6' },
+    { label: lang === 'fr' ? 'Menthe'      : 'نعناع',  value: '#e6f8f1' },
+    { label: lang === 'fr' ? 'Nuit indigo' : 'نيلي',   value: '#1a0a2e' },
+    { label: lang === 'fr' ? 'Café'        : 'بن',     value: '#2a1608' },
   ];
 
   const getBrandColorForPaper = (pc: string) => {
-    if (pc === '#0f172a') return '#D4AF37';
+    if (['#0f172a', '#1a0a2e', '#2a1608'].includes(pc)) return '#D4AF37';
     return '#8B2635';
   };
 
@@ -311,7 +329,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
 
   const drawPaperLines = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
     if (paperStyle === 'blank') return;
-    const isDark = paperColor === '#0f172a';
+    const isDark = ['#0f172a', '#1a0a2e', '#2a1608'].includes(paperColor);
     const lineColor = isDark ? 'rgba(255,255,255,0.08)' : '#8B263512';
     const marginColor = isDark ? 'rgba(255,255,255,0.15)' : '#8B263528';
 
@@ -343,6 +361,42 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         }
         ctx.stroke();
         ctx.restore();
+      }
+    }
+    if (paperStyle === 'diamond') {
+      // Diagonal grid (45°) — two sets of parallel lines
+      const step = 32;
+      for (let d = -h; d < w + h; d += step) {
+        ctx.moveTo(d, 0); ctx.lineTo(d + h, h);
+        ctx.moveTo(d, 0); ctx.lineTo(d - h, h);
+      }
+    }
+    if (paperStyle === 'hexagonal') {
+      // Honeycomb outlines
+      const r = 22, hexH = r * Math.sqrt(3);
+      for (let row = 0; row * hexH * 0.75 < h + r; row++) {
+        for (let col = 0; col * r * 1.5 < w + r * 2; col++) {
+          const cx2 = col * r * 1.5 + r + (row % 2 === 1 ? r * 0.75 : 0);
+          const cy2 = row * hexH * 0.75 + hexH / 2;
+          ctx.moveTo(cx2 + r, cy2);
+          for (let i = 1; i <= 6; i++) {
+            const a = (Math.PI / 3) * i;
+            ctx.lineTo(cx2 + r * Math.cos(a), cy2 + r * Math.sin(a));
+          }
+        }
+      }
+    }
+    if (paperStyle === 'music') {
+      // Music staff: groups of 5 lines, 8px apart, with 28px gap between groups
+      const staffGap = 8;
+      const groupGap = 40;
+      let y = 60;
+      while (y < h) {
+        for (let l = 0; l < 5; l++) {
+          ctx.moveTo(0, y + l * staffGap);
+          ctx.lineTo(w, y + l * staffGap);
+        }
+        y += 5 * staffGap + groupGap;
       }
     }
     ctx.stroke();
@@ -426,6 +480,12 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.55; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width * 0.85; sctx.setLineDash([1, 1.2]);
           } else if (stroke.type === 'watercolor') {
             sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.16; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width * 5; sctx.shadowBlur = stroke.width * 4; sctx.shadowColor = stroke.color;
+          } else if (stroke.type === 'calligraphy') {
+            sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.88; sctx.lineCap = 'butt'; sctx.lineWidth = stroke.width * 2.2; sctx.setTransform(1, 0, 0.45, 1, 0, 0);
+          } else if (stroke.type === 'dotted') {
+            sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.9; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width; sctx.setLineDash([stroke.width * 0.1, stroke.width * 2.5]);
+          } else if (stroke.type === 'brush') {
+            sctx.globalCompositeOperation = 'source-over'; sctx.globalAlpha = 0.72; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width * 3.5; sctx.shadowBlur = stroke.width * 3; sctx.shadowColor = stroke.color;
           } else {
             sctx.globalCompositeOperation = 'source-over'; sctx.lineCap = 'round'; sctx.lineWidth = stroke.width;
           }
@@ -1112,8 +1172,11 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                       { id: 'spray',        icon: Wind,        label: lang === 'fr' ? 'Aérosol'    : 'رذاذ',    hint: '7' },
                       { id: 'marker',       icon: Pen,         label: lang === 'fr' ? 'Marqueur'   : 'ماركر',   hint: '8' },
                       { id: 'neon',       icon: Zap,       label: lang === 'fr' ? 'Néon'       : 'نيون',        hint: '9' },
-                      { id: 'pencil',     icon: Pencil,    label: lang === 'fr' ? 'Crayon'     : 'رصاص',        hint: '0' },
-                      { id: 'watercolor', icon: Palette,   label: lang === 'fr' ? 'Aquarelle'  : 'ألوان مائية', hint: '-' },
+                      { id: 'pencil',      icon: Pencil,      label: lang === 'fr' ? 'Crayon'       : 'رصاص',          hint: '0' },
+                      { id: 'watercolor',  icon: Palette,     label: lang === 'fr' ? 'Aquarelle'    : 'ألوان مائية',   hint: '-' },
+                      { id: 'calligraphy', icon: Pen,         label: lang === 'fr' ? 'Calligraphie' : 'خط عربي',       hint: '' },
+                      { id: 'dotted',      icon: Edit2,       label: lang === 'fr' ? 'Pointillé'   : 'منقّط',          hint: '' },
+                      { id: 'brush',       icon: Brush,       label: lang === 'fr' ? 'Pinceau'      : 'فرشاة',         hint: '' },
                     ].map(t => (
                       <button
                         key={t.id}
@@ -1290,11 +1353,14 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                     <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Style de papier' : 'نوع الورق'}</p>
                     <div className="flex flex-wrap gap-2">
                       {[
-                        { id: 'blank',     label: lang === 'fr' ? 'Blanc'     : 'أبيض'  },
-                        { id: 'lines',     label: lang === 'fr' ? 'Lignes'    : 'سطور'  },
-                        { id: 'grid',      label: lang === 'fr' ? 'Grille'    : 'شبكة'  },
-                        { id: 'dots',      label: lang === 'fr' ? 'Points'    : 'نقاط'  },
-                        { id: 'arabesque', label: lang === 'fr' ? 'Arabesque' : 'عربسك' },
+                        { id: 'blank',     label: lang === 'fr' ? 'Blanc'     : 'أبيض'   },
+                        { id: 'lines',     label: lang === 'fr' ? 'Lignes'    : 'سطور'   },
+                        { id: 'grid',      label: lang === 'fr' ? 'Grille'    : 'شبكة'   },
+                        { id: 'dots',      label: lang === 'fr' ? 'Points'    : 'نقاط'   },
+                        { id: 'arabesque', label: lang === 'fr' ? 'Arabesque' : 'عربسك'  },
+                        { id: 'diamond',   label: lang === 'fr' ? 'Diamant'   : 'ماسة'   },
+                        { id: 'hexagonal', label: lang === 'fr' ? 'Nid d\'abeille' : 'خلية نحل' },
+                        { id: 'music',     label: lang === 'fr' ? 'Portée'    : 'موسيقى' },
                       ].map(s => (
                         <button
                           key={s.id}
