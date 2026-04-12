@@ -145,6 +145,23 @@ export function getBadgeProgress(userData: UserData, badgeId: string): number {
     case 'color_master':       return Math.min(100, (userData.surahs.filter(s => s.color).length / 60) * 100);
     case 'first_calendar':     return Math.min(100, (userData.calendar.length / 1) * 100);
     case 'week_calendar':      return Math.min(100, (userData.calendar.length / 7) * 100);
+    // New badges
+    case 'thirty_surahs':      return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 30) * 100);
+    case 'seventy_surahs':     return Math.min(100, (userData.surahs.filter(s => s.status === 'memorized').length / 70) * 100);
+    case 'surah_fatiha':       return userData.surahs.find(s => s.id === 1)?.status === 'memorized' ? 100 : 0;
+    case 'surah_yaseen':       return userData.surahs.find(s => s.id === 36)?.status === 'memorized' ? 100 : 0;
+    case 'surah_kahf':         return userData.surahs.find(s => s.id === 18)?.status === 'memorized' ? 100 : 0;
+    case 'surah_mulk':         return userData.surahs.find(s => s.id === 67)?.status === 'memorized' ? 100 : 0;
+    case 'surah_rahman':       return userData.surahs.find(s => s.id === 55)?.status === 'memorized' ? 100 : 0;
+    case 'streak_14':          return Math.min(100, ((userData.loginStreak ?? 0) / 14) * 100);
+    case 'streak_60':          return Math.min(100, ((userData.loginStreak ?? 0) / 60) * 100);
+    case 'tasbih_5000_total':  return Math.min(100, ((userData.tasbihCount ?? 0) / 5000) * 100);
+    case 'ten_notes':          return Math.min(100, (userData.diftarPages.length / 10) * 100);
+    case 'first_color':        return Math.min(100, (userData.surahs.filter(s => s.color).length / 1) * 100);
+    case 'full_colorist':      return Math.min(100, (userData.surahs.filter(s => s.color).length / 114) * 100);
+    case 'month_calendar':     return Math.min(100, (userData.calendar.length / 30) * 100);
+    case 'first_revision':     return Math.min(100, (userData.surahs.filter(s => s.status === 'review').length / 1) * 100);
+    case 'five_revision':      return Math.min(100, (userData.surahs.filter(s => s.status === 'review').length / 5) * 100);
     default:                   return 0;
   }
 }

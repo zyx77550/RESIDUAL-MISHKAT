@@ -27,14 +27,25 @@ const PALETTE_GROUPS = [
   },
 ];
 
-// Heart SVG path — fits in 800×700 viewBox
-const HEART_PATH = "M400,660 C140,520 25,340 25,200 C25,85 115,20 235,20 C315,20 375,60 400,105 C425,60 485,20 565,20 C685,20 775,85 775,200 C775,340 660,520 400,660Z";
-const H_COLS = 16;
-const H_ROWS = 14;
+// Classic deep-dip heart — 800×700 viewBox
+const HEART_PATH =
+  'M400,675 C250,590 35,490 35,280 C35,130 130,70 240,70 C310,70 365,115 400,165 C435,115 490,70 560,70 C670,70 765,130 765,280 C765,490 550,590 400,675Z';
+
 const H_W = 800;
 const H_H = 700;
-const CW = H_W / H_COLS; // 50px
-const CH = H_H / H_ROWS; // 50px
+// Pointy-top hexagons (vertex at top & bottom)
+const HEX_R = 30;
+const HEX_COL_SPACING = HEX_R * Math.sqrt(3);   // ≈ 51.96 — horizontal gap between centres in a row
+const HEX_ROW_SPACING = HEX_R * 1.5;             // = 45   — vertical gap between row centres
+
+/** SVG path for a pointy-top hexagon centred at (cx, cy) with circumradius r */
+const hexPath = (cx: number, cy: number, r: number): string => {
+  const pts = Array.from({ length: 6 }, (_, i) => {
+    const a = (Math.PI / 3) * i + Math.PI / 6; // 30°, 90°, 150°, 210°, 270°, 330°
+    return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`;
+  });
+  return `M${pts.join('L')}Z`;
+};
 
 export const ColoringGrid = ({
   userData, setUserData, lang
@@ -42,28 +53,47 @@ export const ColoringGrid = ({
   const [selectedColor, setSelectedColor] = useState('#8B2635');
   const [filterJuz, setFilterJuz] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'grid' | 'heart'>('grid');
-  // Ordered list of cell indices (row*H_COLS+col) that fall inside the heart
-  const [heartCells, setHeartCells] = useState<number[]>([]);
+  const [heartCells, setHeartCells] = useState<Array<{ cx: number; cy: number }>>([]);
 
-  // Compute which grid cells fall inside the heart shape (runs once)
+  // Compute which hex centres fall inside the heart (runs once)
   useEffect(() => {
     const canvas = document.createElement('canvas');
     canvas.width = H_W;
     canvas.height = H_H;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
     const path = new Path2D(HEART_PATH);
-    const inside: number[] = [];
-    for (let r = 0; r < H_ROWS; r++) {
-      for (let c = 0; c < H_COLS; c++) {
-        const cx = c * CW + CW / 2;
-        const cy = r * CH + CH / 2;
-        if (ctx.isPointInPath(path, cx, cy)) {
-          inside.push(r * H_COLS + c);
+    const cells: { cx: number; cy: number }[] = [];
+
+    const marginX = HEX_R * Math.sqrt(3) / 2; // ≈ 26
+    const marginY = HEX_R;                      // = 30
+    const numRows = Math.ceil((H_H - marginY) / HEX_ROW_SPACING) + 2;
+
+    for (let row = 0; row < numRows; row++) {
+      const y = marginY + row * HEX_ROW_SPACING;
+      if (y > H_H + HEX_R) break;
+      const xOffset = row % 2 === 1 ? HEX_COL_SPACING / 2 : 0;
+      const xStart = marginX + xOffset;
+      const numCols = Math.ceil((H_W - xStart) / HEX_COL_SPACING) + 2;
+      for (let col = 0; col < numCols; col++) {
+        const x = xStart + col * HEX_COL_SPACING;
+        if (x > H_W + HEX_R) break;
+        if (ctx.isPointInPath(path, x, y)) {
+          cells.push({ cx: x, cy: y });
         }
       }
     }
-    setHeartCells(inside);
+
+    // Sort top-to-bottom (row bands), then left-to-right within each band
+    cells.sort((a, b) => {
+      const ba = Math.round(a.cy / HEX_ROW_SPACING);
+      const bb = Math.round(b.cy / HEX_ROW_SPACING);
+      if (ba !== bb) return ba - bb;
+      return a.cx - b.cx;
+    });
+
+    setHeartCells(cells);
   }, []);
 
   const coloredCount = userData.surahs.filter(s => s.color).length;
@@ -286,81 +316,98 @@ export const ColoringGrid = ({
               <div className="card-accent-bar" />
               <p className="text-xs font-medium" style={{ color: 'var(--brand-text-muted)' }}>
                 {lang === 'fr'
-                  ? 'Colorez chaque sourate dans le cœur au rythme de votre mémorisation.'
-                  : 'لوّن كل سورة في القلب بتقدم حفظك للقرآن الكريم.'}
+                  ? 'Un grand cœur divisé en 114 sections — une par sourate. Colorez chacune au fil de votre mémorisation.'
+                  : 'قلب كبير مقسَّم إلى ١١٤ قطعة — كل قطعة تمثل سورة. لوّن كل قطعة بتقدم حفظك.'}
               </p>
             </div>
 
             <ColorPalette />
 
-            {/* Heart SVG coloring */}
-            <div className="glass-card p-3 overflow-auto">
+            {/* Heart SVG */}
+            <div className="glass-card p-2 sm:p-4 overflow-auto flex justify-center">
               {heartCells.length === 0 ? (
                 <div className="flex items-center justify-center py-20">
-                  <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin"
+                  <div className="w-8 h-8 rounded-full border-4 animate-spin"
                        style={{ borderColor: 'var(--brand-primary)', borderTopColor: 'transparent' }} />
                 </div>
               ) : (
                 <svg
                   viewBox={`0 0 ${H_W} ${H_H}`}
-                  className="w-full mx-auto"
-                  style={{ minWidth: '360px', maxWidth: '720px', display: 'block' }}
+                  style={{ width: '100%', maxWidth: 720, minWidth: 320, display: 'block' }}
+                  aria-label={lang === 'fr' ? 'Cœur du Coran' : 'قلب القرآن'}
                 >
                   <defs>
                     <clipPath id="heart-clip">
                       <path d={HEART_PATH} />
                     </clipPath>
-                    {/* Subtle inner shadow filter */}
-                    <filter id="inner-shadow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#00000015" />
+                    <radialGradient id="heart-bg-grad" cx="50%" cy="38%" r="65%">
+                      <stop offset="0%" stopColor="#fff8f9" />
+                      <stop offset="100%" stopColor="#ffe4ea" />
+                    </radialGradient>
+                    {/* Drop shadow around the whole heart */}
+                    <filter id="heart-glow" x="-8%" y="-8%" width="116%" height="116%">
+                      <feDropShadow dx="0" dy="6" stdDeviation="14" floodColor="#D4AF37" floodOpacity="0.22" />
                     </filter>
                   </defs>
 
-                  {/* Heart background fill */}
-                  <path d={HEART_PATH} fill="#fff5f7" />
+                  {/* Outer glow */}
+                  <path d={HEART_PATH} fill="#ffe4ea" filter="url(#heart-glow)" opacity="0.7" />
 
-                  {/* Surah cells — clipped to heart shape */}
+                  {/* Heart background gradient */}
+                  <path d={HEART_PATH} fill="url(#heart-bg-grad)" />
+
+                  {/* ── Hex cells, clipped to heart ── */}
                   <g clipPath="url(#heart-clip)">
-                    {heartCells.slice(0, userData.surahs.length).map((cellIdx, surahIdx) => {
-                      const surah = userData.surahs[surahIdx];
+                    {heartCells.slice(0, userData.surahs.length).map(({ cx, cy }, idx) => {
+                      const surah = userData.surahs[idx];
                       if (!surah) return null;
-                      const row = Math.floor(cellIdx / H_COLS);
-                      const col = cellIdx % H_COLS;
-                      const x = col * CW;
-                      const y = row * CH;
                       const isColored = !!surah.color;
+                      const nameLen = surah.arabicName.length;
+                      const nameFontSize = nameLen > 7 ? 6.5 : nameLen > 5 ? 7.5 : 9;
 
                       return (
-                        <g key={surah.id} onClick={() => updateSurahColor(surah.id)}
-                           style={{ cursor: 'pointer' }}>
-                          <rect
-                            x={x + 0.5} y={y + 0.5}
-                            width={CW - 1} height={CH - 1}
-                            rx={3}
-                            fill={isColored ? surah.color! : '#fff0f3'}
-                            stroke={isColored ? 'rgba(255,255,255,0.35)' : '#f5c8d0'}
-                            strokeWidth="0.8"
-                            filter={isColored ? undefined : 'url(#inner-shadow)'}
+                        <g
+                          key={surah.id}
+                          onClick={() => updateSurahColor(surah.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {/* Hex fill */}
+                          <path
+                            d={hexPath(cx, cy, HEX_R - 1.2)}
+                            fill={isColored ? surah.color! : '#fff0f4'}
+                            stroke={isColored ? 'rgba(255,255,255,0.30)' : '#f0b8c4'}
+                            strokeWidth="0.9"
                           />
-                          {/* Surah number (small, top-left) */}
+                          {/* Subtle inner shine for colored cells */}
+                          {isColored && (
+                            <path
+                              d={hexPath(cx, cy - 4, HEX_R * 0.55)}
+                              fill="rgba(255,255,255,0.10)"
+                              stroke="none"
+                              style={{ pointerEvents: 'none' }}
+                            />
+                          )}
+                          {/* Surah number — small, top of hex */}
                           <text
-                            x={x + 3} y={y + 9}
-                            fontSize="6"
-                            fill={isColored ? 'rgba(255,255,255,0.55)' : '#c4879a'}
+                            x={cx} y={cy - 9}
+                            textAnchor="middle"
+                            fontSize="5.5"
                             fontFamily="monospace"
+                            fill={isColored ? 'rgba(255,255,255,0.60)' : '#c07080'}
+                            style={{ pointerEvents: 'none' }}
                           >
                             {surah.id}
                           </text>
-                          {/* Arabic name — centered */}
+                          {/* Arabic name — centred */}
                           <text
-                            x={x + CW / 2} y={y + CH / 2 + 2}
+                            x={cx} y={cy + 5}
                             textAnchor="middle"
                             dominantBaseline="middle"
-                            fontSize={surah.arabicName.length > 6 ? '7.5' : '9'}
+                            fontSize={nameFontSize}
                             fontFamily="'Noto Naskh Arabic', 'Traditional Arabic', serif"
-                            fontWeight="600"
+                            fontWeight="700"
                             fill={isColored ? 'rgba(255,255,255,0.93)' : '#8B2635'}
-                            style={{ direction: 'rtl' }}
+                            style={{ pointerEvents: 'none', direction: 'rtl' }}
                           >
                             {surah.arabicName}
                           </text>
@@ -369,52 +416,79 @@ export const ColoringGrid = ({
                     })}
                   </g>
 
-                  {/* Heart border */}
-                  <path d={HEART_PATH} fill="none" stroke="#E8A4B0" strokeWidth="2.5" strokeLinejoin="round" />
+                  {/* ── Heart border — white mask + decorative lines ── */}
+                  {/* White stroke hides partially clipped hexes at the edge */}
+                  <path d={HEART_PATH} fill="none" stroke="white" strokeWidth="10" />
+                  {/* Outer gold line */}
+                  <path d={HEART_PATH} fill="none" stroke="#D4AF37" strokeWidth="2.8" strokeLinejoin="round" />
+                  {/* Inner bordeaux line */}
+                  <path d={HEART_PATH} fill="none" stroke="#8B2635" strokeWidth="1" strokeLinejoin="round" opacity="0.35" />
 
-                  {/* Decorative sparkles around the heart */}
+                  {/* ── Decorative sparkles (4-point stars) ── */}
                   {[
-                    { x: 58,  y: 80,  s: 1.1, op: 0.55 },
-                    { x: 730, y: 80,  s: 1.0, op: 0.5  },
-                    { x: 30,  y: 230, s: 0.85,op: 0.4  },
-                    { x: 755, y: 230, s: 0.85,op: 0.4  },
-                    { x: 160, y: 660, s: 0.9, op: 0.45 },
-                    { x: 630, y: 660, s: 0.9, op: 0.45 },
-                    { x: 395, y: 12,  s: 0.75,op: 0.35 },
+                    { x: 55,  y: 88,  s: 1.1, o: 0.55 },
+                    { x: 735, y: 88,  s: 1.0, o: 0.5  },
+                    { x: 28,  y: 240, s: 0.85,o: 0.4  },
+                    { x: 762, y: 240, s: 0.85,o: 0.4  },
+                    { x: 168, y: 662, s: 0.9, o: 0.45 },
+                    { x: 625, y: 662, s: 0.9, o: 0.45 },
+                    { x: 397, y: 16,  s: 0.75,o: 0.35 },
+                    { x: 197, y: 48,  s: 0.65,o: 0.3  },
+                    { x: 597, y: 48,  s: 0.65,o: 0.3  },
                   ].map((d, i) => (
-                    <g key={i} transform={`translate(${d.x},${d.y}) scale(${d.s})`} opacity={d.op}>
-                      <path d="M0,-10 L2,-2 L10,0 L2,2 L0,10 L-2,2 L-10,0 L-2,-2Z"
-                            fill="#E8A4B0" />
+                    <g key={`sp${i}`} transform={`translate(${d.x},${d.y}) scale(${d.s})`} opacity={d.o}>
+                      <path d="M0,-11 L2.5,-2.5 L11,0 L2.5,2.5 L0,11 L-2.5,2.5 L-11,0 L-2.5,-2.5Z"
+                            fill="#D4AF37" />
                     </g>
                   ))}
-                  {/* Small flower decorations */}
+
+                  {/* ── Decorative 5-petal flowers ── */}
                   {[
-                    { x: 48,  y: 130 },
-                    { x: 745, y: 130 },
-                    { x: 180, y: 668 },
-                    { x: 615, y: 668 },
+                    { x: 46,  y: 148 },
+                    { x: 748, y: 148 },
+                    { x: 190, y: 668 },
+                    { x: 605, y: 668 },
+                    { x: 397, y: 690 },
                   ].map((d, i) => (
-                    <g key={`fl${i}`} transform={`translate(${d.x},${d.y})`} opacity="0.5">
-                      {[0,72,144,216,288].map(a => (
-                        <ellipse key={a}
-                          cx={Math.cos(a * Math.PI / 180) * 7}
-                          cy={Math.sin(a * Math.PI / 180) * 7}
-                          rx="4.5" ry="3"
-                          transform={`rotate(${a})`}
+                    <g key={`fl${i}`} transform={`translate(${d.x},${d.y})`} opacity="0.55">
+                      {[0, 72, 144, 216, 288].map(angle => (
+                        <ellipse key={angle}
+                          cx={Math.cos((angle * Math.PI) / 180) * 7}
+                          cy={Math.sin((angle * Math.PI) / 180) * 7}
+                          rx="4.5" ry="2.8"
+                          transform={`rotate(${angle})`}
                           fill="#FFB3C1" />
                       ))}
-                      <circle cx="0" cy="0" r="3.5" fill="#FFD700" />
+                      <circle cx="0" cy="0" r="3.2" fill="#D4AF37" />
                     </g>
                   ))}
+
+                  {/* ── Title at the very bottom outside the heart ── */}
+                  <text
+                    x={H_W / 2} y={H_H - 4}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fontFamily="'Noto Naskh Arabic', serif"
+                    fill="#8B2635"
+                    opacity="0.5"
+                  >
+                    قلب القرآن الكريم
+                  </text>
                 </svg>
               )}
             </div>
 
+            {heartCells.length > 0 && heartCells.length < 114 && (
+              <p className="text-[9px] text-center text-amber-600 font-bold">
+                {heartCells.length} / 114 sections affichées
+              </p>
+            )}
+
             <p className="text-[9px] text-center uppercase tracking-widest font-bold"
                style={{ color: 'var(--brand-text-muted)', opacity: 0.6 }}>
               {lang === 'fr'
-                ? 'Chaque section = une sourate · Cliquez pour colorier · Les couleurs sont partagées avec la Grille'
-                : 'كل قطعة = سورة · انقر للتلوين · الألوان مشتركة مع الشبكة'}
+                ? 'Chaque hexagone = une sourate · Cliquez pour colorier · Partagé avec la Grille'
+                : 'كل سداسي = سورة · انقر للتلوين · مشترك مع الشبكة'}
             </p>
           </motion.div>
         )}

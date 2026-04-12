@@ -358,7 +358,199 @@ export const BADGE_DEFINITIONS: Omit<Badge, 'unlockedAt'>[] = [
     color: 'text-cyan-600',
     rarity: 'common',
     condition: (data) => data.calendar.length >= 7
-  }
+  },
+
+  // ── Jalons supplémentaires de mémorisation ───────────────────
+  {
+    id: 'thirty_surahs',
+    icon: 'BookOpen',
+    title: 'Trentaine',
+    titleAr: 'ثلاثون سورة',
+    description: 'Mémorisez 30 sourates',
+    descriptionAr: 'احفظ 30 سورة',
+    color: 'text-violet-500',
+    rarity: 'rare',
+    condition: (data) => data.surahs.filter(s => s.status === 'memorized').length >= 30
+  },
+  {
+    id: 'seventy_surahs',
+    icon: 'Trophy',
+    title: 'Soixante-Dix',
+    titleAr: 'سبعون سورة',
+    description: 'Mémorisez 70 sourates',
+    descriptionAr: 'احفظ 70 سورة',
+    color: 'text-blue-600',
+    rarity: 'epic',
+    condition: (data) => data.surahs.filter(s => s.status === 'memorized').length >= 70
+  },
+
+  // ── Sourates emblématiques ────────────────────────────────────
+  {
+    id: 'surah_fatiha',
+    icon: 'Star',
+    title: 'La Lumière',
+    titleAr: 'الفاتحة',
+    description: "Mémorisez Al-Fatihah, l'ouverture du Coran",
+    descriptionAr: 'احفظ سورة الفاتحة فاتحة الكتاب',
+    color: 'text-yellow-400',
+    rarity: 'common',
+    condition: (data) => data.surahs.find(s => s.id === 1)?.status === 'memorized'
+  },
+  {
+    id: 'surah_yaseen',
+    icon: 'Heart',
+    title: 'Cœur du Coran',
+    titleAr: 'قلب القرآن',
+    description: 'Mémorisez Ya-Sin, le cœur du Coran',
+    descriptionAr: 'احفظ سورة يس قلب القرآن',
+    color: 'text-rose-500',
+    rarity: 'epic',
+    condition: (data) => data.surahs.find(s => s.id === 36)?.status === 'memorized'
+  },
+  {
+    id: 'surah_kahf',
+    icon: 'Gem',
+    title: 'Lumière du Vendredi',
+    titleAr: 'نور الجمعة',
+    description: 'Mémorisez Al-Kahf, lumière du vendredi',
+    descriptionAr: 'احفظ سورة الكهف نور الجمعة',
+    color: 'text-emerald-500',
+    rarity: 'epic',
+    condition: (data) => data.surahs.find(s => s.id === 18)?.status === 'memorized'
+  },
+  {
+    id: 'surah_mulk',
+    icon: 'Moon',
+    title: 'La Protectrice',
+    titleAr: 'المنجية',
+    description: 'Mémorisez Al-Mulk, la sourate protectrice',
+    descriptionAr: 'احفظ سورة الملك المنجية',
+    color: 'text-indigo-400',
+    rarity: 'rare',
+    condition: (data) => data.surahs.find(s => s.id === 67)?.status === 'memorized'
+  },
+  {
+    id: 'surah_rahman',
+    icon: 'Sparkles',
+    title: 'La Miséricorde',
+    titleAr: 'الرحمن',
+    description: 'Mémorisez Ar-Rahman, la beauté du Coran',
+    descriptionAr: 'احفظ سورة الرحمن عروس القرآن',
+    color: 'text-pink-400',
+    rarity: 'rare',
+    condition: (data) => data.surahs.find(s => s.id === 55)?.status === 'memorized'
+  },
+
+  // ── Streaks supplémentaires ───────────────────────────────────
+  {
+    id: 'streak_14',
+    icon: 'Zap',
+    title: 'Deux Semaines',
+    titleAr: 'أسبوعان',
+    description: 'Connectez-vous 14 jours consécutifs',
+    descriptionAr: 'سجل دخولك 14 يوماً متتالياً',
+    color: 'text-amber-500',
+    rarity: 'rare',
+    condition: (data) => (data.loginStreak ?? 0) >= 14
+  },
+  {
+    id: 'streak_60',
+    icon: 'Flame',
+    title: 'Deux Mois de Foi',
+    titleAr: 'شهران من الإيمان',
+    description: 'Connectez-vous 60 jours consécutifs',
+    descriptionAr: 'سجل دخولك 60 يوماً متتالياً',
+    color: 'text-orange-600',
+    rarity: 'epic',
+    condition: (data) => (data.loginStreak ?? 0) >= 60
+  },
+
+  // ── Tasbih supplémentaires ────────────────────────────────────
+  {
+    id: 'tasbih_5000_total',
+    icon: 'Sparkles',
+    title: 'Cinq Mille Dhikr',
+    titleAr: 'خمسة آلاف ذكر',
+    description: 'Faites 5 000 tasbih au total',
+    descriptionAr: 'أكمل 5000 تسبيحة إجمالاً',
+    color: 'text-rose-600',
+    rarity: 'epic',
+    condition: (data) => (data.tasbihCount ?? 0) >= 5000
+  },
+
+  // ── Diftar supplémentaire ─────────────────────────────────────
+  {
+    id: 'ten_notes',
+    icon: 'NotebookPen',
+    title: 'Bibliothèque',
+    titleAr: 'المكتبة',
+    description: 'Créez 10 pages dans le Diftar',
+    descriptionAr: 'أنشئ 10 صفحات في الدفتر',
+    color: 'text-blue-600',
+    rarity: 'rare',
+    condition: (data) => data.diftarPages.length >= 10
+  },
+
+  // ── Coloriage supplémentaire ──────────────────────────────────
+  {
+    id: 'first_color',
+    icon: 'Palette',
+    title: 'Premier Coloriste',
+    titleAr: 'أول ملوِّن',
+    description: 'Coloriez votre première sourate',
+    descriptionAr: 'لوّن سورتك الأولى',
+    color: 'text-pink-300',
+    rarity: 'common',
+    condition: (data) => data.surahs.filter(s => s.color).length >= 1
+  },
+  {
+    id: 'full_colorist',
+    icon: 'Crown',
+    title: 'Cœur Complet',
+    titleAr: 'القلب الكامل',
+    description: 'Coloriez les 114 sourates du Coran',
+    descriptionAr: 'لوّن كل سور القرآن الكريم',
+    color: 'text-rose-600',
+    rarity: 'legendary',
+    condition: (data) => data.surahs.filter(s => s.color).length >= 114
+  },
+
+  // ── Calendrier supplémentaire ─────────────────────────────────
+  {
+    id: 'month_calendar',
+    icon: 'CalendarDays',
+    title: 'Un Mois Complet',
+    titleAr: 'شهر كامل',
+    description: 'Marquez 30 jours dans le calendrier',
+    descriptionAr: 'سجل 30 يوماً في التقويم',
+    color: 'text-cyan-700',
+    rarity: 'rare',
+    condition: (data) => data.calendar.length >= 30
+  },
+
+  // ── Révision ──────────────────────────────────────────────────
+  {
+    id: 'first_revision',
+    icon: 'RotateCcw',
+    title: 'Révision Active',
+    titleAr: 'مراجعة نشطة',
+    description: 'Mettez une sourate en révision',
+    descriptionAr: 'ضع سورة في خانة المراجعة',
+    color: 'text-teal-400',
+    rarity: 'common',
+    condition: (data) => data.surahs.filter(s => s.status === 'review').length >= 1
+  },
+  {
+    id: 'five_revision',
+    icon: 'TrendingUp',
+    title: 'Réviseur Assidu',
+    titleAr: 'المراجع المجتهد',
+    description: 'Maintenez 5 sourates en révision',
+    descriptionAr: 'راجع 5 سور في آن واحد',
+    color: 'text-teal-600',
+    rarity: 'rare',
+    condition: (data) => data.surahs.filter(s => s.status === 'review').length >= 5
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════

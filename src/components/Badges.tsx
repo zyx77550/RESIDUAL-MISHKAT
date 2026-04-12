@@ -14,7 +14,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Star, Award, Trophy, Medal, Crown, Gem, BookOpen, Bookmark,
   Target, Flag, ClipboardCheck, Flame, Zap, Moon, Sparkles,
   Heart, NotebookPen, BookText, Palette, Paintbrush, Calendar, CalendarDays,
-  RotateCcw
+  RotateCcw, TrendingUp
 };
 
 interface BadgesSectionProps {
