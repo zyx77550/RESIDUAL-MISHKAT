@@ -116,6 +116,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const offscreenRef = useRef<HTMLCanvasElement | null>(null);
   const staticBufferRef = useRef<HTMLCanvasElement | null>(null);
+  const rectCacheRef = useRef<DOMRect | null>(null);
 
   const activePage = userData.diftarPages.find(p => p.id === activePageId);
 
@@ -524,18 +525,16 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     return () => sc.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const getCoords = (e: React.MouseEvent | React.TouchEvent) => {
+  const getCoords = (e: React.PointerEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
+    const rect = rectCacheRef.current ?? canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const clientX = ('touches' in e) ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-    const clientY = ('touches' in e) ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
   };
 
-  const handleCanvasClick = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleCanvasClick = (e: React.PointerEvent) => {
     if (activeShapeTypeRef.current) {
       const { x, y } = getCoords(e);
       setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
@@ -554,8 +553,10 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     }
   };
 
-  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+  const startDrawing = (e: React.PointerEvent) => {
     if (activeShapeTypeRef.current) { handleCanvasClick(e); return; }
+    // Capture pointer so events continue even if finger/stylus leaves canvas
+    e.currentTarget.setPointerCapture(e.pointerId);
     const { x, y } = getCoords(e);
     if (tool === 'eraser') {
       const idx = shapes.findIndex((s: Shape) => Math.sqrt(Math.pow(s.x - x, 2) + Math.pow(s.y - y, 2)) < 30);
@@ -581,22 +582,32 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
 
   const drawFrameRef = useRef<number>(undefined);
 
-  const draw = (e: React.MouseEvent | React.TouchEvent) => {
+  const draw = (e: React.PointerEvent) => {
     if (!isDrawingRef.current || !activeStrokeRef.current) return;
-    const { x, y } = getCoords(e);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = rectCacheRef.current ?? canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
     if (activeStrokeRef.current.type === 'ruler') {
+      // Ruler only needs the current position (replaces preview point)
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
       const start = activeStrokeRef.current.points[0];
       const dx = Math.abs(x - start.x), dy = Math.abs(y - start.y);
       activeStrokeRef.current.points = dx > dy ? [start, { x, y: start.y }] : [start, { x: start.x, y }];
-      if (!drawFrameRef.current) {
-        drawFrameRef.current = requestAnimationFrame(() => {
-          redrawCanvas();
-          drawFrameRef.current = undefined;
+    } else {
+      // Use coalesced events to capture all sub-frame stylus/touch points
+      const coalescedEvents = (e.nativeEvent as PointerEvent).getCoalescedEvents?.() ?? [e.nativeEvent as PointerEvent];
+      for (const ce of coalescedEvents) {
+        activeStrokeRef.current.points.push({
+          x: (ce.clientX - rect.left) * scaleX,
+          y: (ce.clientY - rect.top) * scaleY,
         });
       }
-      return;
     }
-    activeStrokeRef.current.points.push({ x, y });
+
     if (!drawFrameRef.current) {
       drawFrameRef.current = requestAnimationFrame(() => {
         redrawCanvas();
@@ -692,11 +703,17 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   useEffect(() => {
     const updateScale = () => {
       const canvas = canvasRef.current;
-      if (canvas) { const rect = canvas.getBoundingClientRect(); setCanvasScale(rect.width / canvas.width); }
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        rectCacheRef.current = rect;
+        setCanvasScale(rect.width / canvas.width);
+      }
     };
     updateScale();
+    const ro = new ResizeObserver(updateScale);
+    if (canvasRef.current) ro.observe(canvasRef.current);
     window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
+    return () => { window.removeEventListener('resize', updateScale); ro.disconnect(); };
   }, [activePageId]);
 
   const cursorX = useMotionValue(0), cursorY = useMotionValue(0);
@@ -1490,13 +1507,10 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           ref={canvasRef}
           width={1000}
           height={pageHeight}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
+          onPointerDown={startDrawing}
+          onPointerMove={draw}
+          onPointerUp={stopDrawing}
+          onPointerCancel={stopDrawing}
           className="w-full touch-none"
         />
 
