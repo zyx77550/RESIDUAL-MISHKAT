@@ -184,6 +184,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [zoom, setZoom]                     = useState(1);
   const [showZoomIndicator, setShowZoomIndicator] = useState(false);
   const zoomTimerRef = useRef<number | undefined>(undefined);
+  // Multi-pointer tracking for pinch-to-zoom
+  const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchStartRef = useRef<{ dist: number; zoom: number } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const offscreenRef = useRef<HTMLCanvasElement | null>(null);
   const staticBufferRef = useRef<HTMLCanvasElement | null>(null);
@@ -786,6 +789,23 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   };
 
   const startDrawing = (e: React.PointerEvent) => {
+    // Track all active pointers for pinch detection
+    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    // 2-finger pinch: cancel any stroke in progress and enter pinch mode
+    if (activePointersRef.current.size === 2) {
+      isDrawingRef.current = false;
+      setIsDrawing(false);
+      activeStrokeRef.current = null;
+      selectionDragRef.current = null;
+      const pts = Array.from(activePointersRef.current.values());
+      pinchStartRef.current = {
+        dist: Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y),
+        zoom,
+      };
+      return;
+    }
+
     // Palm rejection: stylus mode blocks touch input from drawing
     if (stylusModeRef.current && e.pointerType === 'touch') return;
 
@@ -855,6 +875,21 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const drawFrameRef = useRef<number>(undefined);
 
   const draw = (e: React.PointerEvent) => {
+    // Update pointer position for pinch tracking
+    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    // Pinch-to-zoom: 2 fingers active
+    if (pinchStartRef.current && activePointersRef.current.size >= 2) {
+      const pts = Array.from(activePointersRef.current.values());
+      const newDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+      const ratio = newDist / pinchStartRef.current.dist;
+      setZoom(Math.max(0.25, Math.min(4, pinchStartRef.current.zoom * ratio)));
+      setShowZoomIndicator(true);
+      window.clearTimeout(zoomTimerRef.current);
+      zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500);
+      return;
+    }
+
     // Select tool: move the dragged shape
     if (tool === 'select') {
       const drag = selectionDragRef.current;
@@ -904,7 +939,10 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     }
   };
 
-  const stopDrawing = () => {
+  const stopDrawing = (e?: React.PointerEvent) => {
+    if (e) activePointersRef.current.delete(e.pointerId);
+    // Exit pinch mode when fewer than 2 fingers
+    if (activePointersRef.current.size < 2) pinchStartRef.current = null;
     if (tool === 'select') { selectionDragRef.current = null; return; }
     if (!isDrawingRef.current || !activeStrokeRef.current) { isDrawingRef.current = false; setIsDrawing(false); return; }
     isDrawingRef.current = false; setIsDrawing(false);
@@ -2012,6 +2050,49 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                   onPointerUp={() => { selectionDragRef.current = null; }}
                 >
                   <div style={{ width: 12, height: 12, background: 'var(--brand-primary)', borderRadius: '50%', border: '2px solid white', boxShadow: '0 1px 6px rgba(0,0,0,0.3)' }} />
+                </div>
+                {/* Floating action bar (touch-friendly: delete + duplicate, always visible) */}
+                <div
+                  className="absolute pointer-events-auto flex items-center gap-1 rounded-full px-2 py-1 shadow-xl"
+                  style={{
+                    left: cx,
+                    top: cy + hh + 14,
+                    transform: 'translateX(-50%)',
+                    background: 'var(--brand-surface)',
+                    border: '1px solid color-mix(in srgb, var(--brand-primary) 15%, transparent)',
+                  }}
+                >
+                  {/* Delete */}
+                  <button
+                    onPointerDown={(ev) => ev.stopPropagation()}
+                    onClick={() => {
+                      setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
+                      setRedoStack([]);
+                      setShapes(prev => prev.filter(s => s.id !== selShape.id));
+                      setSelectedShapeId(null);
+                    }}
+                    className="flex items-center justify-center rounded-full font-bold"
+                    style={{ width: 44, height: 44, color: '#ef4444' }}
+                    title={lang === 'fr' ? 'Supprimer' : 'حذف'}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                  {/* Duplicate */}
+                  <button
+                    onPointerDown={(ev) => ev.stopPropagation()}
+                    onClick={() => {
+                      const dup: Shape = { ...selShape, id: Date.now().toString(), x: selShape.x + 30, y: selShape.y + 30 };
+                      setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
+                      setRedoStack([]);
+                      setShapes(prev => [...prev, dup]);
+                      setSelectedShapeId(dup.id);
+                    }}
+                    className="flex items-center justify-center rounded-full font-bold"
+                    style={{ width: 44, height: 44, color: 'var(--brand-primary)' }}
+                    title={lang === 'fr' ? 'Dupliquer' : 'نسخ'}
+                  >
+                    ⧉
+                  </button>
                 </div>
               </div>
             );
