@@ -202,7 +202,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           size: stroke.type === 'brush' ? stroke.width * 4 : stroke.width * 2,
           thinning: 0,
           smoothing: 0.7,
-          streamline: 0.5,
+          streamline: 0.1,
           simulatePressure: false,
           last: true,
         });
