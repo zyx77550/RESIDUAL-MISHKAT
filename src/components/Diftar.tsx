@@ -791,6 +791,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   };
 
   const startDrawing = (e: React.PointerEvent) => {
+    // Palm rejection MUST be first — before any pointer tracking
+    if (stylusModeRef.current && e.pointerType === 'touch') return;
+
     // Track all active pointers for pinch detection
     activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -807,9 +810,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       };
       return;
     }
-
-    // Palm rejection: stylus mode blocks touch input from drawing
-    if (stylusModeRef.current && e.pointerType === 'touch') return;
 
     if (activeShapeTypeRef.current) { handleCanvasClick(e); return; }
     if (activeEmojiRef.current) {
@@ -877,6 +877,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const drawFrameRef = useRef<number>(undefined);
 
   const draw = (e: React.PointerEvent) => {
+    // Palm rejection MUST be first
+    if (stylusModeRef.current && e.pointerType === 'touch') return;
+
     // Update pointer position for pinch tracking
     activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -942,6 +945,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   };
 
   const stopDrawing = (e?: React.PointerEvent) => {
+    if (e && stylusModeRef.current && e.pointerType === 'touch') return;
     if (e) activePointersRef.current.delete(e.pointerId);
     // Exit pinch mode when fewer than 2 fingers
     if (activePointersRef.current.size < 2) pinchStartRef.current = null;
