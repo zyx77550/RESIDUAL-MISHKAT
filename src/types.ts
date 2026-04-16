@@ -21,6 +21,7 @@ export interface Shape {
   id: string;
   type: 'circle' | 'square' | 'triangle' | 'line' | 'arrow' | 'rectangle' | 'diamond' | 'hexagon' | 'pentagon' | 'star' | 'heart' | 'crescent'
       | 'ellipse' | 'cross' | 'octagon' | 'trapezoid' | 'cloud' | 'lightning' | 'sun' | 'speech_bubble' | 'double_arrow' | 'bracket'
+      | 'star6' | 'semicircle' | 'curved_arrow'
       | 'emoji';
   x: number;
   y: number;

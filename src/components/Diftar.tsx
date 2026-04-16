@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useScroll, useMotionValueEvent } from 'framer-motion';
-import { NotebookPen, Edit2, ChevronRight, ChevronLeft, Plus, Save, Check, Undo, Redo, Trash2, Eraser, Ruler, Download, X, Settings2, Pencil, Brush, Highlighter, Palette, Star, Wind, Zap, Pen, Smile } from 'lucide-react';
+import { NotebookPen, Edit2, ChevronRight, ChevronLeft, Plus, Save, Check, Undo, Redo, Trash2, Eraser, Ruler, Download, X, Settings2, Pencil, Brush, Highlighter, Palette, Star, Wind, Zap, Pen, Smile, MousePointer2, ZoomIn, ZoomOut } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { getStroke } from 'perfect-freehand';
 import { HexColorPicker } from 'react-colorful';
@@ -23,6 +23,9 @@ const PAPER_COLOR_NAMES: Record<string, string> = {
   '#FFF3E0': 'Pêche', '#FFE4B5': 'Miel', '#FFD5B8': 'Abricot', '#FFE5D0': 'Saumon',
   '#FDE8CC': 'Cannelle', '#F9E4D4': 'Terracotta', '#FFF0DB': 'Safran',
   '#FAE0C8': 'Aurore', '#FCEBD3': 'Ambre', '#FFF8F0': 'Vanille',
+  '#FF8C42': 'Orange', '#FFB347': 'Mandarine', '#FF6B6B': 'Corail',
+  '#B7C4A8': 'Eucalyptus', '#D4C5B0': 'Gris chaud', '#C5C0D8': 'Myrtille',
+  '#2C2C3A': 'Anthracite', '#3E2723': 'Moka',
 };
 
 const PAPER_COLORS = [
@@ -45,6 +48,14 @@ const PAPER_COLORS = [
   { value: '#FAE0C8', label: 'Aurore' },
   { value: '#FCEBD3', label: 'Ambre' },
   { value: '#FFF8F0', label: 'Vanille' },
+  { value: '#FF8C42', label: 'Orange' },
+  { value: '#FFB347', label: 'Mandarine' },
+  { value: '#FF6B6B', label: 'Corail' },
+  { value: '#B7C4A8', label: 'Eucalyptus' },
+  { value: '#D4C5B0', label: 'Gris chaud' },
+  { value: '#C5C0D8', label: 'Myrtille' },
+  { value: '#2C2C3A', label: 'Anthracite' },
+  { value: '#3E2723', label: 'Moka' },
 ];
 
 const EMOJI_LIST = [
@@ -59,23 +70,24 @@ const SHAPE_CATEGORIES = [
   {
     label: { fr: 'Géométriques', ar: 'هندسية' },
     shapes: [
-      { id: 'circle',    type: 'circle'    as const, label: { fr: 'Cercle',    ar: 'دائرة'  } },
-      { id: 'ellipse',   type: 'ellipse'   as const, label: { fr: 'Ellipse',   ar: 'بيضاوي' } },
-      { id: 'square',    type: 'square'    as const, label: { fr: 'Carré',     ar: 'مربع'   } },
-      { id: 'rectangle', type: 'rectangle' as const, label: { fr: 'Rectangle', ar: 'مستطيل' } },
-      { id: 'triangle',  type: 'triangle'  as const, label: { fr: 'Triangle',  ar: 'مثلث'   } },
-      { id: 'diamond',   type: 'diamond'   as const, label: { fr: 'Losange',   ar: 'معين'   } },
-      { id: 'hexagon',   type: 'hexagon'   as const, label: { fr: 'Hexagone',  ar: 'سداسي'  } },
-      { id: 'pentagon',  type: 'pentagon'  as const, label: { fr: 'Pentagone', ar: 'خماسي'  } },
-      { id: 'octagon',   type: 'octagon'   as const, label: { fr: 'Octogone',  ar: 'ثماني'  } },
-      { id: 'cross',     type: 'cross'     as const, label: { fr: 'Croix',     ar: 'صليب'   } },
-      { id: 'trapezoid', type: 'trapezoid' as const, label: { fr: 'Trapèze',   ar: 'شبه منحرف' } },
+      { id: 'circle',     type: 'circle'     as const, label: { fr: 'Cercle',      ar: 'دائرة'       } },
+      { id: 'ellipse',    type: 'ellipse'    as const, label: { fr: 'Ellipse',     ar: 'بيضاوي'      } },
+      { id: 'semicircle', type: 'semicircle' as const, label: { fr: 'Demi-cercle', ar: 'نصف دائرة'   } },
+      { id: 'square',     type: 'square'     as const, label: { fr: 'Carré',       ar: 'مربع'        } },
+      { id: 'rectangle',  type: 'rectangle'  as const, label: { fr: 'Rectangle',   ar: 'مستطيل'      } },
+      { id: 'triangle',   type: 'triangle'   as const, label: { fr: 'Triangle',    ar: 'مثلث'        } },
+      { id: 'diamond',    type: 'diamond'    as const, label: { fr: 'Losange',     ar: 'معين'        } },
+      { id: 'hexagon',    type: 'hexagon'    as const, label: { fr: 'Hexagone',    ar: 'سداسي'       } },
+      { id: 'pentagon',   type: 'pentagon'   as const, label: { fr: 'Pentagone',   ar: 'خماسي'       } },
+      { id: 'octagon',    type: 'octagon'    as const, label: { fr: 'Octogone',    ar: 'ثماني'       } },
+      { id: 'trapezoid',  type: 'trapezoid'  as const, label: { fr: 'Trapèze',     ar: 'شبه منحرف'   } },
     ],
   },
   {
     label: { fr: 'Décoratifs', ar: 'زخرفية' },
     shapes: [
-      { id: 'star',          type: 'star'          as const, label: { fr: 'Étoile',       ar: 'نجمة'    } },
+      { id: 'star',          type: 'star'          as const, label: { fr: 'Étoile 5',     ar: 'نجمة 5'  } },
+      { id: 'star6',         type: 'star6'         as const, label: { fr: 'Étoile 6',     ar: 'نجمة 6'  } },
       { id: 'heart',         type: 'heart'         as const, label: { fr: 'Cœur',         ar: 'قلب'     } },
       { id: 'crescent',      type: 'crescent'      as const, label: { fr: 'Croissant',    ar: 'هلال'    } },
       { id: 'cloud',         type: 'cloud'         as const, label: { fr: 'Nuage',        ar: 'سحابة'   } },
@@ -87,10 +99,11 @@ const SHAPE_CATEGORIES = [
   {
     label: { fr: 'Lignes', ar: 'خطوط' },
     shapes: [
-      { id: 'line',         type: 'line'         as const, label: { fr: 'Ligne',        ar: 'خط'    } },
-      { id: 'arrow',        type: 'arrow'        as const, label: { fr: 'Flèche',       ar: 'سهم'   } },
-      { id: 'double_arrow', type: 'double_arrow' as const, label: { fr: 'Double flèche', ar: 'سهم مزدوج' } },
-      { id: 'bracket',      type: 'bracket'      as const, label: { fr: 'Accolade',     ar: 'قوس'   } },
+      { id: 'line',         type: 'line'         as const, label: { fr: 'Ligne',           ar: 'خط'         } },
+      { id: 'arrow',        type: 'arrow'        as const, label: { fr: 'Flèche',          ar: 'سهم'        } },
+      { id: 'curved_arrow', type: 'curved_arrow' as const, label: { fr: 'Flèche courbée', ar: 'سهم منحني'  } },
+      { id: 'double_arrow', type: 'double_arrow' as const, label: { fr: 'Double flèche',  ar: 'سهم مزدوج'  } },
+      { id: 'bracket',      type: 'bracket'      as const, label: { fr: 'Accolade',        ar: 'قوس'        } },
     ],
   },
 ];
@@ -110,8 +123,8 @@ const COLOR_PALETTE = {
     '#FF006E', '#FB5607', '#FFBE0B', '#06D6A0', '#118AB2', '#8338EC',
   ],
   sombres: [
-    '#0f172a', '#1e293b', '#2d1b69', '#14213d', '#1b4332', '#3d0000',
-    '#4a1942', '#7c3f00', '#1a3c1a', '#002855', '#4b0082', '#660000',
+    '#2C2C3A', '#3E2723', '#1D3557', '#1b4332', '#3d2c00', '#4a1942',
+    '#2d3561', '#3d1515', '#1a3c1a', '#002855', '#362f5e', '#4a3728',
   ],
   speciaux: [
     'gradient:gold-red', 'gradient:blue-cyan', 'gradient:purple-pink',
@@ -123,7 +136,7 @@ const COLOR_PALETTE = {
 export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const [activePageId, setActivePageId]     = useState<string | null>(null);
   const [editingPageId, setEditingPageId]   = useState<string | null>(null);
-  const [tool, setTool]                     = useState<'pen' | 'highlighter' | 'fountain-pen' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon' | 'pencil' | 'watercolor' | 'calligraphy' | 'dotted' | 'brush'>('pen');
+  const [tool, setTool]                     = useState<'select' | 'pen' | 'highlighter' | 'fountain-pen' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon' | 'pencil' | 'watercolor' | 'calligraphy' | 'dotted' | 'brush'>('pen');
   const [shapeSize, setShapeSize]           = useState(60);
   const [showToolsMenu, setShowToolsMenu]           = useState(false);
   const [showCustomizationMenu, setShowCustomizationMenu] = useState(false);
@@ -162,10 +175,28 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [isDrawing, setIsDrawing]           = useState(false);
   const [toastMessage, setToastMessage]     = useState<string | null>(null);
+  // Selection tool state
+  const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
+  // Stylus / palm-rejection
+  const [stylusMode, setStylusMode]         = useState(false);
+  const stylusModeRef = useRef(false);
+  // Zoom
+  const [zoom, setZoom]                     = useState(1);
+  const [showZoomIndicator, setShowZoomIndicator] = useState(false);
+  const zoomTimerRef = useRef<number | undefined>(undefined);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const offscreenRef = useRef<HTMLCanvasElement | null>(null);
   const staticBufferRef = useRef<HTMLCanvasElement | null>(null);
   const rectCacheRef = useRef<DOMRect | null>(null);
+  // Selection drag ref: tracks move/resize/rotate drags
+  const selectionDragRef = useRef<{
+    startX: number; startY: number;
+    shapeStartX: number; shapeStartY: number;
+    shapeStartW: number; shapeStartH: number;
+    shapeId: string;
+    handle: 'move' | 'nw' | 'ne' | 'sw' | 'se' | 'rotate';
+    shapeStartRotation: number;
+  } | null>(null);
 
   const activePage = userData.diftarPages.find(p => p.id === activePageId);
 
@@ -299,7 +330,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         case 'hexagon': { sctx.beginPath(); for (let i = 0; i < 6; i++) { const a = (i * Math.PI) / 3 - Math.PI / 6; i === 0 ? sctx.moveTo(Math.cos(a) * w / 2, Math.sin(a) * h / 2) : sctx.lineTo(Math.cos(a) * w / 2, Math.sin(a) * h / 2); } sctx.closePath(); sctx.fill(); break; }
         case 'pentagon': { sctx.beginPath(); for (let i = 0; i < 5; i++) { const a = (i * 2 * Math.PI) / 5 - Math.PI / 2; i === 0 ? sctx.moveTo(Math.cos(a) * w / 2, Math.sin(a) * h / 2) : sctx.lineTo(Math.cos(a) * w / 2, Math.sin(a) * h / 2); } sctx.closePath(); sctx.fill(); break; }
         case 'star': { sctx.beginPath(); for (let i = 0; i < 10; i++) { const a = (i * Math.PI) / 5 - Math.PI / 2; const r = i % 2 === 0 ? w / 2 : w / 4; i === 0 ? sctx.moveTo(Math.cos(a) * r, Math.sin(a) * r) : sctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); } sctx.closePath(); sctx.fill(); break; }
-        case 'heart': { const hw = w / 2, hh = h / 2; sctx.beginPath(); sctx.moveTo(0, hh * 0.9); sctx.bezierCurveTo(hw * 1.4, hh * 0.4, hw * 1.4, -hh * 0.4, hw, -hh * 0.2); sctx.bezierCurveTo(hw * 0.7, -hh * 0.9, 0, -hh * 0.8, 0, -hh * 0.3); sctx.bezierCurveTo(0, -hh * 0.8, -hw * 0.7, -hh * 0.9, -hw, -hh * 0.2); sctx.bezierCurveTo(-hw * 1.4, -hh * 0.4, -hw * 1.4, hh * 0.4, 0, hh * 0.9); sctx.closePath(); sctx.fill(); break; }
+        case 'heart': { sctx.beginPath(); sctx.moveTo(0, -h/4); sctx.bezierCurveTo(w/2, -h/2, w/2, h/4, 0, h/2); sctx.bezierCurveTo(-w/2, h/4, -w/2, -h/2, 0, -h/4); sctx.closePath(); sctx.fill(); break; }
         case 'crescent': { sctx.beginPath(); sctx.arc(0, 0, w / 2, 0, Math.PI * 2, false); sctx.arc(w * 0.22, -h * 0.08, w * 0.42, 0, Math.PI * 2, true); sctx.fill('evenodd'); break; }
         case 'line':  sctx.beginPath(); sctx.moveTo(-w / 2, 0); sctx.lineTo(w / 2, 0); sctx.stroke(); break;
         case 'arrow': { const aw = Math.min(15, w * 0.2); sctx.beginPath(); sctx.moveTo(-w / 2, 0); sctx.lineTo(w / 2 - aw, 0); sctx.moveTo(w / 2 - aw, 0); sctx.lineTo(w / 2 - aw - 6, -aw * 0.5); sctx.moveTo(w / 2 - aw, 0); sctx.lineTo(w / 2 - aw - 6, aw * 0.5); sctx.stroke(); break; }
@@ -329,6 +360,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         }
         case 'double_arrow': { const aw=Math.min(12,w*0.18); sctx.beginPath(); sctx.moveTo(-w/2+aw,0); sctx.lineTo(w/2-aw,0); [w/2-aw,-(w/2-aw)].forEach(x => { sctx.moveTo(x,0); sctx.lineTo(x+(x>0?-aw:aw),-aw*0.5); sctx.moveTo(x,0); sctx.lineTo(x+(x>0?-aw:aw),aw*0.5); }); sctx.stroke(); break; }
         case 'bracket': { sctx.beginPath(); sctx.moveTo(w*0.2,-h/2); sctx.lineTo(0,-h/2); sctx.lineTo(0,h/2); sctx.lineTo(w*0.2,h/2); sctx.stroke(); break; }
+        case 'star6': { sctx.beginPath(); for (let i=0;i<12;i++){const a=(i*Math.PI)/6-Math.PI/2;const r=i%2===0?w/2:w/4;i===0?sctx.moveTo(Math.cos(a)*r,Math.sin(a)*r):sctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);} sctx.closePath(); sctx.fill(); break; }
+        case 'semicircle': { sctx.beginPath(); sctx.arc(0,0,w/2,Math.PI,0); sctx.closePath(); sctx.fill(); break; }
+        case 'curved_arrow': { const aw2=Math.min(14,w*0.18); sctx.beginPath(); sctx.moveTo(-w/2,h/4); sctx.quadraticCurveTo(0,-h/2,w/2,h/4); sctx.stroke(); sctx.beginPath(); sctx.moveTo(w/2,h/4); sctx.lineTo(w/2-aw2,h/4-aw2*0.8); sctx.moveTo(w/2,h/4); sctx.lineTo(w/2-aw2*0.6,h/4+aw2*0.9); sctx.stroke(); break; }
         case 'emoji': {
           if (shape.emoji) {
             sctx.globalAlpha = 1;
@@ -684,6 +718,34 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
 
   useEffect(() => { updateStaticBuffer(); redrawCanvas(); }, [currentStrokes, shapes, paperColor, paperStyle, pageHeight]);
 
+  // Sync stylusMode boolean → ref (readable inside pointer handlers)
+  useEffect(() => { stylusModeRef.current = stylusMode; }, [stylusMode]);
+
+  // Deselect shape when switching away from select tool
+  useEffect(() => { if (tool !== 'select') setSelectedShapeId(null); }, [tool]);
+
+  // Clean up stale selection when shapes array changes (undo/redo)
+  useEffect(() => {
+    if (selectedShapeId && !shapes.find(s => s.id === selectedShapeId)) setSelectedShapeId(null);
+  }, [shapes, selectedShapeId]);
+
+  // Ctrl+Wheel zoom on the canvas scroll container
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const handleWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+      setZoom(prev => Math.max(0.25, Math.min(4, prev * factor)));
+      setShowZoomIndicator(true);
+      window.clearTimeout(zoomTimerRef.current);
+      zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500);
+    };
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
+
   useEffect(() => {
     const sc = scrollContainerRef.current;
     if (!sc) return;
@@ -724,6 +786,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   };
 
   const startDrawing = (e: React.PointerEvent) => {
+    // Palm rejection: stylus mode blocks touch input from drawing
+    if (stylusModeRef.current && e.pointerType === 'touch') return;
+
     if (activeShapeTypeRef.current) { handleCanvasClick(e); return; }
     if (activeEmojiRef.current) {
       const { x, y } = getCoords(e);
@@ -735,6 +800,33 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       }]);
       return;
     }
+
+    // Select tool: hit-test shapes and prepare drag
+    if (tool === 'select') {
+      const { x, y } = getCoords(e);
+      const hit = [...shapes].reverse().find(s =>
+        Math.abs(s.x - x) < s.width / 2 + 10 &&
+        Math.abs(s.y - y) < s.height / 2 + 10
+      );
+      if (hit) {
+        setSelectedShapeId(hit.id);
+        setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
+        setRedoStack([]);
+        selectionDragRef.current = {
+          startX: e.clientX, startY: e.clientY,
+          shapeStartX: hit.x, shapeStartY: hit.y,
+          shapeStartW: hit.width, shapeStartH: hit.height,
+          shapeId: hit.id, handle: 'move',
+          shapeStartRotation: hit.rotation || 0,
+        };
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } else {
+        setSelectedShapeId(null);
+        selectionDragRef.current = null;
+      }
+      return;
+    }
+
     // Capture pointer so events continue even if finger/stylus leaves canvas
     e.currentTarget.setPointerCapture(e.pointerId);
     const { x, y } = getCoords(e);
@@ -753,7 +845,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       points: [{ x, y }],
       color: tool === 'eraser' ? 'rgba(0,0,0,1)' : color,
       width: tool === 'highlighter' ? width * 5 : width,
-      type: tool,
+      type: tool as Stroke['type'],
       timestamp: Date.now(),
     };
     setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
@@ -763,6 +855,22 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const drawFrameRef = useRef<number>(undefined);
 
   const draw = (e: React.PointerEvent) => {
+    // Select tool: move the dragged shape
+    if (tool === 'select') {
+      const drag = selectionDragRef.current;
+      if (!drag || drag.handle !== 'move') return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = rectCacheRef.current ?? canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const dx = (e.clientX - drag.startX) * scaleX;
+      const dy = (e.clientY - drag.startY) * scaleY;
+      setShapes(prev => prev.map(s =>
+        s.id === drag.shapeId ? { ...s, x: drag.shapeStartX + dx, y: drag.shapeStartY + dy } : s
+      ));
+      return;
+    }
     if (!isDrawingRef.current || !activeStrokeRef.current) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -797,6 +905,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   };
 
   const stopDrawing = () => {
+    if (tool === 'select') { selectionDragRef.current = null; return; }
     if (!isDrawingRef.current || !activeStrokeRef.current) { isDrawingRef.current = false; setIsDrawing(false); return; }
     isDrawingRef.current = false; setIsDrawing(false);
     const finishedStroke = activeStrokeRef.current;
@@ -931,8 +1040,19 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if (activePageId) savePage(); return; }
-      if (e.key === 'Escape') { closeAllPanels(); return; }
+      if (e.key === 'Escape') { closeAllPanels(); setSelectedShapeId(null); return; }
       if (!activePageId || e.ctrlKey || e.metaKey) return;
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedShapeId) {
+          e.preventDefault();
+          setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
+          setRedoStack([]);
+          setShapes(prev => prev.filter(s => s.id !== selectedShapeId));
+          setSelectedShapeId(null);
+          return;
+        }
+      }
+      if (e.key === 's' || e.key === 'S') { setTool('select'); return; }
       if (e.key === '1') setTool('pen');
       if (e.key === '2') setTool('fountain-pen');
       if (e.key === '3') setTool('highlighter');
@@ -1329,8 +1449,32 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             ))}
           </div>
 
-          {/* Right: undo/redo + save */}
+          {/* Right: select + stylus + zoom + undo/redo + save */}
           <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Select tool */}
+            <button
+              onClick={() => { closeAllPanels(); setTool(tool === 'select' ? 'pen' : 'select'); }}
+              title={lang === 'fr' ? 'Sélection (S)' : 'تحديد (S)'}
+              className="p-2.5 rounded-full transition-all"
+              style={tool === 'select' ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 2px 10px color-mix(in srgb, var(--brand-primary) 30%, transparent)' } : { color: 'var(--brand-primary)' }}
+            >
+              <MousePointer2 size={16} />
+            </button>
+            {/* Stylus / palm-rejection toggle */}
+            <button
+              onClick={() => setStylusMode(v => !v)}
+              title={lang === 'fr' ? (stylusMode ? 'Mode Stylet actif' : 'Activer le mode Stylet') : (stylusMode ? 'وضع القلم' : 'تفعيل القلم')}
+              className="p-2.5 rounded-full transition-all text-xs font-bold hidden sm:flex items-center justify-center"
+              style={stylusMode ? { background: 'var(--brand-secondary)', color: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,0.15)', minWidth: 36 } : { color: 'var(--brand-primary)', minWidth: 36 }}
+            >
+              {stylusMode ? '🖊' : '👆'}
+            </button>
+            {/* Zoom controls */}
+            <div className="hidden sm:flex items-center rounded-full p-1 gap-0.5" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
+              <button onClick={() => { setZoom(z => Math.max(0.25, z / 1.2)); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} className="p-1.5 rounded-full" style={{ color: 'var(--brand-primary)' }} title="Zoom -"><ZoomOut size={14} /></button>
+              <button onClick={() => { setZoom(1); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} className="text-[9px] font-black px-1 min-w-[32px]" style={{ color: 'var(--brand-primary)' }}>{Math.round(zoom * 100)}%</button>
+              <button onClick={() => { setZoom(z => Math.min(4, z * 1.2)); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} className="p-1.5 rounded-full" style={{ color: 'var(--brand-primary)' }} title="Zoom +"><ZoomIn size={14} /></button>
+            </div>
             <div className="flex rounded-full p-1" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
               <button onClick={undo} className="p-2.5 rounded-full transition-all hover:scale-110" style={{ color: 'var(--brand-primary)' }} title="Annuler"><Undo size={16} /></button>
               <button onClick={redo} className="p-2.5 rounded-full transition-all hover:scale-110" style={{ color: 'var(--brand-primary)' }} title="Refaire"><Redo size={16} /></button>
@@ -1530,18 +1674,30 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                           : { background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', borderColor: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)', color: 'var(--brand-primary)' }}
                       >
                         <svg width="28" height="28" viewBox="0 0 28 28" fill="currentColor">
-                          {shape.type === 'circle'    && <circle cx="14" cy="14" r="11" fill="none" stroke="currentColor" strokeWidth="2" />}
-                          {shape.type === 'square'    && <rect x="4" y="4" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" />}
-                          {shape.type === 'rectangle' && <rect x="2" y="7" width="24" height="14" fill="none" stroke="currentColor" strokeWidth="2" />}
-                          {shape.type === 'triangle'  && <polygon points="14,3 25,25 3,25" fill="none" stroke="currentColor" strokeWidth="2" />}
-                          {shape.type === 'diamond'   && <polygon points="14,2 26,14 14,26 2,14" fill="none" stroke="currentColor" strokeWidth="2" />}
-                          {shape.type === 'hexagon'   && <polygon points="14,2 24,8 24,20 14,26 4,20 4,8" fill="none" stroke="currentColor" strokeWidth="2" />}
-                          {shape.type === 'pentagon'  && <polygon points="14,2 25,10 21,24 7,24 3,10" fill="none" stroke="currentColor" strokeWidth="2" />}
-                          {shape.type === 'star'      && <polygon points="14,2 17,11 26,11 19,17 22,26 14,20 6,26 9,17 2,11 11,11" fill="currentColor" />}
-                          {shape.type === 'heart'     && <path d="M14,24 C14,24 3,16 3,9 C3,5.5 5.5,3 9,3 C11,3 13,4.5 14,6 C15,4.5 17,3 19,3 C22.5,3 25,5.5 25,9 C25,16 14,24 14,24Z" fill="currentColor" />}
-                          {shape.type === 'crescent'  && <path d="M14,2 A12,12 0 1,1 14,26 A8,8 0 1,0 14,2Z" fill="currentColor" />}
-                          {shape.type === 'line'      && <line x1="3" y1="14" x2="25" y2="14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />}
-                          {shape.type === 'arrow'     && <><line x1="3" y1="14" x2="23" y2="14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /><polyline points="17,8 24,14 17,20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" /></>}
+                          {shape.type === 'circle'       && <circle cx="14" cy="14" r="11" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'ellipse'      && <ellipse cx="14" cy="14" rx="12" ry="7" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'semicircle'   && <path d="M3,14 A11,11 0 0,1 25,14 Z" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'square'       && <rect x="4" y="4" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'rectangle'    && <rect x="2" y="7" width="24" height="14" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'triangle'     && <polygon points="14,3 25,25 3,25" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'diamond'      && <polygon points="14,2 26,14 14,26 2,14" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'hexagon'      && <polygon points="14,2 24,8 24,20 14,26 4,20 4,8" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'pentagon'     && <polygon points="14,2 25,10 21,24 7,24 3,10" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'octagon'      && <polygon points="10,2 18,2 26,10 26,18 18,26 10,26 2,18 2,10" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'trapezoid'    && <polygon points="8,4 20,4 26,24 2,24" fill="none" stroke="currentColor" strokeWidth="2" />}
+                          {shape.type === 'star'         && <polygon points="14,2 17,11 26,11 19,17 22,26 14,20 6,26 9,17 2,11 11,11" fill="currentColor" />}
+                          {shape.type === 'star6'        && <polygon points="14,2 16,10 24,8 18,14 24,20 16,18 14,26 12,18 4,20 10,14 4,8 12,10" fill="currentColor" />}
+                          {shape.type === 'heart'        && <path d="M14,21 C9,17 4,13 4,8 C4,5 6,3 9,3 C11,3 13,5 14,7 C15,5 17,3 19,3 C22,3 24,5 24,8 C24,13 19,17 14,21Z" fill="currentColor" />}
+                          {shape.type === 'crescent'     && <path d="M14,2 A12,12 0 1,1 14,26 A8,8 0 1,0 14,2Z" fill="currentColor" />}
+                          {shape.type === 'cloud'        && <><circle cx="10" cy="16" r="5" fill="currentColor"/><circle cx="16" cy="12" r="6" fill="currentColor"/><circle cx="21" cy="16" r="4" fill="currentColor"/></>}
+                          {shape.type === 'lightning'    && <polygon points="16,2 10,14 15,14 12,26 20,12 14,12" fill="currentColor" />}
+                          {shape.type === 'sun'          && <><circle cx="14" cy="14" r="5" fill="currentColor"/><line x1="14" y1="2" x2="14" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="14" y1="22" x2="14" y2="26" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="2" y1="14" x2="6" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="22" y1="14" x2="26" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></>}
+                          {shape.type === 'speech_bubble'&& <><rect x="2" y="2" width="24" height="18" rx="4" fill="currentColor" /><polygon points="8,20 6,26 14,20" fill="currentColor"/></>}
+                          {shape.type === 'line'         && <line x1="3" y1="14" x2="25" y2="14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />}
+                          {shape.type === 'arrow'        && <><line x1="3" y1="14" x2="23" y2="14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /><polyline points="17,8 24,14 17,20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" /></>}
+                          {shape.type === 'curved_arrow' && <><path d="M4,20 Q14,2 24,20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/><polyline points="19,14 24,20 18,22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></>}
+                          {shape.type === 'double_arrow' && <><line x1="3" y1="14" x2="25" y2="14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/><polyline points="9,8 3,14 9,20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><polyline points="19,8 25,14 19,20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></>}
+                          {shape.type === 'bracket'      && <><polyline points="10,3 4,3 4,25 10,25" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><polyline points="18,3 24,3 24,25 18,25" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></>}
                         </svg>
                         <span className="text-[7px] font-bold mt-1 leading-tight text-center">{shape.label[lang as 'fr' | 'ar']}</span>
                       </motion.button>
@@ -1715,6 +1871,20 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             {toastMessage}
           </motion.div>
         )}
+        {/* Zoom indicator */}
+        <AnimatePresence>
+          {showZoomIndicator && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[70] rounded-2xl px-4 py-2 shadow-xl text-sm font-bold pointer-events-none"
+              style={{ background: 'rgba(15,23,42,0.88)', color: '#fff' }}
+            >
+              {Math.round(zoom * 100)}%
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Binding */}
         <div
@@ -1728,16 +1898,125 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           </div>
         </div>
 
-        <canvas
-          ref={canvasRef}
-          width={1000}
-          height={pageHeight}
-          onPointerDown={startDrawing}
-          onPointerMove={draw}
-          onPointerUp={stopDrawing}
-          onPointerCancel={stopDrawing}
-          className="w-full touch-none"
-        />
+        {/* Canvas + selection overlay wrapper — zoom applied here */}
+        <div className="relative w-full" style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}>
+          <canvas
+            ref={canvasRef}
+            width={1000}
+            height={pageHeight}
+            onPointerDown={startDrawing}
+            onPointerMove={draw}
+            onPointerUp={stopDrawing}
+            onPointerCancel={stopDrawing}
+            className="w-full touch-none block"
+            style={{ cursor: tool === 'select' ? 'default' : 'none' }}
+          />
+          {/* Selection handles overlay — visible only in select mode */}
+          {tool === 'select' && (() => {
+            const selShape = selectedShapeId ? shapes.find(s => s.id === selectedShapeId) : null;
+            if (!selShape) return null;
+            const sc = canvasScale;
+            const cx = selShape.x * sc;
+            const cy = selShape.y * sc;
+            const hw = (selShape.width / 2) * sc;
+            const hh = (selShape.height / 2) * sc;
+            const H = 44; // 44px touch target (Apple HIG)
+            const cornerHandles = [
+              { id: 'nw' as const, left: cx - hw, top: cy - hh, cursor: 'nw-resize' },
+              { id: 'ne' as const, left: cx + hw, top: cy - hh, cursor: 'ne-resize' },
+              { id: 'sw' as const, left: cx - hw, top: cy + hh, cursor: 'sw-resize' },
+              { id: 'se' as const, left: cx + hw, top: cy + hh, cursor: 'se-resize' },
+            ];
+            return (
+              <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 5 }}>
+                {/* Dashed selection border */}
+                <div style={{
+                  position: 'absolute',
+                  left: cx - hw - 3, top: cy - hh - 3,
+                  width: hw * 2 + 6, height: hh * 2 + 6,
+                  border: '1.5px dashed var(--brand-primary)',
+                  borderRadius: 4, opacity: 0.85,
+                }} />
+                {/* Corner resize handles */}
+                {cornerHandles.map(h => (
+                  <div
+                    key={h.id}
+                    className="absolute pointer-events-auto flex items-center justify-center"
+                    style={{ left: h.left - H/2, top: h.top - H/2, width: H, height: H, cursor: h.cursor }}
+                    onPointerDown={(ev) => {
+                      ev.stopPropagation();
+                      ev.currentTarget.setPointerCapture(ev.pointerId);
+                      setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
+                      setRedoStack([]);
+                      selectionDragRef.current = {
+                        startX: ev.clientX, startY: ev.clientY,
+                        shapeStartX: selShape.x, shapeStartY: selShape.y,
+                        shapeStartW: selShape.width, shapeStartH: selShape.height,
+                        shapeId: selShape.id, handle: h.id,
+                        shapeStartRotation: selShape.rotation || 0,
+                      };
+                    }}
+                    onPointerMove={(ev) => {
+                      const drag = selectionDragRef.current;
+                      if (!drag || drag.handle === 'move' || drag.handle === 'rotate') return;
+                      const canvas = canvasRef.current;
+                      if (!canvas) return;
+                      const rect = canvas.getBoundingClientRect();
+                      const sx = canvas.width / rect.width;
+                      const sy = canvas.height / rect.height;
+                      const dx = (ev.clientX - drag.startX) * sx;
+                      const dy = (ev.clientY - drag.startY) * sy;
+                      const nw = drag.handle.includes('e') ? Math.max(20, drag.shapeStartW + dx * 2)
+                               : drag.handle.includes('w') ? Math.max(20, drag.shapeStartW - dx * 2)
+                               : drag.shapeStartW;
+                      const nh = drag.handle.includes('s') ? Math.max(20, drag.shapeStartH + dy * 2)
+                               : drag.handle.includes('n') ? Math.max(20, drag.shapeStartH - dy * 2)
+                               : drag.shapeStartH;
+                      setShapes(prev => prev.map(s => s.id === drag.shapeId ? { ...s, width: nw, height: nh } : s));
+                    }}
+                    onPointerUp={() => { selectionDragRef.current = null; }}
+                  >
+                    <div style={{ width: 10, height: 10, background: 'white', border: '2px solid var(--brand-primary)', borderRadius: 2, boxShadow: '0 1px 6px rgba(0,0,0,0.25)' }} />
+                  </div>
+                ))}
+                {/* Rotation handle line */}
+                <div style={{ position: 'absolute', left: cx - 1, top: cy - hh - 22, width: 1.5, height: 22, background: 'var(--brand-primary)', opacity: 0.5 }} />
+                {/* Rotation handle button */}
+                <div
+                  className="absolute pointer-events-auto flex items-center justify-center"
+                  style={{ left: cx - H/2, top: cy - hh - H - 22, width: H, height: H, cursor: 'grab' }}
+                  onPointerDown={(ev) => {
+                    ev.stopPropagation();
+                    ev.currentTarget.setPointerCapture(ev.pointerId);
+                    setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
+                    setRedoStack([]);
+                    selectionDragRef.current = {
+                      startX: ev.clientX, startY: ev.clientY,
+                      shapeStartX: selShape.x, shapeStartY: selShape.y,
+                      shapeStartW: selShape.width, shapeStartH: selShape.height,
+                      shapeId: selShape.id, handle: 'rotate',
+                      shapeStartRotation: selShape.rotation || 0,
+                    };
+                  }}
+                  onPointerMove={(ev) => {
+                    const drag = selectionDragRef.current;
+                    if (!drag || drag.handle !== 'rotate') return;
+                    const canvas = canvasRef.current;
+                    if (!canvas) return;
+                    const rect = canvas.getBoundingClientRect();
+                    const shapeCX = rect.left + selShape.x / (canvas.width / rect.width);
+                    const shapeCY = rect.top + selShape.y / (canvas.height / rect.height);
+                    const angle = Math.atan2(ev.clientY - shapeCY, ev.clientX - shapeCX) * (180 / Math.PI) + 90;
+                    setShapes(prev => prev.map(s => s.id === drag.shapeId ? { ...s, rotation: Math.round(angle) } : s));
+                  }}
+                  onPointerUp={() => { selectionDragRef.current = null; }}
+                >
+                  <div style={{ width: 12, height: 12, background: 'var(--brand-primary)', borderRadius: '50%', border: '2px solid white', boxShadow: '0 1px 6px rgba(0,0,0,0.3)' }} />
+                </div>
+              </div>
+            );
+          })()}
+        </div>
 
         <div className="flex justify-center py-10" style={{ background: paperColor }}>
           <button onClick={() => setPageHeight(prev => prev + 2000)} className="flex items-center gap-2 px-5 py-2.5 rounded-full font-bold uppercase tracking-wider text-xs border transition-all hover:scale-105" style={{ color: 'var(--brand-primary)', borderColor: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)', background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
@@ -1746,10 +2025,10 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           </button>
         </div>
 
-        {/* Custom cursor */}
+        {/* Custom cursor — hidden in select mode */}
         <motion.div
           className="fixed pointer-events-none z-[60] -translate-x-1/2 -translate-y-1/2 hidden group-hover:flex items-center justify-center"
-          style={{ left: cursorXSpring, top: cursorYSpring }}
+          style={{ left: cursorXSpring, top: cursorYSpring, display: tool === 'select' ? 'none' : '' }}
         >
           <motion.div
             layout initial={false}
