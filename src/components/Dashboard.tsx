@@ -1,12 +1,48 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Calendar as CalendarIcon, BookOpen, Target, Award,
-  CheckCircle2, Circle, Flame, Sparkles, TrendingUp, ChevronRight
+  CheckCircle2, Circle, Flame, Sparkles, TrendingUp, ChevronRight, Clock, MapPin
 } from 'lucide-react';
 import { UserData } from '../types';
 import { cn } from '../lib/utils';
 import { getNextBadgeToUnlock, getBadgeProgress } from '../lib/badgeEngine';
+
+interface PrayerTime { name: string; nameAr: string; time: string; }
+
+async function fetchPrayerTimes(city: string): Promise<PrayerTime[]> {
+  try {
+    const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=&method=2`);
+    const data = await res.json();
+    if (data.code !== 200) return [];
+    const t = data.data.timings;
+    return [
+      { name: 'Fajr',    nameAr: 'الفجر',   time: t.Fajr    },
+      { name: 'Dhuhr',   nameAr: 'الظهر',   time: t.Dhuhr   },
+      { name: 'Asr',     nameAr: 'العصر',   time: t.Asr     },
+      { name: 'Maghrib', nameAr: 'المغرب',  time: t.Maghrib },
+      { name: 'Isha',    nameAr: 'العشاء',  time: t.Isha    },
+    ];
+  } catch { return []; }
+}
+
+async function fetchVerseOfDay(): Promise<{ ar: string; fr: string; ref: string } | null> {
+  try {
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+    const verseNum = (dayOfYear % 6236) + 1;
+    const [arRes, frRes] = await Promise.all([
+      fetch(`https://api.alquran.cloud/v1/ayah/${verseNum}/ar.alafasy`),
+      fetch(`https://api.alquran.cloud/v1/ayah/${verseNum}/fr.hamidullah`),
+    ]);
+    const [arData, frData] = await Promise.all([arRes.json(), frRes.json()]);
+    if (arData.code !== 200) return null;
+    return {
+      ar: arData.data.text,
+      fr: frData.data.text,
+      ref: `${arData.data.surah.englishName} ${arData.data.numberInSurah}:${arData.data.surah.number}`,
+    };
+  } catch { return null; }
+}
 
 const QUOTES = [
   { ar: 'وَنُنَزِّلُ مِنَ الْقُرْآنِ مَا هُوَ شِفَاءٌ وَرَحْمَةٌ', fr: 'Nous faisons descendre du Coran ce qui est une guérison et une miséricorde.' },
@@ -25,6 +61,36 @@ export const Dashboard = ({ userData, lang }: { userData: UserData; lang: string
   const progress = (memorizedCount / 114) * 100;
   const username = userData.settings?.username || 'Hafiz';
   const streak = userData.loginStreak || 1;
+  const city = userData.settings?.city;
+
+  const [apiVerse, setApiVerse] = useState<{ ar: string; fr: string; ref: string } | null>(null);
+  const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([]);
+  const [nowTime, setNowTime] = useState(new Date());
+
+  useEffect(() => {
+    fetchVerseOfDay().then(v => { if (v) setApiVerse(v); });
+  }, []);
+
+  useEffect(() => {
+    if (!city) return;
+    fetchPrayerTimes(city).then(setPrayerTimes);
+  }, [city]);
+
+  useEffect(() => {
+    const t = setInterval(() => setNowTime(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  const nextPrayer = useMemo(() => {
+    if (!prayerTimes.length) return null;
+    const now = nowTime.getHours() * 60 + nowTime.getMinutes();
+    for (const p of prayerTimes) {
+      const [h, m] = p.time.split(':').map(Number);
+      const mins = h * 60 + m;
+      if (mins > now) return { ...p, minsLeft: mins - now };
+    }
+    return { ...prayerTimes[0], minsLeft: 24 * 60 - now + parseInt(prayerTimes[0].time.split(':')[0]) * 60 + parseInt(prayerTimes[0].time.split(':')[1]) };
+  }, [prayerTimes, nowTime]);
 
   const todayQuote = useMemo(() => {
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
@@ -217,33 +283,112 @@ export const Dashboard = ({ userData, lang }: { userData: UserData; lang: string
           <Sparkles size={160} />
         </div>
         <div className="relative z-10 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                 style={{ background: 'color-mix(in srgb, var(--brand-secondary) 14%, transparent)' }}>
-              <Sparkles size={15} style={{ color: 'var(--brand-secondary)' }} />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                   style={{ background: 'color-mix(in srgb, var(--brand-secondary) 14%, transparent)' }}>
+                <Sparkles size={15} style={{ color: 'var(--brand-secondary)' }} />
+              </div>
+              <p className="text-[10px] uppercase tracking-widest font-black"
+                 style={{ color: 'var(--brand-secondary)', opacity: 0.75 }}>
+                {lang === 'fr' ? 'Verset du jour' : 'آية اليوم'}
+              </p>
             </div>
-            <p className="text-[10px] uppercase tracking-widest font-black"
-               style={{ color: 'var(--brand-secondary)', opacity: 0.75 }}>
-              {lang === 'fr' ? 'Verset du jour' : 'آية اليوم'}
-            </p>
+            {apiVerse && (
+              <span className="text-[9px] px-2 py-0.5 rounded-full font-bold"
+                    style={{ background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', color: 'var(--brand-text-muted)' }}>
+                {apiVerse.ref}
+              </span>
+            )}
           </div>
           <p className="text-xl text-right font-arabic leading-loose" style={{ color: 'var(--brand-primary)' }}>
-            {todayQuote.ar}
+            {apiVerse ? apiVerse.ar : todayQuote.ar}
           </p>
           {lang === 'fr' && (
             <p className="text-sm leading-relaxed italic" style={{ color: 'var(--brand-text-muted)' }}>
-              « {todayQuote.fr} »
+              « {apiVerse ? apiVerse.fr : todayQuote.fr} »
             </p>
           )}
         </div>
       </motion.div>
+
+      {/* ── Prayer Times ── */}
+      {prayerTimes.length > 0 && (
+        <motion.div {...stagger(8)}
+          className="glass-card p-6 relative overflow-hidden group">
+          <div className="card-accent-bar" />
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                   style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
+                <Clock size={15} style={{ color: 'var(--brand-primary)' }} />
+              </div>
+              <p className="text-[10px] uppercase tracking-widest font-black"
+                 style={{ color: 'var(--brand-primary)', opacity: 0.75 }}>
+                {lang === 'fr' ? 'Horaires de prière' : 'مواقيت الصلاة'}
+              </p>
+            </div>
+            {city && (
+              <div className="flex items-center gap-1.5">
+                <MapPin size={10} style={{ color: 'var(--brand-text-muted)' }} />
+                <span className="text-[10px] font-bold" style={{ color: 'var(--brand-text-muted)' }}>{city}</span>
+              </div>
+            )}
+          </div>
+
+          {nextPrayer && (
+            <div className="mb-4 px-4 py-3 rounded-2xl flex items-center justify-between"
+                 style={{ background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', border: '1px solid var(--border-accent)' }}>
+              <div>
+                <p className="text-[9px] uppercase tracking-widest font-black mb-0.5" style={{ color: 'var(--brand-text-muted)' }}>
+                  {lang === 'fr' ? 'Prochaine prière' : 'الصلاة القادمة'}
+                </p>
+                <p className="text-lg font-bold" style={{ color: 'var(--brand-primary)' }}>
+                  {lang === 'fr' ? nextPrayer.name : nextPrayer.nameAr}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-black text-gradient">{nextPrayer.time}</p>
+                <p className="text-[9px] font-bold mt-0.5" style={{ color: 'var(--brand-text-muted)' }}>
+                  {nextPrayer.minsLeft >= 60
+                    ? `${Math.floor(nextPrayer.minsLeft / 60)}h ${nextPrayer.minsLeft % 60}min`
+                    : `${nextPrayer.minsLeft} min`}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-5 gap-2">
+            {prayerTimes.map((p) => {
+              const isNext = nextPrayer?.name === p.name;
+              return (
+                <div key={p.name}
+                     className="flex flex-col items-center gap-1 px-2 py-3 rounded-xl transition-all"
+                     style={{
+                       background: isNext
+                         ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)'
+                         : 'color-mix(in srgb, var(--brand-primary) 4%, transparent)',
+                       border: `1px solid ${isNext ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
+                     }}>
+                  <p className="text-[9px] font-black uppercase tracking-wider" style={{ color: isNext ? 'var(--brand-primary)' : 'var(--brand-text-muted)' }}>
+                    {lang === 'fr' ? p.name : p.nameAr}
+                  </p>
+                  <p className="text-xs font-bold" style={{ color: isNext ? 'var(--brand-primary)' : 'var(--brand-text-main)' }}>
+                    {p.time}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
 
       {/* ── Bottom row: next badge + goals ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
         {/* Next badge */}
         {nextBadge && (
-          <motion.div {...stagger(8)}
+          <motion.div {...stagger(9)}
             className="glass-card p-6 relative overflow-hidden group">
             <div className="card-accent-bar" />
             <div className="flex items-center gap-4 mb-4">
@@ -279,7 +424,7 @@ export const Dashboard = ({ userData, lang }: { userData: UserData; lang: string
         )}
 
         {/* Goals preview */}
-        <motion.div {...stagger(9)}
+        <motion.div {...stagger(10)}
           className="glass-card p-6 relative overflow-hidden">
           <div className="card-accent-bar" />
           <div className="flex items-center justify-between mb-4">

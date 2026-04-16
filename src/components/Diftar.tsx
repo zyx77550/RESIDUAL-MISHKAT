@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useScroll, useMotionValueEvent } from 'framer-motion';
-import { NotebookPen, Edit2, ChevronRight, ChevronLeft, Plus, Save, Check, Undo, Redo, Trash2, Eraser, Ruler, Download, X, Settings2, Pencil, Brush, Highlighter, Palette, Star, Wind, Zap, Pen } from 'lucide-react';
+import { NotebookPen, Edit2, ChevronRight, ChevronLeft, Plus, Save, Check, Undo, Redo, Trash2, Eraser, Ruler, Download, X, Settings2, Pencil, Brush, Highlighter, Palette, Star, Wind, Zap, Pen, Smile } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { getStroke } from 'perfect-freehand';
+import { HexColorPicker } from 'react-colorful';
 import { cn } from '../lib/utils';
 import { Stroke, Shape, DiftarPage, UserData } from '../types';
 
@@ -16,8 +18,41 @@ const PAGE_TEMPLATES = [
 
 const PAPER_COLOR_NAMES: Record<string, string> = {
   '#fdfcf8': 'Crème', '#ffffff': 'Blanc', '#f4ecd8': 'Sépia',
-  '#0f172a': 'Nuit', '#f0f7f0': 'Sauge', '#fff0f3': 'Rose',
+  '#f0f7f0': 'Sauge', '#fff0f3': 'Rose',
+  '#f5e8ff': 'Lavande', '#e8f4fb': 'Ciel', '#fffbe6': 'Beurre', '#e6f8f1': 'Menthe',
+  '#FFF3E0': 'Pêche', '#FFE4B5': 'Miel', '#FFD5B8': 'Abricot', '#FFE5D0': 'Saumon',
+  '#FDE8CC': 'Cannelle', '#F9E4D4': 'Terracotta', '#FFF0DB': 'Safran',
+  '#FAE0C8': 'Aurore', '#FCEBD3': 'Ambre', '#FFF8F0': 'Vanille',
 };
+
+const PAPER_COLORS = [
+  { value: '#fdfcf8', label: 'Crème' },
+  { value: '#ffffff', label: 'Blanc' },
+  { value: '#f4ecd8', label: 'Sépia' },
+  { value: '#f0f7f0', label: 'Sauge' },
+  { value: '#fff0f3', label: 'Rose' },
+  { value: '#f5e8ff', label: 'Lavande' },
+  { value: '#e8f4fb', label: 'Ciel' },
+  { value: '#fffbe6', label: 'Beurre' },
+  { value: '#e6f8f1', label: 'Menthe' },
+  { value: '#FFF3E0', label: 'Pêche' },
+  { value: '#FFE4B5', label: 'Miel' },
+  { value: '#FFD5B8', label: 'Abricot' },
+  { value: '#FFE5D0', label: 'Saumon' },
+  { value: '#FDE8CC', label: 'Cannelle' },
+  { value: '#F9E4D4', label: 'Terracotta' },
+  { value: '#FFF0DB', label: 'Safran' },
+  { value: '#FAE0C8', label: 'Aurore' },
+  { value: '#FCEBD3', label: 'Ambre' },
+  { value: '#FFF8F0', label: 'Vanille' },
+];
+
+const EMOJI_LIST = [
+  '👍','❤️','⭐','✨','🎉','🏆','🎯','💡','✅','💪',
+  '😊','😍','🙏','🤍','💎','📖','✍️','🌟','🔥','🎊',
+  '🌺','🌸','🌼','💐','🦋','🌿','🌈','🌙','☀️','🕊️',
+  '🤲','🕌','📿','☪️','🕋','🌙','🌸','🤲','💚','🫶',
+];
 
 // All shapes, organized by category
 const SHAPE_CATEGORIES = [
@@ -25,27 +60,37 @@ const SHAPE_CATEGORIES = [
     label: { fr: 'Géométriques', ar: 'هندسية' },
     shapes: [
       { id: 'circle',    type: 'circle'    as const, label: { fr: 'Cercle',    ar: 'دائرة'  } },
+      { id: 'ellipse',   type: 'ellipse'   as const, label: { fr: 'Ellipse',   ar: 'بيضاوي' } },
       { id: 'square',    type: 'square'    as const, label: { fr: 'Carré',     ar: 'مربع'   } },
       { id: 'rectangle', type: 'rectangle' as const, label: { fr: 'Rectangle', ar: 'مستطيل' } },
       { id: 'triangle',  type: 'triangle'  as const, label: { fr: 'Triangle',  ar: 'مثلث'   } },
       { id: 'diamond',   type: 'diamond'   as const, label: { fr: 'Losange',   ar: 'معين'   } },
       { id: 'hexagon',   type: 'hexagon'   as const, label: { fr: 'Hexagone',  ar: 'سداسي'  } },
       { id: 'pentagon',  type: 'pentagon'  as const, label: { fr: 'Pentagone', ar: 'خماسي'  } },
+      { id: 'octagon',   type: 'octagon'   as const, label: { fr: 'Octogone',  ar: 'ثماني'  } },
+      { id: 'cross',     type: 'cross'     as const, label: { fr: 'Croix',     ar: 'صليب'   } },
+      { id: 'trapezoid', type: 'trapezoid' as const, label: { fr: 'Trapèze',   ar: 'شبه منحرف' } },
     ],
   },
   {
     label: { fr: 'Décoratifs', ar: 'زخرفية' },
     shapes: [
-      { id: 'star',     type: 'star'     as const, label: { fr: 'Étoile',    ar: 'نجمة'  } },
-      { id: 'heart',    type: 'heart'    as const, label: { fr: 'Cœur',      ar: 'قلب'   } },
-      { id: 'crescent', type: 'crescent' as const, label: { fr: 'Croissant', ar: 'هلال'  } },
+      { id: 'star',          type: 'star'          as const, label: { fr: 'Étoile',       ar: 'نجمة'    } },
+      { id: 'heart',         type: 'heart'         as const, label: { fr: 'Cœur',         ar: 'قلب'     } },
+      { id: 'crescent',      type: 'crescent'      as const, label: { fr: 'Croissant',    ar: 'هلال'    } },
+      { id: 'cloud',         type: 'cloud'         as const, label: { fr: 'Nuage',        ar: 'سحابة'   } },
+      { id: 'lightning',     type: 'lightning'     as const, label: { fr: 'Éclair',       ar: 'برق'     } },
+      { id: 'sun',           type: 'sun'           as const, label: { fr: 'Soleil',       ar: 'شمس'     } },
+      { id: 'speech_bubble', type: 'speech_bubble' as const, label: { fr: 'Bulle',        ar: 'فقاعة'   } },
     ],
   },
   {
     label: { fr: 'Lignes', ar: 'خطوط' },
     shapes: [
-      { id: 'line',  type: 'line'  as const, label: { fr: 'Ligne', ar: 'خط'  } },
-      { id: 'arrow', type: 'arrow' as const, label: { fr: 'Flèche', ar: 'سهم' } },
+      { id: 'line',         type: 'line'         as const, label: { fr: 'Ligne',        ar: 'خط'    } },
+      { id: 'arrow',        type: 'arrow'        as const, label: { fr: 'Flèche',       ar: 'سهم'   } },
+      { id: 'double_arrow', type: 'double_arrow' as const, label: { fr: 'Double flèche', ar: 'سهم مزدوج' } },
+      { id: 'bracket',      type: 'bracket'      as const, label: { fr: 'Accolade',     ar: 'قوس'   } },
     ],
   },
 ];
@@ -92,10 +137,14 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [shapes, setShapes]             = useState<Shape[]>([]);
   const [showShapePicker, setShowShapePicker]   = useState(false);
   const [shapeCategory, setShapeCategory]       = useState(0);
+  const [showEmojiPicker, setShowEmojiPicker]   = useState(false);
+  const [activeEmoji, setActiveEmoji]           = useState<string | null>(null);
+  const activeEmojiRef = useRef<string | null>(null);
+  const [showColorWheel, setShowColorWheel]     = useState(false);
   const [showPaperSettings, setShowPaperSettings]   = useState(false);
   const [isSaving, setIsSaving]             = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [paperStyle, setPaperStyle]         = useState<'lines'|'blank'|'grid'|'dots'|'arabesque'|'diamond'|'hexagonal'|'music'>('lines');
+  const [paperStyle, setPaperStyle]         = useState<'lines'|'blank'|'grid'|'dots'|'arabesque'|'diamond'|'hexagonal'|'music'|'floral'|'islamic_star'|'waves'|'leaves'|'crosses'|'triangles'>('lines');
   const [paperColor, setPaperColor]         = useState('#fdfcf8');
   const [pageHeight, setPageHeight]         = useState(5000);
   const [canvasScale, setCanvasScale]       = useState(1);
@@ -145,6 +194,35 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           }
         });
         targetCtx.restore(); return;
+      }
+      // perfect-freehand for pen and brush tools
+      if ((stroke.type === 'pen' || stroke.type === 'brush') && stroke.points.length >= 2) {
+        const pfPoints = stroke.points.map(p => [p.x, p.y, p.p ?? 0.5]);
+        const outlinePoints = getStroke(pfPoints, {
+          size: stroke.type === 'brush' ? stroke.width * 4 : stroke.width * 2,
+          thinning: stroke.type === 'brush' ? 0.4 : 0.6,
+          smoothing: 0.5,
+          streamline: 0.4,
+          simulatePressure: true,
+          last: true,
+        });
+        if (outlinePoints.length < 2) { /* skip */ }
+        else {
+          targetCtx.save();
+          targetCtx.fillStyle = stroke.color;
+          if (stroke.type === 'brush') { targetCtx.globalAlpha = 0.72; targetCtx.shadowBlur = stroke.width * 2; targetCtx.shadowColor = stroke.color; }
+          targetCtx.beginPath();
+          targetCtx.moveTo(outlinePoints[0][0], outlinePoints[0][1]);
+          for (let i = 1; i < outlinePoints.length; i++) {
+            const xm = (outlinePoints[i-1][0] + outlinePoints[i][0]) / 2;
+            const ym = (outlinePoints[i-1][1] + outlinePoints[i][1]) / 2;
+            targetCtx.quadraticCurveTo(outlinePoints[i-1][0], outlinePoints[i-1][1], xm, ym);
+          }
+          targetCtx.closePath();
+          targetCtx.fill();
+          targetCtx.restore();
+        }
+        return;
       }
       if (stroke.points.length < 2) return;
       targetCtx.save();
@@ -225,6 +303,43 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         case 'crescent': { sctx.beginPath(); sctx.arc(0, 0, w / 2, 0, Math.PI * 2, false); sctx.arc(w * 0.22, -h * 0.08, w * 0.42, 0, Math.PI * 2, true); sctx.fill('evenodd'); break; }
         case 'line':  sctx.beginPath(); sctx.moveTo(-w / 2, 0); sctx.lineTo(w / 2, 0); sctx.stroke(); break;
         case 'arrow': { const aw = Math.min(15, w * 0.2); sctx.beginPath(); sctx.moveTo(-w / 2, 0); sctx.lineTo(w / 2 - aw, 0); sctx.moveTo(w / 2 - aw, 0); sctx.lineTo(w / 2 - aw - 6, -aw * 0.5); sctx.moveTo(w / 2 - aw, 0); sctx.lineTo(w / 2 - aw - 6, aw * 0.5); sctx.stroke(); break; }
+        // New shapes
+        case 'ellipse': sctx.beginPath(); sctx.ellipse(0, 0, w / 2, h / 3, 0, 0, Math.PI * 2); sctx.fill(); break;
+        case 'cross': { const t = w * 0.28; sctx.fillRect(-t/2, -h/2, t, h); sctx.fillRect(-w/2, -t/2, w, t); break; }
+        case 'octagon': { sctx.beginPath(); for (let i = 0; i < 8; i++) { const a = (i * Math.PI) / 4; i === 0 ? sctx.moveTo(Math.cos(a)*w/2, Math.sin(a)*h/2) : sctx.lineTo(Math.cos(a)*w/2, Math.sin(a)*h/2); } sctx.closePath(); sctx.fill(); break; }
+        case 'trapezoid': { sctx.beginPath(); sctx.moveTo(-w*0.3, -h/2); sctx.lineTo(w*0.3, -h/2); sctx.lineTo(w/2, h/2); sctx.lineTo(-w/2, h/2); sctx.closePath(); sctx.fill(); break; }
+        case 'cloud': {
+          sctx.beginPath();
+          sctx.arc(-w*0.2, h*0.1, w*0.22, 0, Math.PI*2);
+          sctx.arc(w*0.1,  -h*0.05, w*0.26, 0, Math.PI*2);
+          sctx.arc(w*0.32,  h*0.1, w*0.18, 0, Math.PI*2);
+          sctx.arc(-w*0.08, h*0.18, w*0.20, 0, Math.PI*2);
+          sctx.fill(); break;
+        }
+        case 'lightning': { sctx.beginPath(); sctx.moveTo(w*0.1,-h/2); sctx.lineTo(-w*0.15,0); sctx.lineTo(w*0.05,0); sctx.lineTo(-w*0.1,h/2); sctx.lineTo(w*0.2,-h*0.05); sctx.lineTo(0,-h*0.05); sctx.closePath(); sctx.fill(); break; }
+        case 'sun': {
+          sctx.beginPath(); sctx.arc(0, 0, w*0.28, 0, Math.PI*2); sctx.fill();
+          for (let i = 0; i < 8; i++) { const a = (i/8)*Math.PI*2; sctx.beginPath(); sctx.moveTo(Math.cos(a)*w*0.33, Math.sin(a)*w*0.33); sctx.lineTo(Math.cos(a)*w*0.48, Math.sin(a)*w*0.48); sctx.lineWidth=3; sctx.stroke(); }
+          break;
+        }
+        case 'speech_bubble': {
+          const r = w*0.12;
+          sctx.beginPath(); sctx.roundRect(-w/2, -h/2, w, h*0.75, r); sctx.fill();
+          sctx.beginPath(); sctx.moveTo(-w*0.15, h*0.25); sctx.lineTo(-w*0.05, h/2); sctx.lineTo(w*0.15, h*0.25); sctx.fill(); break;
+        }
+        case 'double_arrow': { const aw=Math.min(12,w*0.18); sctx.beginPath(); sctx.moveTo(-w/2+aw,0); sctx.lineTo(w/2-aw,0); [w/2-aw,-(w/2-aw)].forEach(x => { sctx.moveTo(x,0); sctx.lineTo(x+(x>0?-aw:aw),-aw*0.5); sctx.moveTo(x,0); sctx.lineTo(x+(x>0?-aw:aw),aw*0.5); }); sctx.stroke(); break; }
+        case 'bracket': { sctx.beginPath(); sctx.moveTo(w*0.2,-h/2); sctx.lineTo(0,-h/2); sctx.lineTo(0,h/2); sctx.lineTo(w*0.2,h/2); sctx.stroke(); break; }
+        case 'emoji': {
+          if (shape.emoji) {
+            sctx.globalAlpha = 1;
+            sctx.font = `${w}px serif`;
+            sctx.textAlign = 'center';
+            sctx.textBaseline = 'middle';
+            sctx.fillStyle = 'black';
+            sctx.fillText(shape.emoji, 0, 0);
+          }
+          break;
+        }
       }
       sctx.restore();
     });
@@ -238,25 +353,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     { label: lang === 'fr' ? 'XL' : 'ضخم',       value: 25 },
   ];
 
-  const PAPER_COLORS = [
-    { label: lang === 'fr' ? 'Crème'       : 'كريم',   value: '#fdfcf8' },
-    { label: lang === 'fr' ? 'Blanc'       : 'أبيض',   value: '#ffffff' },
-    { label: lang === 'fr' ? 'Sépia'       : 'بني',    value: '#f4ecd8' },
-    { label: lang === 'fr' ? 'Bleu nuit'   : 'ليلي',   value: '#0f172a' },
-    { label: lang === 'fr' ? 'Vert sage'   : 'أخضر',   value: '#f0f7f0' },
-    { label: lang === 'fr' ? 'Rose pâle'   : 'وردي',   value: '#fff0f3' },
-    { label: lang === 'fr' ? 'Lavande'     : 'خزامى',  value: '#f5e8ff' },
-    { label: lang === 'fr' ? 'Ciel'        : 'سماوي',  value: '#e8f4fb' },
-    { label: lang === 'fr' ? 'Beurre'      : 'زبدة',   value: '#fffbe6' },
-    { label: lang === 'fr' ? 'Menthe'      : 'نعناع',  value: '#e6f8f1' },
-    { label: lang === 'fr' ? 'Nuit indigo' : 'نيلي',   value: '#1a0a2e' },
-    { label: lang === 'fr' ? 'Café'        : 'بن',     value: '#2a1608' },
-  ];
-
-  const getBrandColorForPaper = (pc: string) => {
-    if (['#0f172a', '#1a0a2e', '#2a1608'].includes(pc)) return '#D4AF37';
-    return '#8B2635';
-  };
+  const getBrandColorForPaper = (_pc: string) => '#8B2635';
 
   const getColoredStickerSvg = (svg: string, pc: string) => {
     const brandColor = getBrandColorForPaper(pc);
@@ -330,9 +427,8 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
 
   const drawPaperLines = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
     if (paperStyle === 'blank') return;
-    const isDark = ['#0f172a', '#1a0a2e', '#2a1608'].includes(paperColor);
-    const lineColor = isDark ? 'rgba(255,255,255,0.08)' : '#8B263512';
-    const marginColor = isDark ? 'rgba(255,255,255,0.15)' : '#8B263528';
+    const lineColor = '#8B263512';
+    const marginColor = '#8B263528';
 
     ctx.save();
     ctx.beginPath();
@@ -354,7 +450,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       for (let y = 60; y < h; y += 32) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
       for (let y = 80; y < h; y += 96) {
         ctx.save();
-        ctx.strokeStyle = isDark ? 'rgba(212,175,55,0.15)' : '#D4AF3720';
+        ctx.strokeStyle = '#D4AF3720';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         for (let x = 0; x < w; x += 20) {
@@ -398,6 +494,80 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           ctx.lineTo(w, y + l * staffGap);
         }
         y += 5 * staffGap + groupGap;
+      }
+    }
+    if (paperStyle === 'floral') {
+      const spacing = 48;
+      ctx.fillStyle = lineColor;
+      for (let fy = spacing; fy < h; fy += spacing) {
+        for (let fx = spacing; fx < w; fx += spacing) {
+          for (let p = 0; p < 5; p++) {
+            const a = (p / 5) * Math.PI * 2 - Math.PI / 2;
+            const px = fx + Math.cos(a) * 7, py = fy + Math.sin(a) * 7;
+            ctx.save(); ctx.beginPath(); ctx.ellipse(px, py, 5, 2.5, a, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+          }
+          ctx.beginPath(); ctx.arc(fx, fy, 1.8, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+    }
+    if (paperStyle === 'islamic_star') {
+      const ss = 28, sp = 58;
+      for (let fy = sp / 2; fy < h + sp; fy += sp * 0.866) {
+        const offset = (Math.round(fy / (sp * 0.866)) % 2) * sp / 2;
+        for (let fx = offset; fx < w + sp; fx += sp) {
+          ctx.beginPath();
+          for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2 - Math.PI / 8;
+            const r = i % 2 === 0 ? ss * 0.5 : ss * 0.22;
+            i === 0 ? ctx.moveTo(fx + Math.cos(a) * r, fy + Math.sin(a) * r)
+                    : ctx.lineTo(fx + Math.cos(a) * r, fy + Math.sin(a) * r);
+          }
+          ctx.closePath(); ctx.stroke();
+        }
+      }
+    }
+    if (paperStyle === 'waves') {
+      for (let fy = 40; fy < h; fy += 28) {
+        ctx.beginPath(); ctx.moveTo(0, fy);
+        for (let fx = 0; fx < w; fx += 20) {
+          ctx.quadraticCurveTo(fx + 10, fy - 8, fx + 20, fy);
+        }
+        ctx.stroke();
+      }
+    }
+    if (paperStyle === 'leaves') {
+      ctx.fillStyle = lineColor;
+      const lsp = 52;
+      for (let fy = lsp; fy < h; fy += lsp) {
+        for (let fx = lsp; fx < w; fx += lsp) {
+          const offset = (Math.floor(fy / lsp) % 2) * lsp / 2;
+          const lx = fx + offset - lsp / 2;
+          ctx.save(); ctx.translate(lx, fy); ctx.rotate(Math.PI / 6);
+          ctx.beginPath(); ctx.ellipse(0, 0, 10, 4, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+      }
+    }
+    if (paperStyle === 'crosses') {
+      ctx.fillStyle = lineColor;
+      const csp = 28;
+      for (let fy = csp; fy < h; fy += csp) {
+        for (let fx = csp; fx < w; fx += csp) {
+          ctx.fillRect(fx - 3, fy - 0.8, 6, 1.6);
+          ctx.fillRect(fx - 0.8, fy - 3, 1.6, 6);
+        }
+      }
+    }
+    if (paperStyle === 'triangles') {
+      const ts = 28;
+      for (let row = 0; row * ts < h + ts; row++) {
+        for (let col = 0; col * ts < w + ts; col++) {
+          const bx = col * ts, by = row * ts;
+          ctx.beginPath();
+          if ((row + col) % 2 === 0) { ctx.moveTo(bx, by + ts); ctx.lineTo(bx + ts, by + ts); ctx.lineTo(bx + ts / 2, by); }
+          else { ctx.moveTo(bx, by); ctx.lineTo(bx + ts, by); ctx.lineTo(bx + ts / 2, by + ts); }
+          ctx.closePath(); ctx.stroke();
+        }
       }
     }
     ctx.stroke();
@@ -555,6 +725,16 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
 
   const startDrawing = (e: React.PointerEvent) => {
     if (activeShapeTypeRef.current) { handleCanvasClick(e); return; }
+    if (activeEmojiRef.current) {
+      const { x, y } = getCoords(e);
+      setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
+      setRedoStack([]);
+      setShapes(prev => [...prev, {
+        id: Date.now().toString(), type: 'emoji', x, y,
+        width: shapeSize, height: shapeSize, color, emoji: activeEmojiRef.current!,
+      }]);
+      return;
+    }
     // Capture pointer so events continue even if finger/stylus leaves canvas
     e.currentTarget.setPointerCapture(e.pointerId);
     const { x, y } = getCoords(e);
@@ -736,7 +916,12 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     return () => window.removeEventListener('mousemove', handle);
   }, []);
 
-  const closeAllPanels = () => { setShowToolsMenu(false); setShowCustomizationMenu(false); setShowShapePicker(false); setShowPaperSettings(false); setActiveShapeTypeWithRef(null); };
+  const closeAllPanels = () => {
+    setShowToolsMenu(false); setShowCustomizationMenu(false); setShowShapePicker(false);
+    setShowPaperSettings(false); setShowEmojiPicker(false); setShowColorWheel(false);
+    setActiveShapeTypeWithRef(null);
+    activeEmojiRef.current = null; setActiveEmoji(null);
+  };
 
   // ── Raccourcis clavier ──────────────────────────────────────────────────
   useEffect(() => {
@@ -1127,6 +1312,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               { id: 'tools',  icon: Pencil,    title: lang === 'fr' ? 'Outils' : 'أدوات',     active: showToolsMenu,         action: () => { closeAllPanels(); setShowToolsMenu(v => !v); } },
               { id: 'colors', icon: Palette,   title: lang === 'fr' ? 'Couleurs' : 'الألوان',  active: showCustomizationMenu, action: () => { closeAllPanels(); setShowCustomizationMenu(v => !v); } },
               { id: 'shapes', icon: Star,      title: lang === 'fr' ? 'Formes' : 'الأشكال',    active: showShapePicker,       action: () => { closeAllPanels(); setShowShapePicker(v => !v); } },
+              { id: 'emojis', icon: Smile,     title: lang === 'fr' ? 'Emojis' : 'إيموجي',     active: showEmojiPicker,       action: () => { closeAllPanels(); setShowEmojiPicker(v => !v); } },
               { id: 'paper',  icon: Settings2, title: lang === 'fr' ? 'Papier' : 'الورق',      active: showPaperSettings,     action: () => { closeAllPanels(); setShowPaperSettings(v => !v); } },
             ].map(btn => (
               <motion.button
@@ -1167,7 +1353,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
 
         {/* Panels (tools / colors / shapes / paper) */}
         <AnimatePresence>
-          {(showToolsMenu || showCustomizationMenu || showShapePicker || showPaperSettings) && (
+          {(showToolsMenu || showCustomizationMenu || showShapePicker || showEmojiPicker || showPaperSettings) && (
             <motion.div
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -1281,13 +1467,13 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <label className="text-[9px] font-black uppercase tracking-[0.3em] flex-shrink-0" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>HEX</label>
-                    <input
-                      type="color"
-                      value={color.startsWith('#') ? color : '#8B2635'}
-                      onChange={e => setColor(e.target.value)}
-                      className="w-10 h-8 rounded-lg cursor-pointer border-none"
-                    />
+                    <button
+                      onClick={() => setShowColorWheel(v => !v)}
+                      className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all"
+                      style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 18%, transparent)', color: 'var(--brand-primary)', background: showColorWheel ? 'color-mix(in srgb, var(--brand-primary) 8%, transparent)' : 'transparent' }}
+                    >
+                      {lang === 'fr' ? '🎨 Roue' : '🎨 دوار'}
+                    </button>
                     <input
                       type="text"
                       value={color.startsWith('#') ? color : ''}
@@ -1297,6 +1483,11 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                       placeholder="#8B2635"
                     />
                   </div>
+                  {showColorWheel && (
+                    <div className="flex justify-center pt-1">
+                      <HexColorPicker color={color.startsWith('#') ? color : '#8B2635'} onChange={setColor} style={{ width: '100%', maxWidth: 220, height: 180 }} />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1364,20 +1555,54 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                 </div>
               )}
 
+              {showEmojiPicker && (
+                <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
+                  <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>
+                    {lang === 'fr' ? 'Choisir un emoji — cliquez sur la page pour placer' : 'اختر رمزاً — انقر على الصفحة للوضع'}
+                  </p>
+                  <div className="grid grid-cols-8 sm:grid-cols-10 gap-2">
+                    {EMOJI_LIST.map(em => (
+                      <button
+                        key={em}
+                        onClick={() => {
+                          activeEmojiRef.current = em; setActiveEmoji(em);
+                          setShowEmojiPicker(false);
+                        }}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all hover:scale-125"
+                        style={{ background: activeEmoji === em ? 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' : 'transparent', boxShadow: activeEmoji === em ? '0 0 0 2px var(--brand-primary)' : 'none' }}
+                      >
+                        {em}
+                      </button>
+                    ))}
+                  </div>
+                  {activeEmoji && (
+                    <div className="text-center text-xs font-bold animate-pulse" style={{ color: 'var(--brand-secondary)' }}>
+                      {activeEmoji} {lang === 'fr' ? '— cliquez sur la page pour placer' : '— انقر على الصفحة للوضع'}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {showPaperSettings && (
                 <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
                   <div className="space-y-2">
                     <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Style de papier' : 'نوع الورق'}</p>
                     <div className="flex flex-wrap gap-2">
                       {[
-                        { id: 'blank',     label: lang === 'fr' ? 'Blanc'     : 'أبيض'   },
-                        { id: 'lines',     label: lang === 'fr' ? 'Lignes'    : 'سطور'   },
-                        { id: 'grid',      label: lang === 'fr' ? 'Grille'    : 'شبكة'   },
-                        { id: 'dots',      label: lang === 'fr' ? 'Points'    : 'نقاط'   },
-                        { id: 'arabesque', label: lang === 'fr' ? 'Arabesque' : 'عربسك'  },
-                        { id: 'diamond',   label: lang === 'fr' ? 'Diamant'   : 'ماسة'   },
-                        { id: 'hexagonal', label: lang === 'fr' ? 'Nid d\'abeille' : 'خلية نحل' },
-                        { id: 'music',     label: lang === 'fr' ? 'Portée'    : 'موسيقى' },
+                        { id: 'blank',        label: lang === 'fr' ? 'Blanc'          : 'أبيض'       },
+                        { id: 'lines',        label: lang === 'fr' ? 'Lignes'          : 'سطور'       },
+                        { id: 'grid',         label: lang === 'fr' ? 'Grille'          : 'شبكة'       },
+                        { id: 'dots',         label: lang === 'fr' ? 'Points'          : 'نقاط'       },
+                        { id: 'arabesque',    label: lang === 'fr' ? 'Arabesque'       : 'عربسك'      },
+                        { id: 'diamond',      label: lang === 'fr' ? 'Diamant'         : 'ماسة'       },
+                        { id: 'hexagonal',    label: lang === 'fr' ? "Nid d'abeille"   : 'خلية نحل'   },
+                        { id: 'music',        label: lang === 'fr' ? 'Portée'          : 'موسيقى'     },
+                        { id: 'floral',       label: lang === 'fr' ? '🌸 Floral'       : '🌸 زهور'    },
+                        { id: 'islamic_star', label: lang === 'fr' ? '✦ Islamique'    : '✦ إسلامي'  },
+                        { id: 'waves',        label: lang === 'fr' ? '〰 Vagues'      : '〰 أمواج'   },
+                        { id: 'leaves',       label: lang === 'fr' ? '🍃 Feuilles'    : '🍃 أوراق'   },
+                        { id: 'crosses',      label: lang === 'fr' ? '+ Croix'         : '+ صلبان'    },
+                        { id: 'triangles',    label: lang === 'fr' ? '△ Triangles'    : '△ مثلثات'  },
                       ].map(s => (
                         <button
                           key={s.id}
@@ -1398,7 +1623,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                           key={pc.value}
                           onClick={() => { setPaperColor(pc.value); setShowPaperSettings(false); }}
                           className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all"
-                          style={{ background: pc.value, borderColor: paperColor === pc.value ? 'var(--brand-primary)' : 'rgba(139,38,53,0.15)', color: pc.value === '#0f172a' ? '#fff' : 'var(--brand-primary)', boxShadow: paperColor === pc.value ? '0 0 0 2px var(--brand-primary)' : 'none' }}
+                          style={{ background: pc.value, borderColor: paperColor === pc.value ? 'var(--brand-primary)' : 'rgba(139,38,53,0.15)', color: 'var(--brand-primary)', boxShadow: paperColor === pc.value ? '0 0 0 2px var(--brand-primary)' : 'none' }}
                         >
                           {pc.label}
                         </button>

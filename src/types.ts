@@ -19,13 +19,16 @@ export interface Stroke {
 
 export interface Shape {
   id: string;
-  type: 'circle' | 'square' | 'triangle' | 'line' | 'arrow' | 'rectangle' | 'diamond' | 'hexagon' | 'pentagon' | 'star' | 'heart' | 'crescent';
+  type: 'circle' | 'square' | 'triangle' | 'line' | 'arrow' | 'rectangle' | 'diamond' | 'hexagon' | 'pentagon' | 'star' | 'heart' | 'crescent'
+      | 'ellipse' | 'cross' | 'octagon' | 'trapezoid' | 'cloud' | 'lightning' | 'sun' | 'speech_bubble' | 'double_arrow' | 'bracket'
+      | 'emoji';
   x: number;
   y: number;
   width: number;
   height: number;
   color: string;
   rotation?: number;
+  emoji?: string;
 }
 
 export interface DiftarPage {
@@ -35,19 +38,35 @@ export interface DiftarPage {
   strokes: Stroke[];
   shapes?: Shape[];
   height?: number;
-  paperStyle?: 'blank' | 'lines' | 'grid' | 'dots' | 'arabesque' | 'diamond' | 'hexagonal' | 'music';
+  paperStyle?: 'blank' | 'lines' | 'grid' | 'dots' | 'arabesque' | 'diamond' | 'hexagonal' | 'music'
+             | 'floral' | 'islamic_star' | 'waves' | 'leaves' | 'crosses' | 'triangles';
   paperColor?: string;
   lastSaved: number;
 }
 
 export interface UserSettings {
-  theme: 'light' | 'dark' | 'sepia';
+  theme: 'light' | 'dark' | 'sepia' | 'emerald' | 'azur' | 'safran' | 'lilas' | 'ocean';
   notifications: boolean;
   dailyReminder: string;
   fontSize: 'small' | 'medium' | 'large';
   showArabicNames: boolean;
   username: string;
   avatar?: string;
+  // Accessibility
+  reduceAnimations?: boolean;
+  dyslexiaFont?: boolean;
+  lineSpacing?: 'normal' | 'comfortable' | 'large';
+  buttonSize?: 'compact' | 'normal' | 'large';
+  highContrast?: boolean;
+  staticBackground?: boolean;
+  autoSaveInterval?: 30 | 60 | 300 | 0;
+  soundEffects?: boolean;
+  uiZoom?: 80 | 100 | 120;
+  showSurahNumbers?: boolean;
+  confirmDelete?: boolean;
+  textDirection?: 'auto' | 'ltr' | 'rtl';
+  colorBlindMode?: 'none' | 'deuteranopia' | 'protanopia' | 'tritanopia';
+  city?: string;
 }
 
 export interface Goal {

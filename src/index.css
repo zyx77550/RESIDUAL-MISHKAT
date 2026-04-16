@@ -80,6 +80,125 @@
 }
 
 /* ══════════════════════════════════════════════════
+   EMERALD THEME — Vert islamique
+══════════════════════════════════════════════════ */
+.emerald {
+  --brand-primary: #2E7D32;
+  --brand-secondary: #D4AF37;
+  --brand-accent: #81C784;
+  --brand-surface: rgba(241, 248, 233, 0.88);
+  --brand-page: #E8F5E9;
+  --brand-text-main: #1B3A1E;
+  --brand-text-muted: rgba(46, 125, 50, 0.45);
+  --border-subtle: rgba(46, 125, 50, 0.1);
+  --border-accent: rgba(212, 175, 55, 0.3);
+  --custom-input-bg: rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 2px 16px rgba(46, 125, 50, 0.07);
+  --shadow-medium: 0 8px 40px rgba(46, 125, 50, 0.11);
+  --shadow-strong: 0 20px 70px rgba(46, 125, 50, 0.17);
+}
+
+/* ══════════════════════════════════════════════════
+   AZUR THEME — Bleu méditerranéen
+══════════════════════════════════════════════════ */
+.azur {
+  --brand-primary: #1565C0;
+  --brand-secondary: #F4D03F;
+  --brand-accent: #64B5F6;
+  --brand-surface: rgba(227, 242, 253, 0.88);
+  --brand-page: #E3F2FD;
+  --brand-text-main: #0D2B5E;
+  --brand-text-muted: rgba(21, 101, 192, 0.45);
+  --border-subtle: rgba(21, 101, 192, 0.1);
+  --border-accent: rgba(244, 208, 63, 0.3);
+  --custom-input-bg: rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 2px 16px rgba(21, 101, 192, 0.07);
+  --shadow-medium: 0 8px 40px rgba(21, 101, 192, 0.11);
+  --shadow-strong: 0 20px 70px rgba(21, 101, 192, 0.17);
+}
+
+/* ══════════════════════════════════════════════════
+   SAFRAN THEME — Chaleur orientale
+══════════════════════════════════════════════════ */
+.safran {
+  --brand-primary: #BF360C;
+  --brand-secondary: #F9A825;
+  --brand-accent: #FF8A65;
+  --brand-surface: rgba(255, 253, 231, 0.88);
+  --brand-page: #FFF8E1;
+  --brand-text-main: #4A1800;
+  --brand-text-muted: rgba(191, 54, 12, 0.45);
+  --border-subtle: rgba(191, 54, 12, 0.1);
+  --border-accent: rgba(249, 168, 37, 0.3);
+  --custom-input-bg: rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 2px 16px rgba(191, 54, 12, 0.07);
+  --shadow-medium: 0 8px 40px rgba(191, 54, 12, 0.11);
+  --shadow-strong: 0 20px 70px rgba(191, 54, 12, 0.17);
+}
+
+/* ══════════════════════════════════════════════════
+   LILAS THEME — Violet doux
+══════════════════════════════════════════════════ */
+.lilas {
+  --brand-primary: #6A1B9A;
+  --brand-secondary: #CE93D8;
+  --brand-accent: #BA68C8;
+  --brand-surface: rgba(243, 229, 245, 0.88);
+  --brand-page: #F3E5F5;
+  --brand-text-main: #2D0A40;
+  --brand-text-muted: rgba(106, 27, 154, 0.45);
+  --border-subtle: rgba(106, 27, 154, 0.1);
+  --border-accent: rgba(206, 147, 216, 0.3);
+  --custom-input-bg: rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 2px 16px rgba(106, 27, 154, 0.07);
+  --shadow-medium: 0 8px 40px rgba(106, 27, 154, 0.11);
+  --shadow-strong: 0 20px 70px rgba(106, 27, 154, 0.17);
+}
+
+/* ══════════════════════════════════════════════════
+   OCEAN THEME — Nuit bleue profonde
+══════════════════════════════════════════════════ */
+.ocean {
+  --brand-primary: #4DD0E1;
+  --brand-secondary: #FFD54F;
+  --brand-accent: #80DEEA;
+  --brand-surface: rgba(10, 30, 55, 0.85);
+  --brand-page: #0D1B2A;
+  --brand-text-main: #E0F7FA;
+  --brand-text-muted: rgba(224, 247, 250, 0.42);
+  --border-subtle: rgba(77, 208, 225, 0.12);
+  --border-accent: rgba(255, 213, 79, 0.25);
+  --custom-input-bg: rgba(255, 255, 255, 0.07);
+  --shadow-soft: 0 2px 16px rgba(0, 0, 0, 0.4);
+  --shadow-medium: 0 8px 40px rgba(0, 0, 0, 0.5);
+  --shadow-strong: 0 20px 70px rgba(0, 0, 0, 0.65);
+}
+
+/* ══════════════════════════════════════════════════
+   ACCESSIBILITY
+══════════════════════════════════════════════════ */
+.reduce-animations *, .reduce-animations *::before, .reduce-animations *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+.dyslexia-font body, .dyslexia-font * {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', cursive !important;
+}
+
+.line-spacing-comfortable { line-height: 1.8 !important; }
+.line-spacing-large { line-height: 2.4 !important; }
+
+.button-size-compact button { padding: 0.25rem 0.5rem !important; font-size: 0.7rem !important; }
+.button-size-large button { padding: 0.75rem 1.25rem !important; font-size: 1rem !important; }
+
+.high-contrast {
+  --brand-surface: rgba(255,255,255,1) !important;
+  filter: contrast(1.35) !important;
+}
+
+/* ══════════════════════════════════════════════════
    BASE
 ══════════════════════════════════════════════════ */
 @layer base {
