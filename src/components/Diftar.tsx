@@ -200,10 +200,10 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         const pfPoints = stroke.points.map(p => [p.x, p.y, p.p ?? 0.5]);
         const outlinePoints = getStroke(pfPoints, {
           size: stroke.type === 'brush' ? stroke.width * 4 : stroke.width * 2,
-          thinning: stroke.type === 'brush' ? 0.4 : 0.6,
-          smoothing: 0.5,
-          streamline: 0.4,
-          simulatePressure: true,
+          thinning: 0,
+          smoothing: 0.7,
+          streamline: 0.5,
+          simulatePressure: false,
           last: true,
         });
         if (outlinePoints.length < 2) { /* skip */ }
