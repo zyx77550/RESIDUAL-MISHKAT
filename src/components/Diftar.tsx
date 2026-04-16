@@ -182,6 +182,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   // Stylus / palm-rejection
   const [stylusMode, setStylusMode]         = useState(false);
   const stylusModeRef = useRef(false);
+  const pointerDebugRef = useRef<HTMLSpanElement>(null);
   // Zoom
   const [zoom, setZoom]                     = useState(1);
   const [showZoomIndicator, setShowZoomIndicator] = useState(false);
@@ -791,8 +792,16 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   };
 
   const startDrawing = (e: React.PointerEvent) => {
-    // Palm rejection MUST be first — before any pointer tracking
-    if (stylusModeRef.current && e.pointerType === 'touch') return;
+    // Palm rejection MUST be first — before any pointer tracking.
+    // Samsung S Pen may report pointerType='touch' with tiny contact area (≤10px).
+    // Block only large-contact touch events (finger/palm > 10px).
+    const contactMax = Math.max(e.width || 0, e.height || 0);
+    const isFingerOrPalm = e.pointerType === 'touch' && (contactMax > 10 || contactMax === 0);
+    if (stylusModeRef.current && isFingerOrPalm) return;
+    // Debug: update pointer-type indicator near stylus button (no re-render)
+    if (pointerDebugRef.current) {
+      pointerDebugRef.current.textContent = `${e.pointerType}${contactMax > 0 ? ` ${contactMax.toFixed(0)}px` : ''}`;
+    }
 
     // Track all active pointers for pinch detection
     activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -877,8 +886,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const drawFrameRef = useRef<number>(undefined);
 
   const draw = (e: React.PointerEvent) => {
-    // Palm rejection MUST be first
-    if (stylusModeRef.current && e.pointerType === 'touch') return;
+    // Palm rejection MUST be first (same heuristic as startDrawing)
+    const contactMax = Math.max(e.width || 0, e.height || 0);
+    if (stylusModeRef.current && e.pointerType === 'touch' && (contactMax > 10 || contactMax === 0)) return;
 
     // Update pointer position for pinch tracking
     activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -945,7 +955,10 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   };
 
   const stopDrawing = (e?: React.PointerEvent) => {
-    if (e && stylusModeRef.current && e.pointerType === 'touch') return;
+    if (e) {
+      const contactMax = Math.max(e.width || 0, e.height || 0);
+      if (stylusModeRef.current && e.pointerType === 'touch' && (contactMax > 10 || contactMax === 0)) return;
+    }
     if (e) activePointersRef.current.delete(e.pointerId);
     // Exit pinch mode when fewer than 2 fingers
     if (activePointersRef.current.size < 2) pinchStartRef.current = null;
@@ -1524,6 +1537,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             >
               {stylusMode ? '🖊' : '👆'}
             </button>
+            {stylusMode && (
+              <span ref={pointerDebugRef} className="text-[8px] font-mono opacity-50 max-w-[48px] leading-tight" style={{ color: 'var(--brand-primary)' }} />
+            )}
             {/* Zoom controls */}
             <div className="hidden sm:flex items-center rounded-full p-1 gap-0.5" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
               <button onClick={() => { setZoom(z => Math.max(0.25, z / 1.2)); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} className="p-1.5 rounded-full" style={{ color: 'var(--brand-primary)' }} title="Zoom -"><ZoomOut size={14} /></button>
