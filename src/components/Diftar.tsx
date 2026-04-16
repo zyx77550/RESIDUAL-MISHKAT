@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useScroll, useMotionValueEvent } from 'framer-motion';
-import { NotebookPen, Edit2, ChevronRight, ChevronLeft, Plus, Save, Check, Undo, Redo, Trash2, Eraser, Ruler, Download, X, Settings2, Pencil, Brush, Highlighter, Palette, Star, Wind, Zap, Pen, Smile, MousePointer2, ZoomIn, ZoomOut } from 'lucide-react';
+import { NotebookPen, Edit2, ChevronRight, ChevronLeft, Plus, Save, Check, Undo, Redo, Trash2, Eraser, Ruler, Download, X, Settings2, Pencil, Brush, Highlighter, Palette, Star, Wind, Zap, Pen, Smile, MousePointer2, ZoomIn, ZoomOut, Info, Move, RotateCcw, Copy } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { getStroke } from 'perfect-freehand';
 import { HexColorPicker } from 'react-colorful';
@@ -175,6 +175,8 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [isDrawing, setIsDrawing]           = useState(false);
   const [toastMessage, setToastMessage]     = useState<string | null>(null);
+  // Help guide
+  const [showHelp, setShowHelp] = useState(false);
   // Selection tool state
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   // Stylus / palm-rejection
@@ -1445,7 +1447,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           className="backdrop-blur-2xl rounded-[2rem] shadow-xl border p-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar flex-shrink-0 pointer-events-auto"
           style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}
         >
-          {/* Left: back + title */}
+          {/* Left: back + title + help */}
           <div className="flex items-center gap-1 flex-shrink-0">
             <motion.button
               onClick={() => { savePage(); setActivePageId(null); }}
@@ -1462,6 +1464,17 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               className="font-serif italic text-base w-28 sm:w-40 bg-transparent border-none focus:ring-0 focus:outline-none"
               style={{ color: 'var(--brand-primary)' }}
             />
+            {/* Help button */}
+            <motion.button
+              onClick={() => setShowHelp(true)}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.92 }}
+              title={lang === 'fr' ? 'Guide d\'utilisation' : 'دليل الاستخدام'}
+              className="p-2 rounded-full transition-all"
+              style={{ color: 'var(--brand-primary)', opacity: 0.6 }}
+            >
+              <Info size={16} />
+            </motion.button>
           </div>
 
           {/* Center: tool buttons */}
@@ -2146,6 +2159,238 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           </motion.div>
         </motion.div>
       </div>
+
+      {/* ─── Help / Guide modal ──────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showHelp && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[300] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}
+            onClick={() => setShowHelp(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 24, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.92, y: 24, opacity: 0 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-2xl max-h-[88vh] flex flex-col rounded-[2rem] shadow-2xl overflow-hidden"
+              style={{ background: 'var(--brand-surface)', border: '1px solid color-mix(in srgb, var(--brand-primary) 12%, transparent)' }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-7 py-5 border-b flex-shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)' }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-2xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
+                    <Info size={18} style={{ color: 'var(--brand-primary)' }} />
+                  </div>
+                  <div>
+                    <h2 className="font-serif italic text-lg leading-tight" style={{ color: 'var(--brand-primary)' }}>
+                      {lang === 'fr' ? 'Guide du Diftar' : 'دليل الدفتر'}
+                    </h2>
+                    <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'var(--brand-secondary)', opacity: 0.55 }}>
+                      {lang === 'fr' ? 'Toutes les fonctions expliquées' : 'شرح جميع الوظائف'}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setShowHelp(false)} className="p-2.5 rounded-full hover:scale-110 transition-all" style={{ color: 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Scrollable body */}
+              <div className="overflow-y-auto px-7 py-6 space-y-7 custom-scrollbar">
+
+                {/* Section: Outils de dessin */}
+                <section>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Pencil size={14} style={{ color: 'var(--brand-secondary)' }} />
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
+                      {lang === 'fr' ? 'Outils de dessin' : 'أدوات الرسم'}
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      { icon: '✏️', name: lang === 'fr' ? 'Stylo'         : 'قلم',          key: '1', desc: lang === 'fr' ? 'Trait fluide avec lissage parfait'        : 'خط سلس بتمهيد مثالي' },
+                      { icon: '🪶', name: lang === 'fr' ? 'Plume'         : 'ريشة',         key: '2', desc: lang === 'fr' ? 'Trait incliné style calligraphie latine'   : 'خط مائل بأسلوب الخط اللاتيني' },
+                      { icon: '🖊', name: lang === 'fr' ? 'Surligneur'    : 'تحديد',        key: '3', desc: lang === 'fr' ? 'Couleur transparente pour annoter'          : 'لون شفاف للتعليق' },
+                      { icon: '🍂', name: lang === 'fr' ? 'Craie'         : 'طباشير',       key: '4', desc: lang === 'fr' ? 'Texture poudreuse avec grain'               : 'ملمس ناعم كالطباشير' },
+                      { icon: '📏', name: lang === 'fr' ? 'Règle'         : 'مسطرة',        key: '5', desc: lang === 'fr' ? 'Ligne droite parfaite H ou V'               : 'خط أفقي أو عمودي مثالي' },
+                      { icon: '🧽', name: lang === 'fr' ? 'Gomme'         : 'ممحاة',        key: '6', desc: lang === 'fr' ? 'Efface les traits et supprime les formes'   : 'يمحو الخطوط ويحذف الأشكال' },
+                      { icon: '💨', name: lang === 'fr' ? 'Aérosol'       : 'رذاذ',         key: '7', desc: lang === 'fr' ? 'Effet spray avec densité variable'           : 'تأثير رذاذ بكثافة متغيرة' },
+                      { icon: '🖍', name: lang === 'fr' ? 'Marqueur'      : 'ماركر',        key: '8', desc: lang === 'fr' ? 'Couleur vive semi-transparente'              : 'لون نابض شبه شفاف' },
+                      { icon: '⚡', name: lang === 'fr' ? 'Néon'          : 'نيون',         key: '9', desc: lang === 'fr' ? 'Trait lumineux avec halo coloré'            : 'خط مضيء مع هالة ملونة' },
+                      { icon: '✏️', name: lang === 'fr' ? 'Crayon'        : 'رصاص',         key: '0', desc: lang === 'fr' ? 'Trait granuleux texturé'                     : 'خط حبيبي مع ملمس' },
+                      { icon: '💧', name: lang === 'fr' ? 'Aquarelle'     : 'ألوان مائية',  key: '-', desc: lang === 'fr' ? 'Lavis doux aux bords flous'                  : 'طلاء ناعم بحواف ضبابية' },
+                      { icon: '🖋', name: lang === 'fr' ? 'Calligraphie'  : 'خط عربي',      key: '',  desc: lang === 'fr' ? 'Trait pen avec rotation 45°'                 : 'قلم بزاوية 45°' },
+                      { icon: '・', name: lang === 'fr' ? 'Pointillé'     : 'منقّط',        key: '',  desc: lang === 'fr' ? 'Suite de points réguliers'                   : 'سلسلة نقاط منتظمة' },
+                      { icon: '🎨', name: lang === 'fr' ? 'Pinceau'       : 'فرشاة',        key: '',  desc: lang === 'fr' ? 'Trait large avec dégradé de bords'           : 'خط عريض بتدرج الحواف' },
+                    ].map(t => (
+                      <div key={t.name} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' }}>
+                        <span className="text-xl flex-shrink-0 mt-0.5">{t.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black" style={{ color: 'var(--brand-primary)' }}>{t.name}</span>
+                            {t.key && (
+                              <kbd className="text-[8px] font-black px-1.5 py-0.5 rounded-md font-mono" style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', color: 'var(--brand-primary)' }}>{t.key}</kbd>
+                            )}
+                          </div>
+                          <p className="text-[10px] mt-0.5 leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>{t.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Section: Sélection */}
+                <section>
+                  <div className="flex items-center gap-2 mb-3">
+                    <MousePointer2 size={14} style={{ color: 'var(--brand-secondary)' }} />
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
+                      {lang === 'fr' ? 'Outil Sélection' : 'أداة التحديد'}
+                    </h3>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { icon: <MousePointer2 size={16}/>, text: lang === 'fr' ? 'Appuyez sur le bouton ↖ dans la barre ou la touche S pour activer la sélection' : 'اضغط زر ↖ في الشريط أو مفتاح S لتفعيل التحديد' },
+                      { icon: '👆', text: lang === 'fr' ? 'Touchez ou cliquez une forme pour la sélectionner (bordure pointillée)' : 'المس أو انقر على شكل لتحديده (إطار منقط)' },
+                      { icon: <Move size={16}/>, text: lang === 'fr' ? 'Glissez la forme pour la déplacer librement sur la page' : 'اسحب الشكل لتحريكه بحرية على الصفحة' },
+                      { icon: '◼', text: lang === 'fr' ? '4 poignées aux coins — glissez pour redimensionner' : '4 مقابض في الزوايا — اسحب لتغيير الحجم' },
+                      { icon: <RotateCcw size={16}/>, text: lang === 'fr' ? 'Poignée ronde en haut — glissez pour pivoter' : 'مقبض دائري في الأعلى — اسحب للتدوير' },
+                      { icon: <Trash2 size={16}/>, text: lang === 'fr' ? 'Bouton 🗑 sous la sélection ou touche Suppr pour effacer' : 'زر 🗑 تحت التحديد أو مفتاح Delete للحذف' },
+                      { icon: <Copy size={16}/>, text: lang === 'fr' ? 'Bouton ⧉ pour dupliquer la forme en conservant couleur et taille' : 'زر ⧉ لتكرار الشكل مع الحفاظ على لونه وحجمه' },
+                    ].map((row, i) => (
+                      <div key={i} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' }}>
+                        <span className="flex-shrink-0 mt-0.5 w-5 flex items-center justify-center" style={{ color: 'var(--brand-primary)' }}>
+                          {typeof row.icon === 'string' ? <span className="text-base">{row.icon}</span> : row.icon}
+                        </span>
+                        <p className="text-[11px] leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>{row.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Section: Zoom */}
+                <section>
+                  <div className="flex items-center gap-2 mb-3">
+                    <ZoomIn size={14} style={{ color: 'var(--brand-secondary)' }} />
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
+                      {lang === 'fr' ? 'Zoom' : 'التكبير'}
+                    </h3>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { icon: '🤏', text: lang === 'fr' ? 'Pincez 2 doigts sur le canvas pour zoomer/dézoomer (tablette)' : 'اقرص بإصبعين على اللوحة للتكبير أو التصغير (لوحي)' },
+                      { icon: '🖱', text: lang === 'fr' ? 'Ctrl + molette de souris pour zoomer (ordinateur)' : 'Ctrl + عجلة الماوس للتكبير (حاسوب)' },
+                      { icon: '±',  text: lang === 'fr' ? 'Boutons − / % / + dans la barre en haut à droite' : 'أزرار − / % / + في الشريط أعلى اليمين' },
+                      { icon: '💯', text: lang === 'fr' ? 'Cliquez sur le % pour revenir à 100%' : 'انقر على % للعودة إلى 100%' },
+                    ].map((row, i) => (
+                      <div key={i} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' }}>
+                        <span className="text-base flex-shrink-0 w-5 text-center mt-0.5">{row.icon}</span>
+                        <p className="text-[11px] leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>{row.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Section: Stylus / Palm rejection */}
+                <section>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-sm">🖊</span>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
+                      {lang === 'fr' ? 'Mode Stylet & Rejet de paume' : 'وضع القلم ورفض راحة اليد'}
+                    </h3>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { icon: '🖊', text: lang === 'fr' ? 'Bouton 🖊 dans la barre → mode Stylet activé : seul l\'Apple Pencil / S-Pen dessine, le contact de la paume est ignoré' : 'زر 🖊 في الشريط → وضع القلم: يرسم القلم فقط، راحة اليد لا تؤثر' },
+                      { icon: '👆', text: lang === 'fr' ? 'Bouton 👆 → mode Doigt : le doigt et le stylet dessinent tous les deux' : 'زر 👆 → وضع الإصبع: الإصبع والقلم كلاهما يرسمان' },
+                    ].map((row, i) => (
+                      <div key={i} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' }}>
+                        <span className="text-base flex-shrink-0 w-5 text-center mt-0.5">{row.icon}</span>
+                        <p className="text-[11px] leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>{row.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Section: Raccourcis clavier */}
+                <section>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-sm">⌨️</span>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
+                      {lang === 'fr' ? 'Raccourcis clavier' : 'اختصارات لوحة المفاتيح'}
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      { keys: ['Ctrl','Z'],      desc: lang === 'fr' ? 'Annuler'           : 'تراجع' },
+                      { keys: ['Ctrl','Y'],      desc: lang === 'fr' ? 'Rétablir'          : 'إعادة' },
+                      { keys: ['Ctrl','S'],      desc: lang === 'fr' ? 'Sauvegarder'       : 'حفظ' },
+                      { keys: ['S'],             desc: lang === 'fr' ? 'Outil Sélection'   : 'أداة التحديد' },
+                      { keys: ['Suppr'],         desc: lang === 'fr' ? 'Supprimer forme'   : 'حذف الشكل' },
+                      { keys: ['Échap'],         desc: lang === 'fr' ? 'Fermer panneau'    : 'إغلاق اللوحة' },
+                      { keys: ['1',' → ','9'],   desc: lang === 'fr' ? 'Changer d\'outil'  : 'تغيير الأداة' },
+                      { keys: ['Ctrl','⟵'],      desc: lang === 'fr' ? 'Zoom −'            : 'تصغير' },
+                      { keys: ['Ctrl','⟶'],      desc: lang === 'fr' ? 'Zoom +'            : 'تكبير' },
+                    ].map((row, i) => (
+                      <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' }}>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {row.keys.map((k, ki) => (
+                            <kbd key={ki} className="text-[9px] font-black px-1.5 py-0.5 rounded-md font-mono" style={{ background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)', color: 'var(--brand-primary)', whiteSpace: 'nowrap' }}>{k}</kbd>
+                          ))}
+                        </div>
+                        <p className="text-[10px]" style={{ color: 'var(--brand-text-muted)' }}>{row.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Section: Papier & navigation */}
+                <section>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Settings2 size={14} style={{ color: 'var(--brand-secondary)' }} />
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
+                      {lang === 'fr' ? 'Papier & navigation' : 'الورق والتنقل'}
+                    </h3>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { icon: '📋', text: lang === 'fr' ? 'Menu Papier (⚙) → choisir le style (lignes, grille, points, arabesque…) et la couleur du fond' : 'قائمة الورق (⚙) → اختيار النمط (خطوط، شبكة، نقاط…) ولون الخلفية' },
+                      { icon: '🎨', text: lang === 'fr' ? 'Menu Couleurs (🎨) → palette classique, pastels, vives, sombres, dégradés et motifs' : 'قائمة الألوان (🎨) → لوحة كلاسيكية، باستيل، زاهية، داكنة، تدرجات ونقوش' },
+                      { icon: '⭐', text: lang === 'fr' ? 'Menu Formes (⭐) → 22 formes géométriques et décoratives, redimensionnables avant placement' : 'قائمة الأشكال (⭐) → 22 شكلاً هندسياً وزخرفياً، قابلة للتغيير قبل الوضع' },
+                      { icon: '↕️', text: lang === 'fr' ? 'La page s\'agrandit automatiquement en bas — ou cliquez "+ Espace" pour en ajouter plus' : 'تتمدد الصفحة تلقائياً للأسفل — أو انقر "+ مساحة" لإضافة المزيد' },
+                      { icon: '📤', text: lang === 'fr' ? 'Bouton Exporter → PDF multi-page haute résolution' : 'زر تصدير → PDF متعدد الصفحات بدقة عالية' },
+                    ].map((row, i) => (
+                      <div key={i} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' }}>
+                        <span className="text-base flex-shrink-0 w-5 text-center mt-0.5">{row.icon}</span>
+                        <p className="text-[11px] leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>{row.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+              </div>
+
+              {/* Footer */}
+              <div className="px-7 py-4 flex-shrink-0 border-t flex items-center justify-between" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)' }}>
+                <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'var(--brand-text-muted)', opacity: 0.5 }}>
+                  {lang === 'fr' ? '💡 Astuce : le guide est aussi accessible hors connexion' : '💡 نصيحة: يمكن الوصول إلى الدليل بدون إنترنت'}
+                </p>
+                <button
+                  onClick={() => setShowHelp(false)}
+                  className="px-5 py-2 rounded-full font-black text-xs uppercase tracking-wider text-white"
+                  style={{ background: 'var(--brand-primary)' }}
+                >
+                  {lang === 'fr' ? 'Compris !' : 'فهمت!'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Confirm clear */}
       <AnimatePresence>
