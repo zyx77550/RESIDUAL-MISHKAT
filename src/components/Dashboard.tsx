@@ -225,50 +225,47 @@ export const Dashboard = ({ userData, lang }: { userData: UserData; lang: string
               value: memorizedCount,
               icon: BookOpen,
               sub: lang === 'fr' ? 'mémorisées' : 'محفوظة',
-              grad: 'from-[#A8DADC]/12 to-transparent',
-              accent: '#A8DADC',
+              accent: 'var(--brand-accent)',
             },
             {
               label: lang === 'fr' ? 'Objectifs' : 'الأهداف',
               value: completedGoals,
               icon: Target,
               sub: lang === 'fr' ? `sur ${userData.goals.length}` : `من ${userData.goals.length}`,
-              grad: 'from-[#B7E4C7]/12 to-transparent',
-              accent: '#B7E4C7',
+              accent: 'var(--brand-secondary)',
             },
             {
               label: lang === 'fr' ? 'Badges' : 'الأوسمة',
               value: userData.badges.length,
               icon: Award,
               sub: lang === 'fr' ? 'débloqués' : 'مفتوحة',
-              grad: 'from-[#D4AF37]/10 to-transparent',
-              accent: '#D4AF37',
+              accent: 'var(--brand-primary)',
             },
             {
               label: lang === 'fr' ? 'Jours' : 'الأيام',
               value: calendarDays,
               icon: CalendarIcon,
               sub: lang === 'fr' ? 'enregistrés' : 'مسجلة',
-              grad: 'from-[#8B2635]/6 to-transparent',
-              accent: '#8B2635',
+              accent: 'var(--status-memorized)',
             },
           ].map((stat, i) => (
             <motion.div key={i} {...stagger(i + 3)}
-              className="glass-card p-6 flex flex-col justify-between group overflow-hidden relative cursor-default">
+              className="glass-card p-5 sm:p-6 flex flex-col justify-between group overflow-hidden relative cursor-default">
               <div className="card-accent-bar" />
-              <div className={cn('absolute inset-0 bg-gradient-to-br opacity-80', stat.grad)} />
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                   style={{ background: `radial-gradient(circle at 0% 0%, color-mix(in srgb, ${stat.accent} 10%, transparent), transparent 70%)` }} />
               <div className="w-10 h-10 rounded-xl flex items-center justify-center relative z-10 transition-all duration-500 group-hover:scale-110"
-                   style={{ background: `color-mix(in srgb, ${stat.accent} 15%, transparent)` }}>
+                   style={{ background: `color-mix(in srgb, ${stat.accent} 14%, transparent)` }}>
                 <stat.icon size={20} style={{ color: stat.accent }} />
               </div>
-              <div className="relative z-10 mt-5">
-                <motion.p className="text-4xl text-gradient leading-none" style={{ fontWeight: 700 }}
+              <div className="relative z-10 mt-4 sm:mt-5">
+                <motion.p className="text-3xl sm:text-4xl text-gradient leading-none" style={{ fontWeight: 700 }}
                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.08 }}>
                   {stat.value}
                 </motion.p>
-                <p className="text-[10px] uppercase tracking-[0.2em] font-black mt-1.5"
+                <p className="text-[11px] uppercase tracking-[0.18em] font-black mt-1.5"
                    style={{ color: 'var(--brand-text-muted)' }}>{stat.label}</p>
-                <p className="text-[9px] mt-0.5" style={{ color: 'var(--brand-text-muted)', opacity: 0.7 }}>{stat.sub}</p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--brand-text-muted)', opacity: 0.7 }}>{stat.sub}</p>
               </div>
             </motion.div>
           ))}

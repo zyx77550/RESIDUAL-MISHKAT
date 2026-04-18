@@ -108,7 +108,7 @@ export const TasbihSection = ({
             <p className="text-sm font-arabic leading-none" style={{ color: selectedDhikr === idx ? '#fff' : 'var(--brand-primary)' }}>
               {dhikr.arabic}
             </p>
-            <p className="text-[8px] uppercase tracking-wider font-bold mt-1 opacity-75">
+            <p className="text-[10px] font-bold mt-1 opacity-75">
               {dhikr.transliteration}
             </p>
           </button>
@@ -172,7 +172,8 @@ export const TasbihSection = ({
             background: sessionComplete
               ? 'color-mix(in srgb, var(--brand-secondary) 12%, var(--brand-surface))'
               : 'var(--brand-surface)',
-            backdropFilter: 'blur(20px)',
+            backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
+            WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
             border: '1px solid var(--border-subtle)',
             boxShadow: 'var(--shadow-medium)',
           }}

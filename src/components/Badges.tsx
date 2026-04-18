@@ -68,10 +68,10 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
       {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--brand-primary)' }}>
-            {lang === 'fr' ? 'Mes Badges' : 'أوسمتي'}
+          <h2 className="text-4xl sm:text-5xl text-primary leading-tight">
+            {lang === 'fr' ? 'Badges' : 'أوسمتي'}
           </h2>
-          <p className="text-xs sm:text-sm font-medium mt-1" style={{ color: 'var(--brand-text-muted)' }}>
+          <p className="text-secondary font-bold tracking-[0.4em] uppercase text-[10px] opacity-60 mt-1">
             {lang === 'fr' ? 'Célébrez vos réussites' : 'احتفل بإنجازاتك'}
           </p>
         </div>
@@ -105,10 +105,11 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
         <button
           onClick={() => setSelectedRarity(null)}
-          className="flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all"
+          className="flex-shrink-0 px-3 sm:px-4 py-2 rounded-full text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all"
           style={{
             backgroundColor: selectedRarity === null ? 'var(--brand-primary)' : 'color-mix(in srgb, var(--brand-primary) 8%, transparent)',
-            color: selectedRarity === null ? 'white' : 'var(--brand-text-main)'
+            color: selectedRarity === null ? 'white' : 'var(--brand-text-main)',
+            minHeight: '36px',
           }}
         >
           {lang === 'fr' ? 'Tous' : 'الكل'} ({totalBadges})
@@ -120,16 +121,17 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
             <button
               key={rarity}
               onClick={() => setSelectedRarity(rarity)}
-              className="flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5"
+              className="flex-shrink-0 px-3 sm:px-4 py-2 rounded-full text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5"
               style={{
                 backgroundColor: selectedRarity === rarity
                   ? getRarityColor(rarity)
                   : `color-mix(in srgb, ${getRarityColor(rarity)} 15%, transparent)`,
-                color: selectedRarity === rarity ? 'white' : getRarityColor(rarity)
+                color: selectedRarity === rarity ? 'white' : getRarityColor(rarity),
+                minHeight: '36px',
               }}
             >
-              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0" style={{ backgroundColor: selectedRarity === rarity ? 'white' : getRarityColor(rarity) }} />
-              <span className="hidden xs:inline">{getRarityLabel(rarity, lang)}</span>
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: selectedRarity === rarity ? 'white' : getRarityColor(rarity) }} />
+              {getRarityLabel(rarity, lang)}
               <span>({count}/{totalOfRarity})</span>
             </button>
           );
@@ -162,8 +164,8 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
             >
               {/* Dot rareté */}
               <div
-                className="absolute top-2 right-2 w-2 h-2 sm:w-3 sm:h-3 rounded-full"
-                style={{ backgroundColor: getRarityColor(badge.rarity) }}
+                className="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full"
+                style={{ backgroundColor: getRarityColor(badge.rarity), boxShadow: `0 0 6px ${getRarityColor(badge.rarity)}66` }}
               />
 
               {/* Icône */}
@@ -182,31 +184,31 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
 
               {/* Titre */}
               <div className="w-full">
-                <h4 className="font-bold text-[11px] sm:text-sm leading-tight" style={{ color: isUnlocked ? 'var(--brand-primary)' : 'var(--brand-text-muted)' }}>
+                <h4 className="font-bold text-xs sm:text-sm leading-tight" style={{ color: isUnlocked ? 'var(--brand-primary)' : 'var(--brand-text-muted)' }}>
                   {lang === 'fr' ? badge.title : badge.titleAr}
                 </h4>
-                <p className="text-[9px] sm:text-[10px] mt-0.5 sm:mt-1 leading-snug line-clamp-2" style={{ color: 'var(--brand-text-muted)' }}>
+                <p className="text-[10px] sm:text-[11px] mt-0.5 sm:mt-1 leading-snug line-clamp-2" style={{ color: 'var(--brand-text-muted)' }}>
                   {lang === 'fr' ? badge.description : badge.descriptionAr}
                 </p>
               </div>
 
               {/* Statut */}
               {isUnlocked ? (
-                <div className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider"
+                <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider"
                   style={{ color: getRarityColor(badge.rarity) }}>
-                  <Unlock size={8} className="sm:w-[10px] sm:h-[10px]" />
+                  <Unlock size={10} />
                   {lang === 'fr' ? 'Débloqué' : 'مفتوح'}
                 </div>
               ) : (
                 <div className="w-full space-y-1">
-                  <div className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider justify-center"
+                  <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider justify-center"
                     style={{ color: 'var(--brand-text-muted)' }}>
-                    <Lock size={8} className="sm:w-[10px] sm:h-[10px]" />
+                    <Lock size={10} />
                     {lang === 'fr' ? 'Verrouillé' : 'مغلق'}
                   </div>
                   {progressVal > 0 && (
                     <div className="w-full">
-                      <div className="h-1 rounded-full overflow-hidden" style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
                         <motion.div
                           className="h-full rounded-full"
                           initial={{ width: 0 }}
@@ -215,7 +217,7 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
                           style={{ backgroundColor: getRarityColor(badge.rarity) }}
                         />
                       </div>
-                      <p className="text-[8px] sm:text-[9px] mt-0.5 text-center" style={{ color: 'var(--brand-text-muted)' }}>
+                      <p className="text-[10px] mt-0.5 text-center" style={{ color: 'var(--brand-text-muted)' }}>
                         {Math.round(progressVal)}%
                       </p>
                     </div>

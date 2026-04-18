@@ -12,11 +12,11 @@ const PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as const;
 type Prayer = typeof PRAYERS[number];
 
 const PRAYER_COLORS: Record<Prayer, string> = {
-  Fajr:    '#A8DADC',
-  Dhuhr:   '#D4AF37',
-  Asr:     '#B7E4C7',
-  Maghrib: '#F4A261',
-  Isha:    '#8B2635',
+  Fajr:    'var(--prayer-fajr)',
+  Dhuhr:   'var(--prayer-dhuhr)',
+  Asr:     'var(--prayer-asr)',
+  Maghrib: 'var(--prayer-maghrib)',
+  Isha:    'var(--prayer-isha)',
 };
 
 export const CalendarSection = ({
@@ -133,10 +133,10 @@ export const CalendarSection = ({
       {/* Monthly stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { icon: Sun, label: lang === 'fr' ? 'Jours complets' : 'أيام كاملة', value: totalPrayers5Days, color: '#D4AF37' },
-          { icon: Moon, label: lang === 'fr' ? 'Jours de jeûne' : 'أيام الصيام', value: totalFastingDays, color: '#8B2635' },
-          { icon: BookOpen, label: lang === 'fr' ? 'Pages lues' : 'صفحات مقروءة', value: totalPages, color: '#A8DADC' },
-          { icon: Droplets, label: lang === 'fr' ? 'Jours suivis' : 'أيام متتبعة', value: daysTracked, color: '#B7E4C7' },
+          { icon: Sun,      label: lang === 'fr' ? 'Jours complets' : 'أيام كاملة',    value: totalPrayers5Days, color: 'var(--brand-secondary)'     },
+          { icon: Moon,     label: lang === 'fr' ? 'Jours de jeûne' : 'أيام الصيام',   value: totalFastingDays,  color: 'var(--brand-primary)'       },
+          { icon: BookOpen, label: lang === 'fr' ? 'Pages lues' : 'صفحات مقروءة',      value: totalPages,        color: 'var(--brand-accent)'        },
+          { icon: Droplets, label: lang === 'fr' ? 'Jours suivis' : 'أيام متتبعة',     value: daysTracked,       color: 'var(--status-memorized)'    },
         ].map((stat, i) => (
           <div key={i} className="glass-card p-4 flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -197,7 +197,7 @@ export const CalendarSection = ({
                   outline: isTodayDay ? '2px solid var(--brand-primary)' : isSelected ? '2px solid var(--brand-secondary)' : 'none',
                 }}
               >
-                <span className="text-[10px] sm:text-xs font-black leading-none"
+                <span className="text-xs sm:text-[13px] font-black leading-none"
                       style={{ color: prayerCount === 5 ? 'var(--brand-secondary)' : 'var(--brand-primary)' }}>
                   {format(day, 'd')}
                 </span>
@@ -212,7 +212,7 @@ export const CalendarSection = ({
 
                 {/* Fasting dot */}
                 {data.fasting && (
-                  <div className="w-1 h-1 rounded-full" style={{ background: '#8B2635' }} />
+                  <div className="w-1 h-1 rounded-full" style={{ background: 'var(--brand-primary)' }} />
                 )}
 
                 {/* Pages */}
@@ -255,11 +255,12 @@ export const CalendarSection = ({
                   <button
                     key={prayer}
                     onClick={() => togglePrayer(selectedDay, prayer)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all font-bold text-xs"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all font-bold text-sm"
                     style={{
-                      background: done ? `color-mix(in srgb, ${PRAYER_COLORS[prayer]} 20%, transparent)` : 'color-mix(in srgb, var(--brand-primary) 5%, transparent)',
+                      background: done ? `color-mix(in srgb, ${PRAYER_COLORS[prayer]} 18%, transparent)` : 'color-mix(in srgb, var(--brand-primary) 5%, transparent)',
                       color: done ? PRAYER_COLORS[prayer] : 'var(--brand-text-muted)',
                       border: `1.5px solid ${done ? PRAYER_COLORS[prayer] : 'var(--border-subtle)'}`,
+                      minHeight: '40px',
                     }}
                   >
                     <div className={cn('w-2.5 h-2.5 rounded-full transition-all')}
@@ -275,28 +276,29 @@ export const CalendarSection = ({
           <div className="flex flex-wrap gap-4">
             <button
               onClick={() => toggleFasting(selectedDay)}
-              className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all font-bold text-xs"
+              className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all font-bold text-sm"
               style={{
-                background: selectedDayData.fasting ? 'color-mix(in srgb, #8B2635 12%, transparent)' : 'color-mix(in srgb, var(--brand-primary) 5%, transparent)',
-                color: selectedDayData.fasting ? '#8B2635' : 'var(--brand-text-muted)',
-                border: `1.5px solid ${selectedDayData.fasting ? '#8B2635' : 'var(--border-subtle)'}`,
+                background: selectedDayData.fasting ? 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' : 'color-mix(in srgb, var(--brand-primary) 5%, transparent)',
+                color: selectedDayData.fasting ? 'var(--brand-primary)' : 'var(--brand-text-muted)',
+                border: `1.5px solid ${selectedDayData.fasting ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
+                minHeight: '44px',
               }}
             >
-              <Moon size={14} />
+              <Moon size={15} />
               {lang === 'fr' ? 'Jeûne' : 'صيام'}
             </button>
 
             <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl"
-                 style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', border: '1.5px solid var(--border-subtle)' }}>
+                 style={{ background: 'var(--custom-input-bg)', border: '1.5px solid var(--border-subtle)', minHeight: '44px' }}>
               <BookOpen size={14} style={{ color: 'var(--brand-accent)' }} />
               <input
                 type="number" min="0" max="604"
                 value={selectedDayData.pagesRead || 0}
                 onChange={e => updatePages(selectedDay, parseInt(e.target.value) || 0)}
-                className="w-12 bg-transparent text-xs font-black outline-none"
+                className="w-14 bg-transparent text-sm font-black outline-none"
                 style={{ color: 'var(--brand-primary)' }}
               />
-              <span className="text-[9px] font-bold uppercase tracking-wider"
+              <span className="text-xs font-bold"
                     style={{ color: 'var(--brand-text-muted)' }}>
                 {lang === 'fr' ? 'pages' : 'صفحة'}
               </span>
@@ -309,8 +311,8 @@ export const CalendarSection = ({
       <div className="flex flex-wrap gap-3 px-1">
         {PRAYERS.map(p => (
           <div key={p} className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background: PRAYER_COLORS[p] }} />
-            <span className="text-[9px] font-bold uppercase tracking-wide"
+            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: PRAYER_COLORS[p] }} />
+            <span className="text-[11px] font-bold"
                   style={{ color: 'var(--brand-text-muted)' }}>{p}</span>
           </div>
         ))}

@@ -139,7 +139,7 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
       {/* Pending goals */}
       {pending.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-black mb-3 px-1"
+          <p className="text-[11px] uppercase tracking-widest font-black mb-3 px-1"
              style={{ color: 'var(--brand-text-muted)' }}>
             {lang === 'fr' ? 'En cours' : 'قيد التنفيذ'} ({pending.length})
           </p>
@@ -173,12 +173,11 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
                   <motion.button
                     whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                     onClick={e => { e.stopPropagation(); deleteGoal(goal.id); }}
-                    className="flex-shrink-0 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                    style={{ color: 'rgba(239,68,68,0.5)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    className="danger-btn flex-shrink-0"
+                    style={{ opacity: 0.5 }}
+                    aria-label={lang === 'fr' ? 'Supprimer' : 'حذف'}
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={15} />
                   </motion.button>
                 </motion.div>
               ))}
@@ -191,11 +190,11 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
       {completed.length > 0 && (
         <div>
           <div className="flex items-center gap-3 mb-3 px-1">
-            <p className="text-[10px] uppercase tracking-widest font-black"
+            <p className="text-[11px] uppercase tracking-widest font-black"
                style={{ color: 'var(--brand-text-muted)' }}>
               {lang === 'fr' ? 'Complétés' : 'مكتملة'} ({completed.length})
             </p>
-            <Award size={13} style={{ color: 'var(--brand-secondary)' }} />
+            <Award size={14} style={{ color: 'var(--brand-secondary)' }} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <AnimatePresence mode="popLayout">
@@ -220,12 +219,11 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
                   <motion.button
                     whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                     onClick={e => { e.stopPropagation(); deleteGoal(goal.id); }}
-                    className="flex-shrink-0 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                    style={{ color: 'rgba(239,68,68,0.4)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    className="danger-btn flex-shrink-0"
+                    style={{ opacity: 0.45 }}
+                    aria-label={lang === 'fr' ? 'Supprimer' : 'حذف'}
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={15} />
                   </motion.button>
                 </motion.div>
               ))}

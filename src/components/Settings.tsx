@@ -512,16 +512,16 @@ export const SettingsSection = ({
               }
             }}
             className="w-full flex items-center justify-between p-4 rounded-2xl border transition-all"
-            style={{ background: 'rgba(239,68,68,0.04)', borderColor: 'rgba(239,68,68,0.1)' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.04)')}>
+            style={{ background: 'var(--color-danger-subtle)', borderColor: 'var(--color-danger-border)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-danger) 12%, transparent)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-danger-subtle)')}>
             <div className="flex items-center gap-3">
-              <Trash2 size={16} style={{ color: 'rgba(239,68,68,0.6)' }} />
-              <span className="text-sm font-bold" style={{ color: 'rgba(239,68,68,0.7)' }}>
+              <Trash2 size={16} style={{ color: 'var(--color-danger)', opacity: 0.75 }} />
+              <span className="text-sm font-bold" style={{ color: 'var(--color-danger)', opacity: 0.8 }}>
                 {lang === 'fr' ? 'Réinitialiser les données' : 'إعادة ضبط البيانات'}
               </span>
             </div>
-            <ChevronRight size={16} style={{ color: 'rgba(239,68,68,0.3)' }} />
+            <ChevronRight size={16} style={{ color: 'var(--color-danger)', opacity: 0.4 }} />
           </button>
         </motion.section>
       </div>

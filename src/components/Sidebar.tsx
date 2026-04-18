@@ -157,9 +157,9 @@ export const Sidebar = ({
               )}
 
               <item.icon
-                size={17}
+                size={18}
                 className="transition-all duration-300 group-hover:scale-110 flex-shrink-0"
-                style={isActive ? { color: '#fff' } : { color: 'var(--brand-primary)', opacity: 0.55 }}
+                style={isActive ? { color: '#fff' } : { color: 'var(--brand-primary)', opacity: 0.65 }}
               />
 
               {/* Label desktop */}
@@ -168,14 +168,14 @@ export const Sidebar = ({
                   'text-[12px] whitespace-nowrap leading-none hidden md:block',
                   isActive ? 'text-white font-semibold' : 'font-medium'
                 )}
-                style={isActive ? {} : { color: 'color-mix(in srgb, var(--brand-primary) 65%, transparent)' }}>
+                style={isActive ? {} : { color: 'color-mix(in srgb, var(--brand-primary) 75%, transparent)' }}>
                   {label}
                 </span>
               )}
 
               {/* Label mobile */}
-              <span className="text-[8px] md:hidden whitespace-nowrap leading-none font-bold"
-                    style={{ color: isActive ? '#fff' : 'color-mix(in srgb, var(--brand-primary) 50%, transparent)' }}>
+              <span className="text-[10px] md:hidden whitespace-nowrap leading-none font-bold"
+                    style={{ color: isActive ? '#fff' : 'color-mix(in srgb, var(--brand-primary) 60%, transparent)' }}>
                 {label.slice(0, 6)}
               </span>
             </motion.button>
@@ -235,12 +235,12 @@ export const Sidebar = ({
                   }
                 }}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group"
-                style={{ color: 'rgba(239,68,68,0.4)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.05)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                style={{ color: 'var(--color-danger)', opacity: 0.55 }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-danger-subtle)'; e.currentTarget.style.opacity = '1'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.opacity = '0.55'; }}
               >
                 <Trash2 size={15} className="group-hover:scale-110 transition-transform flex-shrink-0" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">
+                <span className="text-[11px] font-bold uppercase tracking-widest">
                   {lang === 'fr' ? 'Réinitialiser' : 'إعادة ضبط'}
                 </span>
               </button>

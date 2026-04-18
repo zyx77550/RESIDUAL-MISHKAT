@@ -8,32 +8,32 @@ const COLUMN_CONFIG = [
     id: 'not_started' as const,
     labelFr: 'Non commencé',
     labelAr: 'لم يبدأ',
-    color: '#94a3b8',
-    bgOpacity: 0.06,
+    color: 'var(--status-not-started)',
+    bgOpacity: 6,
     icon: BookOpen,
   },
   {
     id: 'in_progress' as const,
     labelFr: 'En apprentissage',
     labelAr: 'قيد الحفظ',
-    color: '#F4A261',
-    bgOpacity: 0.08,
+    color: 'var(--status-in-progress)',
+    bgOpacity: 8,
     icon: Clock,
   },
   {
     id: 'review' as const,
     labelFr: 'En révision',
     labelAr: 'مراجعة',
-    color: '#A8DADC',
-    bgOpacity: 0.08,
+    color: 'var(--status-review)',
+    bgOpacity: 8,
     icon: RotateCcw,
   },
   {
     id: 'memorized' as const,
     labelFr: 'Maîtrisé',
     labelAr: 'تم الحفظ',
-    color: '#B7E4C7',
-    bgOpacity: 0.08,
+    color: 'var(--status-memorized)',
+    bgOpacity: 8,
     icon: CheckCircle,
   },
 ];
@@ -74,22 +74,22 @@ export const KanbanSection = ({
           return (
             <div key={col.id}
               className="flex-1 min-w-[230px] flex flex-col gap-3 rounded-3xl p-4"
-              style={{ background: `color-mix(in srgb, ${col.color} ${Math.round(col.bgOpacity * 100)}%, transparent)` }}
+              style={{ background: `color-mix(in srgb, ${col.color} ${col.bgOpacity}%, transparent)` }}
             >
               {/* Column header */}
-              <div className="flex items-center justify-between px-1 pb-1 border-b"
-                   style={{ borderColor: `color-mix(in srgb, ${col.color} 20%, transparent)` }}>
+              <div className="flex items-center justify-between px-1 pb-2 border-b"
+                   style={{ borderColor: `color-mix(in srgb, ${col.color} 22%, transparent)` }}>
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-                       style={{ background: `color-mix(in srgb, ${col.color} 20%, transparent)` }}>
+                       style={{ background: `color-mix(in srgb, ${col.color} 18%, transparent)` }}>
                     <ColIcon size={14} style={{ color: col.color }} />
                   </div>
                   <h3 className="font-black text-sm" style={{ color: 'var(--brand-primary)' }}>
                     {lang === 'fr' ? col.labelFr : col.labelAr}
                   </h3>
                 </div>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
-                      style={{ background: `color-mix(in srgb, ${col.color} 20%, transparent)`, color: col.color }}>
+                <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full"
+                      style={{ background: `color-mix(in srgb, ${col.color} 18%, transparent)`, color: col.color }}>
                   {surahs.length}
                 </span>
               </div>

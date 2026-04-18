@@ -189,9 +189,10 @@ export const ColoringGrid = ({
           </div>
           {coloredCount > 0 && (
             <button onClick={resetAll}
-              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-105"
-              style={{ background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.6)' }}
-              title={lang === 'fr' ? 'Tout réinitialiser' : 'إعادة ضبط الكل'}>
+              className="danger-btn rounded-xl hover:scale-105"
+              style={{ opacity: 0.7 }}
+              title={lang === 'fr' ? 'Tout réinitialiser' : 'إعادة ضبط الكل'}
+              aria-label={lang === 'fr' ? 'Tout réinitialiser' : 'إعادة ضبط الكل'}>
               <RotateCcw size={16} />
             </button>
           )}

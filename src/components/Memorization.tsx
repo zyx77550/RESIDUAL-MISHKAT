@@ -7,10 +7,10 @@ import { cn } from '../lib/utils';
 type StatusFilter = 'all' | Surah['status'];
 
 const STATUS_CONFIG = {
-  not_started: { color: '#94a3b8', labelFr: 'Non commencé', labelAr: 'لم تبدأ' },
-  in_progress:  { color: '#F4A261', labelFr: 'En cours',     labelAr: 'قيد الحفظ' },
-  review:       { color: '#A8DADC', labelFr: 'En révision',  labelAr: 'مراجعة'   },
-  memorized:    { color: '#B7E4C7', labelFr: 'Mémorisé',     labelAr: 'تم الحفظ' },
+  not_started: { color: 'var(--status-not-started)', labelFr: 'Non commencé', labelAr: 'لم تبدأ' },
+  in_progress:  { color: 'var(--status-in-progress)',  labelFr: 'En cours',     labelAr: 'قيد الحفظ' },
+  review:       { color: 'var(--status-review)',       labelFr: 'En révision',  labelAr: 'مراجعة'   },
+  memorized:    { color: 'var(--status-memorized)',    labelFr: 'Mémorisé',     labelAr: 'تم الحفظ' },
 };
 
 export const MemorizationSection = ({
@@ -42,11 +42,11 @@ export const MemorizationSection = ({
   }, [userData.surahs, search, statusFilter, juzFilter]);
 
   const filterTabs: { id: StatusFilter; labelFr: string; labelAr: string; count: number; color: string }[] = [
-    { id: 'all',         labelFr: 'Toutes', labelAr: 'الكل',      count: 114,           color: 'var(--brand-primary)' },
-    { id: 'memorized',   labelFr: 'Mémo.',  labelAr: 'محفوظ',     count: memorizedCount, color: '#4CAF50' },
-    { id: 'in_progress', labelFr: 'Cours',  labelAr: 'يُحفظ',     count: inProgressCount, color: '#F4A261' },
-    { id: 'review',      labelFr: 'Révision',labelAr: 'مراجعة',   count: reviewCount,    color: '#A8DADC' },
-    { id: 'not_started', labelFr: 'Non déb.',labelAr: 'لم يبدأ',  count: 114 - memorizedCount - inProgressCount - reviewCount, color: '#94a3b8' },
+    { id: 'all',         labelFr: 'Toutes',    labelAr: 'الكل',  count: 114,             color: 'var(--brand-primary)'      },
+    { id: 'memorized',   labelFr: 'Mémorisé',  labelAr: 'محفوظ', count: memorizedCount,  color: 'var(--status-memorized)'   },
+    { id: 'in_progress', labelFr: 'En cours',  labelAr: 'يُحفظ', count: inProgressCount, color: 'var(--status-in-progress)' },
+    { id: 'review',      labelFr: 'Révision',  labelAr: 'مراجعة',count: reviewCount,     color: 'var(--status-review)'      },
+    { id: 'not_started', labelFr: 'Non déb.',  labelAr: 'لم يبدأ',count: 114 - memorizedCount - inProgressCount - reviewCount, color: 'var(--status-not-started)' },
   ];
 
   const progressPct = Math.round((memorizedCount / 114) * 100);
@@ -95,8 +95,8 @@ export const MemorizationSection = ({
         {/* Mini stats */}
         <div className="flex gap-4 mt-3 flex-wrap">
           {[
-            { count: inProgressCount, label: lang === 'fr' ? 'en cours' : 'قيد الحفظ', color: '#F4A261' },
-            { count: reviewCount,     label: lang === 'fr' ? 'en révision' : 'مراجعة',  color: '#A8DADC' },
+            { count: inProgressCount, label: lang === 'fr' ? 'en cours' : 'قيد الحفظ', color: 'var(--status-in-progress)' },
+            { count: reviewCount,     label: lang === 'fr' ? 'en révision' : 'مراجعة',  color: 'var(--status-review)'      },
           ].filter(x => x.count > 0).map((x, i) => (
             <span key={i} className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest"
                   style={{ color: x.color }}>
