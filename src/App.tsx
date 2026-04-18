@@ -11,6 +11,7 @@ import { CalendarSection } from './components/Calendar';
 import { BadgesSection } from './components/Badges';
 import { KanbanSection } from './components/Kanban';
 import { SettingsSection } from './components/Settings';
+import { AlBaqaraSection } from './components/AlBaqara';
 import { jsPDF } from 'jspdf';
 import {
   LayoutDashboard,
@@ -46,7 +47,6 @@ import {
   Brush,
   Settings2,
 } from 'lucide-react';
-import localforage from 'localforage';
 import { cn } from './lib/utils';
 import { Surah, DiftarPage, UserData, Badge, generateAllSurahs, Stroke, Shape, checkLoginStreak } from './types';
 import confetti from 'canvas-confetti';
@@ -80,19 +80,34 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const load = async () => {
     try {
-      // Try localforage first (IndexedDB), fallback to localStorage for migration
-      let parsed: UserData | null = await localforage.getItem<UserData>('mishkat_user_data');
-      if (!parsed) {
-        const lsRaw = localStorage.getItem('mishkat_user_data');
-        if (lsRaw) {
-          try { parsed = JSON.parse(lsRaw); } catch {}
-        }
-      }
+      const saved = localStorage.getItem('mishkat_user_data');
       const today = new Date().toISOString().split('T')[0];
 
-      if (parsed) {
+      if (saved) {
+        let parsed: UserData;
+        try {
+          parsed = JSON.parse(saved);
+        } catch (parseError) {
+          console.error('Failed to parse user data from localStorage, creating fresh data:', parseError);
+          const initial: UserData = {
+            surahs: generateAllSurahs(),
+            diftarPages: [],
+            goals: [
+              { id: '1', text: 'Mémoriser Sourate Al-Mulk', completed: false, month: 3 },
+              { id: '2', text: 'Lire 5 pages par jour', completed: true, month: 3 },
+            ],
+            badges: [], calendar: [], tasbihCount: 0, onboarded: false,
+            loginStreak: 1,
+            lastLoginDate: today,
+            tasbihSessionBest: 0,
+            settings: { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' },
+          };
+          setUserData(initial);
+          setShowOnboarding(true);
+          return;
+        }
+
         if (!parsed.surahs || !Array.isArray(parsed.surahs)) parsed.surahs = generateAllSurahs();
         if (!parsed.diftarPages || !Array.isArray(parsed.diftarPages)) parsed.diftarPages = [];
         if (!parsed.goals || !Array.isArray(parsed.goals)) parsed.goals = [];
@@ -109,8 +124,8 @@ export default function App() {
           const freshSurahs = generateAllSurahs();
           parsed.surahs = freshSurahs.map((fresh: any, i: number) => ({
             ...fresh,
-            status: parsed!.surahs[i]?.status || 'not_started',
-            color: parsed!.surahs[i]?.color,
+            status: parsed.surahs[i]?.status || 'not_started',
+            color: parsed.surahs[i]?.color,
           }));
         }
 
@@ -153,16 +168,16 @@ export default function App() {
       };
       setUserData(initial);
     }
-    };
-    load();
   }, []);
 
-  // ─── CRITICAL: save userData to localforage (IndexedDB) whenever it changes ───
+  // ─── CRITICAL: save userData to localStorage whenever it changes ───
   useEffect(() => {
     if (userData) {
-      localforage.setItem('mishkat_user_data', userData).catch(err => {
+      try {
+        localStorage.setItem('mishkat_user_data', JSON.stringify(userData));
+      } catch (err) {
         console.error('Mishkat: failed to save data', err);
-      });
+      }
     }
   }, [userData]);
 
@@ -195,14 +210,7 @@ export default function App() {
     <div
       className={cn(
         'min-h-screen flex flex-col md:flex-row relative overflow-hidden transition-colors duration-500',
-        userData.settings?.theme === 'dark' ? 'dark'
-          : userData.settings?.theme === 'sepia' ? 'sepia'
-          : userData.settings?.theme === 'emerald' ? 'emerald'
-          : userData.settings?.theme === 'azur' ? 'azur'
-          : userData.settings?.theme === 'safran' ? 'safran'
-          : userData.settings?.theme === 'lilas' ? 'lilas'
-          : userData.settings?.theme === 'ocean' ? 'ocean'
-          : '',
+        userData.settings?.theme === 'dark' ? 'dark' : userData.settings?.theme === 'sepia' ? 'sepia' : '',
         userData.settings?.fontSize === 'small' ? 'text-xs' : userData.settings?.fontSize === 'large' ? 'text-lg' : 'text-base',
         lang === 'ar' ? 'rtl' : 'ltr'
       )}
@@ -218,8 +226,8 @@ export default function App() {
 
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} loginStreak={userData.loginStreak} theme={userData.settings?.theme} />
 
-      <main className={cn('flex-1 relative z-10', activeTab === 'diftar' ? 'overflow-hidden p-1 md:p-2' : 'overflow-y-auto p-4 md:p-12 pb-32 md:pb-12', lang === 'ar' ? 'text-right' : 'text-left')}>
-        <div className={cn('h-full', activeTab !== 'diftar' && 'max-w-7xl mx-auto')}>
+      <main className={cn('flex-1 p-4 md:p-12 pb-32 md:pb-12 relative z-10', activeTab === 'diftar' ? 'overflow-hidden' : 'overflow-y-auto', lang === 'ar' ? 'text-right' : 'text-left')}>
+        <div className="max-w-7xl mx-auto h-full">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
@@ -238,6 +246,7 @@ export default function App() {
                 {activeTab === 'calendar'     && <CalendarSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
                 {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked} />}
                 {activeTab === 'kanban'       && <KanbanSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+                {activeTab === 'albaqara' && <AlBaqaraSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
                 {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
               </motion.div>
             </AnimatePresence>

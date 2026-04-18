@@ -1,0 +1,53 @@
+[33mcommit b6fa92f5572ea0ac0baafa63d69343d71424c7a2[m
+Author: Claude <noreply@anthropic.com>
+Date:   Thu Apr 16 21:10:00 2026 +0000
+
+    fix: move palm rejection before pointer tracking in stylus mode
+    
+    Touch pointers were added to activePointersRef before the rejection check,
+    causing the stylus to trigger pinch mode (size >= 2) instead of drawing.
+    
+    https://claude.ai/code/session_01DTKg2qD5QTupkEkV7Waix9
+
+[1mdiff --git a/src/components/Diftar.tsx b/src/components/Diftar.tsx[m
+[1mindex 4142677..e8d100b 100644[m
+[1m--- a/src/components/Diftar.tsx[m
+[1m+++ b/src/components/Diftar.tsx[m
+[36m@@ -791,6 +791,9 @@[m [mexport const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se[m
+   };[m
+ [m
+   const startDrawing = (e: React.PointerEvent) => {[m
+[32m+[m[32m    // Palm rejection MUST be first — before any pointer tracking[m[41m[m
+[32m+[m[32m    if (stylusModeRef.current && e.pointerType === 'touch') return;[m[41m[m
+[32m+[m[41m[m
+     // Track all active pointers for pinch detection[m
+     activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });[m
+ [m
+[36m@@ -808,9 +811,6 @@[m [mexport const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se[m
+       return;[m
+     }[m
+ [m
+[31m-    // Palm rejection: stylus mode blocks touch input from drawing[m
+[31m-    if (stylusModeRef.current && e.pointerType === 'touch') return;[m
+[31m-[m
+     if (activeShapeTypeRef.current) { handleCanvasClick(e); return; }[m
+     if (activeEmojiRef.current) {[m
+       const { x, y } = getCoords(e);[m
+[36m@@ -877,6 +877,9 @@[m [mexport const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se[m
+   const drawFrameRef = useRef<number>(undefined);[m
+ [m
+   const draw = (e: React.PointerEvent) => {[m
+[32m+[m[32m    // Palm rejection MUST be first[m[41m[m
+[32m+[m[32m    if (stylusModeRef.current && e.pointerType === 'touch') return;[m[41m[m
+[32m+[m[41m[m
+     // Update pointer position for pinch tracking[m
+     activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });[m
+ [m
+[36m@@ -942,6 +945,7 @@[m [mexport const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se[m
+   };[m
+ [m
+   const stopDrawing = (e?: React.PointerEvent) => {[m
+[32m+[m[32m    if (e && stylusModeRef.current && e.pointerType === 'touch') return;[m[41m[m
+     if (e) activePointersRef.current.delete(e.pointerId);[m
+     // Exit pinch mode when fewer than 2 fingers[m
+     if (activePointersRef.current.size < 2) pinchStartRef.current = null;[m
