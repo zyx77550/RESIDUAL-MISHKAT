@@ -212,6 +212,132 @@
 }
 
 /* ══════════════════════════════════════════════════
+   ROSE THEME — Romantique
+══════════════════════════════════════════════════ */
+.rose {
+  --brand-primary: #c2185b;
+  --brand-secondary: #f06292;
+  --brand-accent: #f8bbd0;
+  --brand-surface: rgba(252, 228, 236, 0.88);
+  --brand-page: #fce4ec;
+  --brand-text-main: #4a0828;
+  --brand-text-muted: rgba(194, 24, 91, 0.48);
+  --border-subtle: rgba(194, 24, 91, 0.1);
+  --border-accent: rgba(240, 98, 146, 0.3);
+  --custom-input-bg: rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 2px 16px rgba(194, 24, 91, 0.07);
+  --shadow-medium: 0 8px 40px rgba(194, 24, 91, 0.12);
+  --shadow-strong: 0 20px 70px rgba(194, 24, 91, 0.18);
+}
+
+/* ══════════════════════════════════════════════════
+   MINUIT THEME — Indigo nocturne
+══════════════════════════════════════════════════ */
+.minuit {
+  --brand-primary: #818cf8;
+  --brand-secondary: #a78bfa;
+  --brand-accent: #6366f1;
+  --brand-surface: rgba(15, 15, 40, 0.92);
+  --brand-page: #0a0a1e;
+  --brand-text-main: #e0e7ff;
+  --brand-text-muted: rgba(224, 231, 255, 0.48);
+  --border-subtle: rgba(129, 140, 248, 0.14);
+  --border-accent: rgba(167, 139, 250, 0.28);
+  --custom-input-bg: rgba(255, 255, 255, 0.07);
+  --shadow-soft: 0 2px 16px rgba(0, 0, 0, 0.4);
+  --shadow-medium: 0 8px 40px rgba(0, 0, 0, 0.55);
+  --shadow-strong: 0 20px 70px rgba(0, 0, 0, 0.7);
+  --status-review: #93c5fd;
+  --prayer-fajr: #7dd3fc;
+  --prayer-asr: #86efac;
+  --prayer-isha: #d8b4fe;
+}
+
+/* ══════════════════════════════════════════════════
+   FORÊT THEME — Verdure profonde
+══════════════════════════════════════════════════ */
+.foret {
+  --brand-primary: #6db56d;
+  --brand-secondary: #a3d9a5;
+  --brand-accent: #52a352;
+  --brand-surface: rgba(5, 20, 10, 0.9);
+  --brand-page: #040e06;
+  --brand-text-main: #dcf0dd;
+  --brand-text-muted: rgba(220, 240, 221, 0.48);
+  --border-subtle: rgba(109, 181, 109, 0.15);
+  --border-accent: rgba(163, 217, 165, 0.28);
+  --custom-input-bg: rgba(255, 255, 255, 0.07);
+  --shadow-soft: 0 2px 16px rgba(0, 0, 0, 0.45);
+  --shadow-medium: 0 8px 40px rgba(0, 0, 0, 0.55);
+  --shadow-strong: 0 20px 70px rgba(0, 0, 0, 0.7);
+  --status-review: #93c5fd;
+  --prayer-fajr: #7dd3fc;
+  --prayer-asr: #86efac;
+  --prayer-isha: #d8b4fe;
+}
+
+/* ══════════════════════════════════════════════════
+   SABLE THEME — Désert doré
+══════════════════════════════════════════════════ */
+.sable {
+  --brand-primary: #8b6914;
+  --brand-secondary: #c9a227;
+  --brand-accent: #d4b483;
+  --brand-surface: rgba(252, 247, 236, 0.88);
+  --brand-page: #f9f0d8;
+  --brand-text-main: #3a2706;
+  --brand-text-muted: rgba(139, 105, 20, 0.45);
+  --border-subtle: rgba(139, 105, 20, 0.1);
+  --border-accent: rgba(201, 162, 39, 0.3);
+  --custom-input-bg: rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 2px 16px rgba(139, 105, 20, 0.08);
+  --shadow-medium: 0 8px 40px rgba(139, 105, 20, 0.12);
+  --shadow-strong: 0 20px 70px rgba(139, 105, 20, 0.18);
+}
+
+/* ══════════════════════════════════════════════════
+   CRAMOISI THEME — Rouge sombre
+══════════════════════════════════════════════════ */
+.cramoisi {
+  --brand-primary: #ff6b6b;
+  --brand-secondary: #ffa07a;
+  --brand-accent: #ff4757;
+  --brand-surface: rgba(30, 5, 5, 0.9);
+  --brand-page: #130202;
+  --brand-text-main: #ffe8e8;
+  --brand-text-muted: rgba(255, 232, 232, 0.46);
+  --border-subtle: rgba(255, 107, 107, 0.15);
+  --border-accent: rgba(255, 160, 122, 0.28);
+  --custom-input-bg: rgba(255, 255, 255, 0.07);
+  --shadow-soft: 0 2px 16px rgba(0, 0, 0, 0.45);
+  --shadow-medium: 0 8px 40px rgba(0, 0, 0, 0.55);
+  --shadow-strong: 0 20px 70px rgba(0, 0, 0, 0.7);
+  --status-review: #93c5fd;
+  --prayer-fajr: #7dd3fc;
+  --prayer-asr: #86efac;
+  --prayer-isha: #d8b4fe;
+}
+
+/* ══════════════════════════════════════════════════
+   ARDOISE THEME — Gris bleuté
+══════════════════════════════════════════════════ */
+.ardoise {
+  --brand-primary: #5c7a9e;
+  --brand-secondary: #82a4c0;
+  --brand-accent: #a0bfd4;
+  --brand-surface: rgba(236, 241, 246, 0.88);
+  --brand-page: #e8edf2;
+  --brand-text-main: #1c2c3e;
+  --brand-text-muted: rgba(92, 122, 158, 0.48);
+  --border-subtle: rgba(92, 122, 158, 0.1);
+  --border-accent: rgba(130, 164, 192, 0.3);
+  --custom-input-bg: rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 2px 16px rgba(92, 122, 158, 0.08);
+  --shadow-medium: 0 8px 40px rgba(92, 122, 158, 0.12);
+  --shadow-strong: 0 20px 70px rgba(92, 122, 158, 0.18);
+}
+
+/* ══════════════════════════════════════════════════
    ACCESSIBILITY
 ══════════════════════════════════════════════════ */
 .reduce-animations *, .reduce-animations *::before, .reduce-animations *::after {
@@ -234,6 +360,10 @@
   --brand-surface: rgba(255,255,255,1) !important;
   filter: contrast(1.35) !important;
 }
+
+.colorblind-deuteranopia { filter: saturate(0.55) hue-rotate(-25deg) contrast(1.08); }
+.colorblind-protanopia   { filter: saturate(0.65) hue-rotate(38deg)  contrast(1.06); }
+.colorblind-tritanopia   { filter: saturate(0.75) hue-rotate(185deg) contrast(1.04); }
 
 /* ══════════════════════════════════════════════════
    BASE

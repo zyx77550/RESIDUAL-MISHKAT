@@ -4,7 +4,7 @@ import {
   Settings as SettingsIcon, User, Bell, Clock, Type, Palette, Languages,
   Trash2, Check, Moon, Sun, Coffee, ChevronRight, Flame, Download, Upload,
   Info, Eye, Zap, BookOpen, Volume2, ZoomIn, RefreshCw, Globe, Accessibility,
-  Leaf, Waves, Star, Droplets
+  Leaf, Waves, Star, Droplets, Sunset, TreePine, Wind, Layers
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { UserData, UserSettings } from '../types';
@@ -54,14 +54,20 @@ export const SettingsSection = ({
   };
 
   const themes = [
-    { id: 'light',   icon: Sun,      labelFr: 'Clair',     labelAr: 'فاتح',    bg: '#F5F0E8', accent: '#8B2635' },
-    { id: 'dark',    icon: Moon,     labelFr: 'Sombre',    labelAr: 'داكن',    bg: '#0C0806', accent: '#F4845F' },
-    { id: 'sepia',   icon: Coffee,   labelFr: 'Sépia',     labelAr: 'سيبيا',   bg: '#F0E8CC', accent: '#6B4226' },
-    { id: 'emerald', icon: Leaf,     labelFr: 'Émeraude',  labelAr: 'زمردي',   bg: '#E8F5E9', accent: '#2E7D32' },
-    { id: 'azur',    icon: Waves,    labelFr: 'Azur',      labelAr: 'أزرق',    bg: '#E3F2FD', accent: '#1565C0' },
-    { id: 'safran',  icon: Star,     labelFr: 'Safran',    labelAr: 'زعفران',  bg: '#FFF8E1', accent: '#BF360C' },
-    { id: 'lilas',   icon: Droplets, labelFr: 'Lilas',     labelAr: 'بنفسجي',  bg: '#F3E5F5', accent: '#6A1B9A' },
-    { id: 'ocean',   icon: Moon,     labelFr: 'Océan',     labelAr: 'المحيط',  bg: '#0D1B2A', accent: '#4DD0E1' },
+    { id: 'light',    icon: Sun,      labelFr: 'Clair',     labelAr: 'فاتح',    bg: '#F5F0E8', accent: '#8B2635' },
+    { id: 'dark',     icon: Moon,     labelFr: 'Sombre',    labelAr: 'داكن',    bg: '#0C0806', accent: '#F4845F' },
+    { id: 'sepia',    icon: Coffee,   labelFr: 'Sépia',     labelAr: 'سيبيا',   bg: '#F0E8CC', accent: '#6B4226' },
+    { id: 'emerald',  icon: Leaf,     labelFr: 'Émeraude',  labelAr: 'زمردي',   bg: '#E8F5E9', accent: '#2E7D32' },
+    { id: 'azur',     icon: Waves,    labelFr: 'Azur',      labelAr: 'أزرق',    bg: '#E3F2FD', accent: '#1565C0' },
+    { id: 'safran',   icon: Star,     labelFr: 'Safran',    labelAr: 'زعفران',  bg: '#FFF8E1', accent: '#BF360C' },
+    { id: 'lilas',    icon: Droplets, labelFr: 'Lilas',     labelAr: 'بنفسجي',  bg: '#F3E5F5', accent: '#6A1B9A' },
+    { id: 'ocean',    icon: Moon,     labelFr: 'Océan',     labelAr: 'المحيط',  bg: '#0D1B2A', accent: '#4DD0E1' },
+    { id: 'rose',     icon: Wind,     labelFr: 'Rose',      labelAr: 'وردي',    bg: '#fce4ec', accent: '#c2185b' },
+    { id: 'minuit',   icon: Layers,   labelFr: 'Minuit',    labelAr: 'منتصف الليل', bg: '#0a0a1e', accent: '#818cf8' },
+    { id: 'foret',    icon: TreePine, labelFr: 'Forêt',     labelAr: 'غابة',    bg: '#040e06', accent: '#6db56d' },
+    { id: 'sable',    icon: Sunset,   labelFr: 'Sable',     labelAr: 'رملي',    bg: '#f9f0d8', accent: '#8b6914' },
+    { id: 'cramoisi', icon: Star,     labelFr: 'Cramoisi',  labelAr: 'قرمزي',   bg: '#130202', accent: '#ff6b6b' },
+    { id: 'ardoise',  icon: Layers,   labelFr: 'Ardoise',   labelAr: 'أردوازي', bg: '#e8edf2', accent: '#5c7a9e' },
   ];
 
   const fontSizes = [
@@ -206,7 +212,7 @@ export const SettingsSection = ({
             <label className="text-[9px] uppercase tracking-widest font-black px-1" style={{ color: 'var(--brand-text-muted)' }}>
               {lang === 'fr' ? 'Thème' : 'السمة'}
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
               {themes.map(t => {
                 const isActive = settings.theme === t.id;
                 return (

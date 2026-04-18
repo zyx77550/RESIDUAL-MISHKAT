@@ -167,6 +167,37 @@ export default function App() {
     }
   }, [userData]);
 
+  // ─── SETTINGS: wire up DOM-level effects ───
+  useEffect(() => {
+    if (!userData) return;
+    const s = userData.settings;
+    const root = document.documentElement;
+
+    // UI Zoom
+    root.style.zoom = `${s.uiZoom ?? 100}%`;
+
+    // Reduce animations
+    root.classList.toggle('reduce-animations', s.reduceAnimations ?? false);
+
+    // Dyslexia font
+    root.classList.toggle('dyslexia-font', s.dyslexiaFont ?? false);
+
+    // High contrast (only apply when not already handled by theme filter)
+    root.classList.toggle('high-contrast', s.highContrast ?? false);
+
+    // Line spacing
+    root.classList.remove('line-spacing-comfortable', 'line-spacing-large');
+    if ((s.lineSpacing ?? 'normal') !== 'normal') root.classList.add(`line-spacing-${s.lineSpacing}`);
+
+    // Button size
+    root.classList.remove('button-size-compact', 'button-size-large');
+    if ((s.buttonSize ?? 'normal') !== 'normal') root.classList.add(`button-size-${s.buttonSize}`);
+
+    // Colorblind mode
+    root.classList.remove('colorblind-deuteranopia', 'colorblind-protanopia', 'colorblind-tritanopia');
+    if ((s.colorBlindMode ?? 'none') !== 'none') root.classList.add(`colorblind-${s.colorBlindMode}`);
+  }, [userData]);
+
   useEffect(() => {
     const handleUpdate = (e: any) => {
       setUpdateWorker(e.detail.waiting);
@@ -196,14 +227,8 @@ export default function App() {
     <div
       className={cn(
         'min-h-screen flex flex-col md:flex-row relative overflow-hidden transition-colors duration-500',
-        userData.settings?.theme === 'dark' ? 'dark'
-          : userData.settings?.theme === 'sepia' ? 'sepia'
-          : userData.settings?.theme === 'emerald' ? 'emerald'
-          : userData.settings?.theme === 'azur' ? 'azur'
-          : userData.settings?.theme === 'safran' ? 'safran'
-          : userData.settings?.theme === 'lilas' ? 'lilas'
-          : userData.settings?.theme === 'ocean' ? 'ocean'
-          : '',
+        (['dark','sepia','emerald','azur','safran','lilas','ocean','rose','minuit','foret','sable','cramoisi','ardoise'] as const)
+          .includes(userData.settings?.theme as any) ? userData.settings?.theme : '',
         userData.settings?.fontSize === 'small' ? 'text-xs' : userData.settings?.fontSize === 'large' ? 'text-lg' : 'text-base',
         lang === 'ar' ? 'rtl' : 'ltr'
       )}
@@ -211,13 +236,17 @@ export default function App() {
     >
       {/* Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-[15%] -left-[10%] w-[45%] h-[45%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-secondary) 8%, transparent), transparent 70%)', filter: 'blur(80px)', animationDelay: '0s' }} />
-        <div className="absolute top-[30%] -right-[8%] w-[35%] h-[35%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 6%, transparent), transparent 70%)', filter: 'blur(100px)', animationDelay: '-2.5s' }} />
-        <div className="absolute -bottom-[15%] left-[15%] w-[55%] h-[55%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-accent) 7%, transparent), transparent 70%)', filter: 'blur(120px)', animationDelay: '-5s' }} />
+        {!userData.settings?.staticBackground && (
+          <>
+            <div className="absolute -top-[15%] -left-[10%] w-[45%] h-[45%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-secondary) 8%, transparent), transparent 70%)', filter: 'blur(80px)', animationDelay: '0s' }} />
+            <div className="absolute top-[30%] -right-[8%] w-[35%] h-[35%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 6%, transparent), transparent 70%)', filter: 'blur(100px)', animationDelay: '-2.5s' }} />
+            <div className="absolute -bottom-[15%] left-[15%] w-[55%] h-[55%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-accent) 7%, transparent), transparent 70%)', filter: 'blur(120px)', animationDelay: '-5s' }} />
+          </>
+        )}
         <div className="absolute inset-0 geometric-pattern opacity-40" style={{ color: 'var(--brand-primary)' }} />
       </div>
 
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} loginStreak={userData.loginStreak} theme={userData.settings?.theme} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} loginStreak={userData.loginStreak} theme={userData.settings?.theme} userData={userData} />
 
       <main className={cn('flex-1 relative z-10', activeTab === 'diftar' ? 'overflow-hidden p-1 md:p-2' : 'overflow-y-auto p-4 md:p-12 pb-32 md:pb-12', lang === 'ar' ? 'text-right' : 'text-left')}>
         <div className={cn('h-full', activeTab !== 'diftar' && 'max-w-7xl mx-auto')}>

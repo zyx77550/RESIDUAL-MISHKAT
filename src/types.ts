@@ -46,13 +46,16 @@ export interface DiftarPage {
 }
 
 export interface UserSettings {
-  theme: 'light' | 'dark' | 'sepia' | 'emerald' | 'azur' | 'safran' | 'lilas' | 'ocean';
+  theme: 'light' | 'dark' | 'sepia' | 'emerald' | 'azur' | 'safran' | 'lilas' | 'ocean'
+       | 'rose' | 'minuit' | 'foret' | 'sable' | 'cramoisi' | 'ardoise';
   notifications: boolean;
   dailyReminder: string;
   fontSize: 'small' | 'medium' | 'large';
   showArabicNames: boolean;
   username: string;
   avatar?: string;
+  bio?: string;
+  city?: string;
   // Accessibility
   reduceAnimations?: boolean;
   dyslexiaFont?: boolean;
@@ -67,7 +70,17 @@ export interface UserSettings {
   confirmDelete?: boolean;
   textDirection?: 'auto' | 'ltr' | 'rtl';
   colorBlindMode?: 'none' | 'deuteranopia' | 'protanopia' | 'tritanopia';
-  city?: string;
+  // New settings
+  readingGoal?: number;
+  showHijriDate?: boolean;
+  badgeNotifications?: boolean;
+  sidebarDefaultCollapsed?: boolean;
+  quranFontSize?: 'medium' | 'large' | 'xlarge';
+  weekStartDay?: 0 | 1 | 6;
+  sortMemorizationBy?: 'default' | 'difficulty' | 'juz';
+  streakGoal?: number;
+  showProgressBadge?: boolean;
+  compactCards?: boolean;
 }
 
 export interface Goal {

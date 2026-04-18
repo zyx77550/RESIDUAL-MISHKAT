@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Calendar as CalendarIcon, BookOpen, Target, Award,
   Palette, NotebookPen, Settings, ChevronRight, ChevronLeft, Languages,
-  Trash2, Wind, Kanban, Flame, Moon, Sun
+  Trash2, Wind, Kanban, Flame, User
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { UserData } from '../types';
 
 interface SidebarProps {
   activeTab: string;
@@ -17,11 +18,12 @@ interface SidebarProps {
   loginStreak?: number;
   theme?: string;
   onThemeToggle?: () => void;
+  userData?: UserData | null;
 }
 
 export const Sidebar = ({
   activeTab, setActiveTab, lang, setLang,
-  isCollapsed, setIsCollapsed, loginStreak = 1, theme = 'light', onThemeToggle
+  isCollapsed, setIsCollapsed, loginStreak = 1, theme = 'light', onThemeToggle, userData
 }: SidebarProps) => {
 
   const menuItems = [
@@ -39,6 +41,9 @@ export const Sidebar = ({
   ];
 
   const isRtl = lang === 'ar';
+  const username = userData?.settings?.username || 'Hafiz';
+  const avatar = userData?.settings?.avatar;
+  const initials = username.slice(0, 2).toUpperCase();
 
   return (
     <motion.div
@@ -60,7 +65,7 @@ export const Sidebar = ({
       }}
     >
       {/* ── Logo (desktop) ── */}
-      <div className="hidden md:flex items-center justify-between mb-6 shrink-0 pt-1 px-1">
+      <div className="hidden md:flex items-center justify-between mb-4 shrink-0 pt-1 px-1">
         <AnimatePresence mode="wait">
           {!isCollapsed && (
             <motion.div
@@ -94,30 +99,57 @@ export const Sidebar = ({
         </button>
       </div>
 
-      {/* ── Streak (desktop, expanded) ── */}
-      <AnimatePresence>
-        {!isCollapsed && loginStreak >= 2 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-            animate={{ opacity: 1, height: 'auto', marginBottom: '1rem' }}
-            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-            className="hidden md:flex items-center gap-3 px-3 py-2.5 rounded-xl overflow-hidden"
-            style={{ background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', border: '1px solid var(--border-subtle)' }}
-          >
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                 style={{ background: 'var(--brand-primary)' }}>
-              <Flame size={15} className="text-white" />
+      {/* ── Profile mini-card (desktop) ── */}
+      <div className="hidden md:flex items-center gap-3 mb-4 shrink-0 px-1">
+        {/* Avatar */}
+        <button
+          onClick={() => setActiveTab('settings')}
+          className="flex-shrink-0 rounded-full overflow-hidden transition-all hover:scale-105 hover:ring-2"
+          style={{
+            width: isCollapsed ? '42px' : '38px',
+            height: isCollapsed ? '42px' : '38px',
+            ringColor: 'var(--border-accent)',
+          }}
+        >
+          {avatar ? (
+            <img src={avatar} alt={username} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-white font-black text-xs"
+                 style={{ background: 'linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))' }}>
+              {initials}
             </div>
-            <div>
-              <p className="text-sm font-black text-gradient leading-none">{loginStreak} jours</p>
-              <p className="text-[9px] uppercase tracking-widest font-bold mt-0.5"
-                 style={{ color: 'var(--brand-text-muted)' }}>
-                {lang === 'fr' ? 'de suite' : 'متواصل'}
+          )}
+        </button>
+
+        <AnimatePresence mode="wait">
+          {!isCollapsed && (
+            <motion.div
+              key="profile-info"
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 min-w-0"
+            >
+              <p className="text-sm font-black truncate leading-tight" style={{ color: 'var(--brand-primary)' }}>
+                {username}
               </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {loginStreak >= 2 ? (
+                <div className="flex items-center gap-1 mt-0.5">
+                  <Flame size={10} style={{ color: 'var(--brand-secondary)' }} />
+                  <span className="text-[10px] font-bold" style={{ color: 'var(--brand-text-muted)' }}>
+                    {loginStreak} {lang === 'fr' ? 'jours' : 'يوم'}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--brand-text-muted)' }}>
+                  {lang === 'fr' ? 'Bienvenue !' : 'أهلاً !'}
+                </p>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* ── Menu items ── */}
       <div className="flex md:flex-col gap-1 flex-1">
@@ -143,14 +175,12 @@ export const Sidebar = ({
                 : { color: 'color-mix(in srgb, var(--brand-primary) 55%, transparent)' }
               }
             >
-              {/* Active indicator */}
               {isActive && (
                 <motion.div layoutId="sidebar-pill"
                   className="absolute inset-0 rounded-xl -z-10"
                   style={{ background: 'var(--brand-primary)' }}
                   transition={{ type: 'spring', stiffness: 350, damping: 30 }} />
               )}
-              {/* Hover bg */}
               {!isActive && (
                 <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity -z-10"
                      style={{ background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }} />
@@ -162,7 +192,6 @@ export const Sidebar = ({
                 style={isActive ? { color: '#fff' } : { color: 'var(--brand-primary)', opacity: 0.65 }}
               />
 
-              {/* Label desktop */}
               {!isCollapsed && (
                 <span className={cn(
                   'text-[12px] whitespace-nowrap leading-none hidden md:block',
@@ -173,7 +202,6 @@ export const Sidebar = ({
                 </span>
               )}
 
-              {/* Label mobile */}
               <span className="text-[10px] md:hidden whitespace-nowrap leading-none font-bold"
                     style={{ color: isActive ? '#fff' : 'color-mix(in srgb, var(--brand-primary) 60%, transparent)' }}>
                 {label.slice(0, 6)}
@@ -251,3 +279,4 @@ export const Sidebar = ({
     </motion.div>
   );
 };
+
