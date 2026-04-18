@@ -11,6 +11,7 @@ import { CalendarSection } from './components/Calendar';
 import { BadgesSection } from './components/Badges';
 import { KanbanSection } from './components/Kanban';
 import { SettingsSection } from './components/Settings';
+import { AlBaqaraSection } from './components/AlBaqara';
 import { jsPDF } from 'jspdf';
 import {
   LayoutDashboard,
@@ -238,6 +239,7 @@ export default function App() {
                 {activeTab === 'calendar'     && <CalendarSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
                 {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked} />}
                 {activeTab === 'kanban'       && <KanbanSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+                {activeTab === 'albaqara'     && <AlBaqaraSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
                 {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
               </motion.div>
             </AnimatePresence>
