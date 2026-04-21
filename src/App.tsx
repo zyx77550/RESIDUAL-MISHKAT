@@ -75,7 +75,9 @@ const Fireflies = memo(function Fireflies() {
 export default function App() {
   const [activeTab, setActiveTab]           = useState('dashboard');
   const [lang, setLang]                     = useState<'fr' | 'ar'>('fr');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 1024 : false
+  );
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userData, setUserData]             = useState<UserData | null>(null);
   const [newlyUnlocked, setNewlyUnlocked]   = useState<Badge[]>([]);
