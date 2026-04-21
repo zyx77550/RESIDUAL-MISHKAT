@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
@@ -53,6 +53,25 @@ import { Surah, DiftarPage, UserData, Badge, generateAllSurahs, Stroke, Shape, c
 import confetti from 'canvas-confetti';
 import { checkAndUnlockBadges, celebrateBadgeUnlock } from './lib/badgeEngine';
 
+const Fireflies = memo(function Fireflies() {
+  const flies = useMemo(() =>
+    Array.from({ length: 14 }, (_, i) => ({
+      id: i,
+      left: `${(i * 7.14) % 100}vw`,
+      w: `${3 + (i % 2)}px`,
+      dur: `${14 + (i * 1.5) % 10}s, ${2 + (i * 0.4) % 2}s`,
+      del: `${(i * 0.71) % 10}s`,
+    })), []);
+  return (
+    <div className="fireflies-container" aria-hidden="true">
+      {flies.map(f => (
+        <div key={f.id} className="firefly"
+          style={{ left: f.left, width: f.w, height: f.w, animationDuration: f.dur, animationDelay: f.del }} />
+      ))}
+    </div>
+  );
+});
+
 export default function App() {
   const [activeTab, setActiveTab]           = useState('dashboard');
   const [lang, setLang]                     = useState<'fr' | 'ar'>('fr');
@@ -62,6 +81,9 @@ export default function App() {
   const [newlyUnlocked, setNewlyUnlocked]   = useState<Badge[]>([]);
   const [updateWorker, setUpdateWorker]     = useState<ServiceWorker | null>(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
 
   const updateUserDataWithBadges = useCallback((updater: UserData | ((prev: UserData) => UserData)) => {
     setUserData(prev => {
@@ -176,6 +198,25 @@ export default function App() {
     return () => window.removeEventListener('mishkatUpdateAvailable', handleUpdate);
   }, []);
 
+  useEffect(() => {
+    const check = () => setIsMobileView(window.innerWidth < 768);
+    window.addEventListener('resize', check, { passive: true });
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  useEffect(() => {
+    if (userData?.settings?.reduceAnimations || userData?.settings?.staticBackground || isMobileView) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      document.querySelectorAll<HTMLElement>('.glass-card').forEach(card => {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--mouse-x', `${e.clientX - r.left}px`);
+        card.style.setProperty('--mouse-y', `${e.clientY - r.top}px`);
+      });
+    };
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [userData?.settings?.reduceAnimations, userData?.settings?.staticBackground, isMobileView]);
+
   const applyUpdate = () => {
     if (updateWorker) {
       let refreshing = false;
@@ -211,15 +252,27 @@ export default function App() {
     >
       {/* Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-[15%] -left-[10%] w-[45%] h-[45%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-secondary) 8%, transparent), transparent 70%)', filter: 'blur(80px)', animationDelay: '0s' }} />
-        <div className="absolute top-[30%] -right-[8%] w-[35%] h-[35%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 6%, transparent), transparent 70%)', filter: 'blur(100px)', animationDelay: '-2.5s' }} />
-        <div className="absolute -bottom-[15%] left-[15%] w-[55%] h-[55%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-accent) 7%, transparent), transparent 70%)', filter: 'blur(120px)', animationDelay: '-5s' }} />
+        <div className="absolute -top-[20%] -left-[12%] w-[60%] h-[60%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-secondary) 24%, transparent), transparent 70%)', filter: 'blur(120px)', animationDelay: '0s' }} />
+        <div className="absolute top-[25%] -right-[10%] w-[45%] h-[45%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 18%, transparent), transparent 70%)', filter: 'blur(100px)', animationDelay: '-3s' }} />
+        <div className="absolute -bottom-[20%] left-[10%] w-[65%] h-[65%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-accent) 20%, transparent), transparent 70%)', filter: 'blur(140px)', animationDelay: '-6s' }} />
         <div className="absolute inset-0 geometric-pattern opacity-40" style={{ color: 'var(--brand-primary)' }} />
       </div>
 
+      {/* Fireflies */}
+      {!userData?.settings?.reduceAnimations && !userData?.settings?.staticBackground && <Fireflies />}
+
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} loginStreak={userData.loginStreak} theme={userData.settings?.theme} />
 
-      <main className={cn('flex-1 relative z-10', activeTab === 'diftar' ? 'overflow-hidden p-1 md:p-2' : 'overflow-y-auto p-4 md:p-12 pb-32 md:pb-12', lang === 'ar' ? 'text-right' : 'text-left')}>
+      <main
+        className={cn('flex-1 relative z-10 transition-[margin] duration-500',
+          activeTab === 'diftar' ? 'overflow-hidden p-1 md:p-2' : 'overflow-y-auto p-4 md:p-8 pb-[120px] md:pb-8',
+          lang === 'ar' ? 'text-right' : 'text-left'
+        )}
+        style={!isMobileView ? (lang === 'ar'
+          ? { marginRight: isSidebarCollapsed ? 'calc(78px + 3rem)' : 'calc(280px + 3rem)' }
+          : { marginLeft:  isSidebarCollapsed ? 'calc(78px + 3rem)' : 'calc(280px + 3rem)' }
+        ) : undefined}
+      >
         <div className={cn('h-full', activeTab !== 'diftar' && 'max-w-7xl mx-auto')}>
             <AnimatePresence mode="wait">
               <motion.div
