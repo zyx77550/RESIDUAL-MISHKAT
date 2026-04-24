@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Calendar as CalendarIcon, BookOpen, Target, Award,
@@ -34,29 +34,44 @@ export const Sidebar = ({
     { id: 'coloring',     icon: Palette,          labelFr: 'Coloriage',        labelAr: 'التلوين'     },
     { id: 'diftar',       icon: NotebookPen,      labelFr: 'Diftar',           labelAr: 'الدفتر'      },
     { id: 'kanban',       icon: Kanban,           labelFr: 'Suivi',            labelAr: 'المتابعة'    },
-    { id: 'albaqara',     icon: BookOpen,         labelFr: 'Al-Baqarah',       labelAr: 'البقرة'    },
+    { id: 'albaqara',     icon: BookOpen,         labelFr: 'Al-Baqarah',       labelAr: 'البقرة'      },
     { id: 'settings',     icon: Settings,         labelFr: 'Réglages',         labelAr: 'الإعدادات'   },
   ];
 
   const isRtl = lang === 'ar';
 
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', check, { passive: true });
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   return (
     <motion.div
       initial={false}
-      animate={{ width: isCollapsed ? '78px' : '280px' }}
+      animate={isMobile ? {} : { width: isCollapsed ? '78px' : '280px' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className={cn(
-        'fixed bottom-0 left-0 right-0 md:relative md:h-screen',
-        'backdrop-blur-2xl border-t md:border-t-0 md:border-r',
-        'p-2 md:p-4 flex md:flex-col overflow-x-auto md:overflow-hidden',
-        'no-scrollbar justify-start gap-1 md:gap-1.5 z-50 shrink-0',
-        isRtl ? 'md:order-last md:border-r-0 md:border-l' : ''
+        /* Mobile: bottom floating bar */
+        'fixed bottom-3 left-3 right-3 h-20',
+        'flex flex-row overflow-x-auto no-scrollbar',
+        /* Desktop: floating left/right sidebar */
+        'md:bottom-auto md:right-auto md:flex-col md:overflow-hidden',
+        'md:h-[calc(100vh-3rem)] md:top-6',
+        isRtl ? 'md:right-6 md:left-auto' : 'md:left-6 md:right-auto',
+        /* Shared */
+        'rounded-[1.75rem] md:rounded-[2rem] z-50',
+        'p-2 md:p-5 gap-1 md:gap-1.5 justify-start',
       )}
       style={{
         background: 'var(--brand-surface)',
-        backdropFilter: 'blur(28px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-        borderColor: 'var(--border-subtle)',
+        backdropFilter: 'blur(40px) saturate(200%)',
+        WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+        border: '1px solid var(--border-subtle)',
+        boxShadow: 'var(--shadow-medium), inset 0 1px 0 0 rgba(255,255,255,0.45)',
       }}
     >
       {/* ── Logo (desktop) ── */}
