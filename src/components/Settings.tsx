@@ -4,7 +4,7 @@ import {
   Settings as SettingsIcon, User, Bell, Clock, Type, Palette, Languages,
   Trash2, Check, Moon, Sun, Coffee, ChevronRight, Flame, Download, Upload,
   Info, Eye, Zap, BookOpen, Volume2, ZoomIn, RefreshCw, Globe, Accessibility,
-  Leaf, Waves, Star, Droplets
+  Leaf, Waves, Star, Droplets, Heart, Sprout, Cloud, Sparkles
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { UserData, UserSettings } from '../types';
@@ -62,6 +62,12 @@ export const SettingsSection = ({
     { id: 'safran',  icon: Star,     labelFr: 'Safran',    labelAr: 'زعفران',  bg: '#FFF8E1', accent: '#BF360C' },
     { id: 'lilas',   icon: Droplets, labelFr: 'Lilas',     labelAr: 'بنفسجي',  bg: '#F3E5F5', accent: '#6A1B9A' },
     { id: 'ocean',   icon: Moon,     labelFr: 'Océan',     labelAr: 'المحيط',  bg: '#0D1B2A', accent: '#4DD0E1' },
+    { id: 'rose',    icon: Heart,    labelFr: 'Rose',      labelAr: 'وردي',    bg: '#FCE4EC', accent: '#AD1457' },
+    { id: 'menthe',  icon: Sprout,   labelFr: 'Menthe',    labelAr: 'نعناعي',  bg: '#E0F2F1', accent: '#00796B' },
+    { id: 'ardoise', icon: Cloud,    labelFr: 'Ardoise',   labelAr: 'رمادي',   bg: '#ECEFF1', accent: '#455A64' },
+    { id: 'aurore',  icon: Sparkles, labelFr: 'Aurore',    labelAr: 'ذهبي',    bg: '#FFFDE7', accent: '#C17D11' },
+    { id: 'prune',   icon: Star,     labelFr: 'Prune',     labelAr: 'بنفسجي داكن', bg: '#1A0030', accent: '#CE93D8' },
+    { id: 'corail',  icon: Flame,    labelFr: 'Corail',    labelAr: 'مرجاني',  bg: '#FBE9E7', accent: '#D84315' },
   ];
 
   const fontSizes = [

@@ -196,13 +196,19 @@ export default function App() {
     <div
       className={cn(
         'min-h-screen flex flex-col md:flex-row relative overflow-hidden transition-colors duration-500',
-        userData.settings?.theme === 'dark' ? 'dark'
-          : userData.settings?.theme === 'sepia' ? 'sepia'
+        userData.settings?.theme === 'dark'    ? 'dark'
+          : userData.settings?.theme === 'sepia'   ? 'sepia'
           : userData.settings?.theme === 'emerald' ? 'emerald'
-          : userData.settings?.theme === 'azur' ? 'azur'
-          : userData.settings?.theme === 'safran' ? 'safran'
-          : userData.settings?.theme === 'lilas' ? 'lilas'
-          : userData.settings?.theme === 'ocean' ? 'ocean'
+          : userData.settings?.theme === 'azur'    ? 'azur'
+          : userData.settings?.theme === 'safran'  ? 'safran'
+          : userData.settings?.theme === 'lilas'   ? 'lilas'
+          : userData.settings?.theme === 'ocean'   ? 'ocean'
+          : userData.settings?.theme === 'rose'    ? 'rose'
+          : userData.settings?.theme === 'menthe'  ? 'menthe'
+          : userData.settings?.theme === 'ardoise' ? 'ardoise'
+          : userData.settings?.theme === 'aurore'  ? 'aurore'
+          : userData.settings?.theme === 'prune'   ? 'prune'
+          : userData.settings?.theme === 'corail'  ? 'corail'
           : '',
         userData.settings?.fontSize === 'small' ? 'text-xs' : userData.settings?.fontSize === 'large' ? 'text-lg' : 'text-base',
         lang === 'ar' ? 'rtl' : 'ltr'

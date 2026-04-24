@@ -35,7 +35,8 @@ export interface Shape {
 export interface DiftarPage {
   id: string;
   title: string;
-  type: 'revision' | 'tafsir' | 'dates' | 'objectives' | 'custom';
+  type: 'revision' | 'tafsir' | 'dates' | 'objectives' | 'custom'
+      | 'vocab' | 'dua' | 'notes' | 'schema' | 'tajweed';
   strokes: Stroke[];
   shapes?: Shape[];
   height?: number;
@@ -46,7 +47,8 @@ export interface DiftarPage {
 }
 
 export interface UserSettings {
-  theme: 'light' | 'dark' | 'sepia' | 'emerald' | 'azur' | 'safran' | 'lilas' | 'ocean';
+  theme: 'light' | 'dark' | 'sepia' | 'emerald' | 'azur' | 'safran' | 'lilas' | 'ocean'
+       | 'rose' | 'menthe' | 'ardoise' | 'aurore' | 'prune' | 'corail';
   notifications: boolean;
   dailyReminder: string;
   fontSize: 'small' | 'medium' | 'large';

@@ -175,6 +175,120 @@
 }
 
 /* ══════════════════════════════════════════════════
+   ROSE THEME — Rose fuchsia
+══════════════════════════════════════════════════ */
+.rose {
+  --brand-primary: #AD1457;
+  --brand-secondary: #FFD54F;
+  --brand-accent: #F48FB1;
+  --brand-surface: rgba(252, 228, 236, 0.88);
+  --brand-page: #FCE4EC;
+  --brand-text-main: #4A0019;
+  --brand-text-muted: rgba(173, 20, 87, 0.45);
+  --border-subtle: rgba(173, 20, 87, 0.09);
+  --border-accent: rgba(255, 213, 79, 0.3);
+  --custom-input-bg: rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 2px 16px rgba(173, 20, 87, 0.07);
+  --shadow-medium: 0 8px 40px rgba(173, 20, 87, 0.12);
+  --shadow-strong: 0 20px 70px rgba(173, 20, 87, 0.18);
+}
+
+/* ══════════════════════════════════════════════════
+   MENTHE THEME — Vert menthe / Teal
+══════════════════════════════════════════════════ */
+.menthe {
+  --brand-primary: #00796B;
+  --brand-secondary: #FFC107;
+  --brand-accent: #80CBC4;
+  --brand-surface: rgba(224, 242, 241, 0.88);
+  --brand-page: #E0F2F1;
+  --brand-text-main: #003D33;
+  --brand-text-muted: rgba(0, 121, 107, 0.45);
+  --border-subtle: rgba(0, 121, 107, 0.09);
+  --border-accent: rgba(255, 193, 7, 0.3);
+  --custom-input-bg: rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 2px 16px rgba(0, 121, 107, 0.07);
+  --shadow-medium: 0 8px 40px rgba(0, 121, 107, 0.12);
+  --shadow-strong: 0 20px 70px rgba(0, 121, 107, 0.18);
+}
+
+/* ══════════════════════════════════════════════════
+   ARDOISE THEME — Gris ardoise / Slate
+══════════════════════════════════════════════════ */
+.ardoise {
+  --brand-primary: #455A64;
+  --brand-secondary: #78909C;
+  --brand-accent: #B0BEC5;
+  --brand-surface: rgba(236, 239, 241, 0.88);
+  --brand-page: #ECEFF1;
+  --brand-text-main: #1C313A;
+  --brand-text-muted: rgba(69, 90, 100, 0.45);
+  --border-subtle: rgba(69, 90, 100, 0.09);
+  --border-accent: rgba(120, 144, 156, 0.3);
+  --custom-input-bg: rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 2px 16px rgba(69, 90, 100, 0.07);
+  --shadow-medium: 0 8px 40px rgba(69, 90, 100, 0.12);
+  --shadow-strong: 0 20px 70px rgba(69, 90, 100, 0.18);
+}
+
+/* ══════════════════════════════════════════════════
+   AURORE THEME — Ambre doré / Golden amber
+══════════════════════════════════════════════════ */
+.aurore {
+  --brand-primary: #C17D11;
+  --brand-secondary: #A0522D;
+  --brand-accent: #F5C76E;
+  --brand-surface: rgba(255, 253, 231, 0.88);
+  --brand-page: #FFFDE7;
+  --brand-text-main: #3E2600;
+  --brand-text-muted: rgba(193, 125, 17, 0.48);
+  --border-subtle: rgba(193, 125, 17, 0.09);
+  --border-accent: rgba(160, 82, 45, 0.28);
+  --custom-input-bg: rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 2px 16px rgba(193, 125, 17, 0.07);
+  --shadow-medium: 0 8px 40px rgba(193, 125, 17, 0.12);
+  --shadow-strong: 0 20px 70px rgba(193, 125, 17, 0.18);
+}
+
+/* ══════════════════════════════════════════════════
+   PRUNE THEME — Prune / Nuit violette (dark)
+══════════════════════════════════════════════════ */
+.prune {
+  --brand-primary: #CE93D8;
+  --brand-secondary: #FFD54F;
+  --brand-accent: #BA68C8;
+  --brand-surface: rgba(38, 7, 55, 0.85);
+  --brand-page: #1A0030;
+  --brand-text-main: #F3E5F5;
+  --brand-text-muted: rgba(243, 229, 245, 0.42);
+  --border-subtle: rgba(206, 147, 216, 0.12);
+  --border-accent: rgba(255, 213, 79, 0.25);
+  --custom-input-bg: rgba(255, 255, 255, 0.07);
+  --shadow-soft: 0 2px 16px rgba(0, 0, 0, 0.4);
+  --shadow-medium: 0 8px 40px rgba(0, 0, 0, 0.5);
+  --shadow-strong: 0 20px 70px rgba(0, 0, 0, 0.65);
+}
+
+/* ══════════════════════════════════════════════════
+   CORAIL THEME — Corail / Saumon chaud
+══════════════════════════════════════════════════ */
+.corail {
+  --brand-primary: #D84315;
+  --brand-secondary: #FFA000;
+  --brand-accent: #FF8A65;
+  --brand-surface: rgba(251, 233, 231, 0.88);
+  --brand-page: #FBE9E7;
+  --brand-text-main: #3E0F00;
+  --brand-text-muted: rgba(216, 67, 21, 0.45);
+  --border-subtle: rgba(216, 67, 21, 0.09);
+  --border-accent: rgba(255, 160, 0, 0.3);
+  --custom-input-bg: rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 2px 16px rgba(216, 67, 21, 0.07);
+  --shadow-medium: 0 8px 40px rgba(216, 67, 21, 0.12);
+  --shadow-strong: 0 20px 70px rgba(216, 67, 21, 0.18);
+}
+
+/* ══════════════════════════════════════════════════
    ACCESSIBILITY
 ══════════════════════════════════════════════════ */
 .reduce-animations *, .reduce-animations *::before, .reduce-animations *::after {

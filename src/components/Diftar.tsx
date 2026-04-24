@@ -9,11 +9,16 @@ import { Stroke, Shape, DiftarPage, UserData } from '../types';
 
 // Page templates
 const PAGE_TEMPLATES = [
-  { type: 'revision',   icon: '📖', labelFr: 'Révision',   labelAr: 'مراجعة', paperStyle: 'lines'     as const, paperColor: '#fdfcf8', defaultTitle: { fr: 'Révision', ar: 'مراجعة' } },
-  { type: 'tafsir',     icon: '🔍', labelFr: 'Tafsir',     labelAr: 'تفسير',  paperStyle: 'arabesque' as const, paperColor: '#f4ecd8', defaultTitle: { fr: 'Tafsir', ar: 'تفسير' } },
-  { type: 'dates',      icon: '📅', labelFr: 'Planning',   labelAr: 'تخطيط',  paperStyle: 'grid'      as const, paperColor: '#fdfcf8', defaultTitle: { fr: 'Planning', ar: 'تخطيط' } },
-  { type: 'objectives', icon: '🎯', labelFr: 'Objectifs',  labelAr: 'أهداف',  paperStyle: 'dots'      as const, paperColor: '#fff0f3', defaultTitle: { fr: 'Objectifs', ar: 'أهداف' } },
-  { type: 'custom',     icon: '✨', labelFr: 'Libre',      labelAr: 'حر',     paperStyle: 'blank'     as const, paperColor: '#ffffff',  defaultTitle: { fr: 'Nouvelle Page', ar: 'صفحة جديدة' } },
+  { type: 'revision',   icon: '📖', labelFr: 'Révision',   labelAr: 'مراجعة',   paperStyle: 'lines'        as const, paperColor: '#fdfcf8', defaultTitle: { fr: 'Révision',      ar: 'مراجعة'      } },
+  { type: 'tafsir',     icon: '🔍', labelFr: 'Tafsir',     labelAr: 'تفسير',    paperStyle: 'arabesque'    as const, paperColor: '#f4ecd8', defaultTitle: { fr: 'Tafsir',        ar: 'تفسير'       } },
+  { type: 'dates',      icon: '📅', labelFr: 'Planning',   labelAr: 'تخطيط',    paperStyle: 'grid'         as const, paperColor: '#fdfcf8', defaultTitle: { fr: 'Planning',      ar: 'تخطيط'       } },
+  { type: 'objectives', icon: '🎯', labelFr: 'Objectifs',  labelAr: 'أهداف',    paperStyle: 'dots'         as const, paperColor: '#fff0f3', defaultTitle: { fr: 'Objectifs',     ar: 'أهداف'       } },
+  { type: 'vocab',      icon: '📝', labelFr: 'Vocabulaire',labelAr: 'مفردات',   paperStyle: 'music'        as const, paperColor: '#f8f4ff', defaultTitle: { fr: 'Vocabulaire',   ar: 'مفردات'      } },
+  { type: 'dua',        icon: '🤲', labelFr: "Dou'a",      labelAr: 'دعاء',     paperStyle: 'floral'       as const, paperColor: '#f4f8ec', defaultTitle: { fr: "Dou'a",        ar: 'دعاء'        } },
+  { type: 'notes',      icon: '💡', labelFr: 'Notes',      labelAr: 'ملاحظات',  paperStyle: 'diamond'      as const, paperColor: '#fffbe6', defaultTitle: { fr: 'Notes rapides', ar: 'ملاحظات سريعة'} },
+  { type: 'schema',     icon: '🗺️', labelFr: 'Schéma',     labelAr: 'مخطط',     paperStyle: 'hexagonal'    as const, paperColor: '#e8f4fb', defaultTitle: { fr: 'Schéma',        ar: 'مخطط ذهني'   } },
+  { type: 'tajweed',    icon: '🎵', labelFr: 'Tajweed',    labelAr: 'تجويد',    paperStyle: 'islamic_star' as const, paperColor: '#fff4e6', defaultTitle: { fr: 'Tajweed',       ar: 'تجويد'       } },
+  { type: 'custom',     icon: '✨', labelFr: 'Libre',      labelAr: 'حر',       paperStyle: 'blank'        as const, paperColor: '#ffffff',  defaultTitle: { fr: 'Nouvelle Page', ar: 'صفحة جديدة'  } },
 ];
 
 const PAPER_COLOR_NAMES: Record<string, string> = {
