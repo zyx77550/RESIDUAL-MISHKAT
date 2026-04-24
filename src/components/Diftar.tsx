@@ -1046,7 +1046,21 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     const ro = new ResizeObserver(updateScale);
     if (canvasRef.current) ro.observe(canvasRef.current);
     window.addEventListener('resize', updateScale);
-    return () => { window.removeEventListener('resize', updateScale); ro.disconnect(); };
+
+    // When the scroll container scrolls, canvas.getBoundingClientRect().top changes
+    // but rectCacheRef stays frozen → new strokes land at the wrong position.
+    // Fix: invalidate the rect cache on every scroll event.
+    const sc = scrollContainerRef.current;
+    const updateRectOnScroll = () => {
+      if (canvasRef.current) rectCacheRef.current = canvasRef.current.getBoundingClientRect();
+    };
+    sc?.addEventListener('scroll', updateRectOnScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('resize', updateScale);
+      ro.disconnect();
+      sc?.removeEventListener('scroll', updateRectOnScroll);
+    };
   }, [activePageId]);
 
   const cursorX = useMotionValue(0), cursorY = useMotionValue(0);

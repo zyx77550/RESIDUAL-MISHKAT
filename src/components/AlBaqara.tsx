@@ -1,11 +1,14 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronLeft, Search, BookOpen, ChevronUp, ChevronDown,
-  Copy, Check, X, Bookmark, BookMarked
+  ChevronLeft, ChevronRight, Search, BookOpen,
+  Copy, Check, X, Bookmark, BookMarked, AlignLeft
 } from 'lucide-react';
 import { AL_BAQARA, Verse } from '../data/alBaqaraData';
 import { UserData } from '../types';
+
+const VERSES_PER_PAGE = 15;
+const MAX_W = '820px';
 
 interface AlBaqaraProps {
   userData: UserData;
@@ -14,30 +17,21 @@ interface AlBaqaraProps {
   onBack?: () => void;
 }
 
-export const AlBaqaraSection = ({ userData, setUserData, lang, onBack }: AlBaqaraProps) => {
-  const [search, setSearch] = useState('');
-  const [selectedVerse, setSelectedVerse] = useState<Verse | null>(null);
-  const [copied, setCopied] = useState(false);
+export const AlBaqaraSection = ({ userData, setUserData, lang }: AlBaqaraProps) => {
+  const [search, setSearch]                   = useState('');
+  const [currentPage, setCurrentPage]         = useState(1);
+  const [copied, setCopied]                   = useState(false);
+  const [showExplications, setShowExplications] = useState(false);
+  const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
+  const [selectedVerse, setSelectedVerse]     = useState<Verse | null>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+
   const [bookmarks, setBookmarks] = useState<Set<number>>(() => {
     try {
-      const saved = localStorage.getItem('mishkat_albaqara_bookmarks');
-      return saved ? new Set(JSON.parse(saved)) : new Set();
+      const s = localStorage.getItem('mishkat_albaqara_bookmarks');
+      return s ? new Set(JSON.parse(s)) : new Set();
     } catch { return new Set(); }
   });
-  const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(40);
-  const loaderRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  // Infinite scroll
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => { if (entries[0].isIntersecting) setVisibleCount(c => Math.min(c + 30, AL_BAQARA.length)); },
-      { threshold: 0.1 }
-    );
-    if (loaderRef.current) observer.observe(loaderRef.current);
-    return () => observer.disconnect();
-  }, []);
 
   const filtered = useMemo(() => {
     let list = AL_BAQARA;
@@ -47,25 +41,34 @@ export const AlBaqaraSection = ({ userData, setUserData, lang, onBack }: AlBaqar
       list = list.filter(v =>
         v.arabic.includes(search) ||
         v.explication.toLowerCase().includes(q) ||
-        v.id.toString() === q
+        String(v.id) === q
       );
     }
     return list;
   }, [search, showBookmarksOnly, bookmarks]);
 
-  const visible = filtered.slice(0, visibleCount);
+  const totalPages  = Math.max(1, Math.ceil(filtered.length / VERSES_PER_PAGE));
+  const safePage    = Math.min(currentPage, totalPages);
+  const pageVerses  = filtered.slice((safePage - 1) * VERSES_PER_PAGE, safePage * VERSES_PER_PAGE);
 
-  const toggleBookmark = (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const goTo = (p: number) => {
+    setCurrentPage(Math.max(1, Math.min(totalPages, p)));
+    setTimeout(() => pageRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+    setSelectedVerse(null);
+  };
+
+  const toggleBookmark = useCallback((id: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setBookmarks(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       localStorage.setItem('mishkat_albaqara_bookmarks', JSON.stringify([...next]));
       return next;
     });
-  };
+  }, []);
 
-  const copyVerse = async (verse: Verse) => {
+  const copyVerse = async (verse: Verse, e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await navigator.clipboard.writeText(`${verse.arabic}\n\n${verse.explication}`);
       setCopied(true);
@@ -73,211 +76,365 @@ export const AlBaqaraSection = ({ userData, setUserData, lang, onBack }: AlBaqar
     } catch {}
   };
 
-  const scrollToVerse = (id: number) => {
-    const el = document.getElementById(`verse-${id}`);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  /* ─── sub-components ─── */
+
+  const PageNav = ({ pos }: { pos: 'top' | 'bottom' }) => (
+    <div className={`flex items-center justify-between gap-3 ${pos === 'top' ? 'mb-3' : 'mt-5'}`}
+         style={{ maxWidth: MAX_W, marginLeft: 'auto', marginRight: 'auto' }}>
+      <button
+        onClick={() => goTo(safePage - 1)} disabled={safePage <= 1}
+        className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-[11px] uppercase tracking-wider transition-all disabled:opacity-30"
+        style={{ background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', color: 'var(--brand-primary)' }}
+      >
+        <ChevronLeft size={14} />
+        <span className="hidden sm:inline">{lang === 'fr' ? 'Précédent' : 'السابق'}</span>
+      </button>
+
+      {/* Dots: desktop only, max 10 visible */}
+      <div className="hidden sm:flex gap-1.5 items-center flex-wrap justify-center">
+        {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => i + 1).map(p => (
+          <button key={p} onClick={() => goTo(p)}
+            className="rounded-full transition-all"
+            style={{
+              width: p === safePage ? '24px' : '8px',
+              height: '8px',
+              background: p === safePage ? 'var(--brand-primary)' : 'color-mix(in srgb, var(--brand-primary) 15%, transparent)',
+            }}
+          />
+        ))}
+        {totalPages > 10 && (
+          <span className="text-[10px] font-bold" style={{ color: 'var(--brand-text-muted)' }}>
+            …{totalPages}
+          </span>
+        )}
+      </div>
+
+      {/* Counter: mobile */}
+      <span className="sm:hidden text-sm font-black" style={{ color: 'var(--brand-primary)' }}>
+        {safePage} / {totalPages}
+      </span>
+
+      <button
+        onClick={() => goTo(safePage + 1)} disabled={safePage >= totalPages}
+        className="flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-[11px] uppercase tracking-wider transition-all disabled:opacity-30"
+        style={{ background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', color: 'var(--brand-primary)' }}
+      >
+        <span className="hidden sm:inline">{lang === 'fr' ? 'Suivant' : 'التالي'}</span>
+        <ChevronRight size={14} />
+      </button>
+    </div>
+  );
+
+  /* ─── verse number badge (inline, preserves RTL flow) ─── */
+  const VerseBadge = ({ id }: { id: number }) => {
+    const marked = bookmarks.has(id);
+    return (
+      <span
+        onClick={e => toggleBookmark(id, e)}
+        title={marked ? (lang === 'fr' ? 'Retirer le signet' : 'إزالة العلامة') : (lang === 'fr' ? 'Marquer' : 'وضع علامة')}
+        style={{
+          display: 'inline-block',
+          width: '24px',
+          height: '24px',
+          lineHeight: '24px',
+          textAlign: 'center',
+          verticalAlign: 'middle',
+          borderRadius: '50%',
+          fontSize: '10px',
+          fontWeight: 900,
+          fontFamily: 'Inter, sans-serif',
+          cursor: 'pointer',
+          margin: '0 4px',
+          flexShrink: 0,
+          background: marked
+            ? 'color-mix(in srgb, var(--brand-secondary) 28%, transparent)'
+            : 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)',
+          color: 'var(--brand-secondary)',
+          border: `1.5px solid color-mix(in srgb, var(--brand-secondary) ${marked ? 50 : 22}%, transparent)`,
+          transition: 'all 0.2s ease',
+        }}
+      >
+        {id}
+      </span>
+    );
   };
 
   return (
-    <div className="flex flex-col h-full gap-0 relative">
+    <div className="flex flex-col h-full">
 
       {/* ── Header ── */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex-shrink-0 pb-5"
-      >
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex-shrink-0 pb-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
           <div>
-            <h2 className="text-4xl sm:text-5xl leading-tight" style={{ color: 'var(--brand-primary)', fontFamily: 'Amiri, serif' }}>
+            <h2 className="text-4xl sm:text-5xl leading-tight"
+                style={{ color: 'var(--brand-primary)', fontFamily: 'Amiri, serif' }}>
               سورة البقرة
             </h2>
-            <p className="text-sm font-bold mt-1" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-              {lang === 'fr' ? 'Al-Baqarah · 286 versets · Juz 1-3' : 'البقرة · ٢٨٦ آية · الأجزاء ١-٣'}
+            <p className="text-xs sm:text-sm font-bold mt-1" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
+              {lang === 'fr'
+                ? `Al-Baqarah · ${filtered.length} versets · Page ${safePage}/${totalPages}`
+                : `البقرة · ${filtered.length} آية · صفحة ${safePage}/${totalPages}`}
             </p>
           </div>
 
-          {/* Stats */}
           <div className="flex gap-2 flex-wrap">
-            <div className="glass-card px-4 py-2.5 text-center flex-shrink-0">
-              <p className="text-xl font-black text-gradient leading-none">{bookmarks.size}</p>
-              <p className="text-[8px] uppercase tracking-widest font-bold mt-0.5" style={{ color: 'var(--brand-text-muted)' }}>
-                {lang === 'fr' ? 'signets' : 'علامات'}
-              </p>
-            </div>
-            <div className="glass-card px-4 py-2.5 text-center flex-shrink-0">
-              <p className="text-xl font-black text-gradient leading-none">{filtered.length}</p>
-              <p className="text-[8px] uppercase tracking-widest font-bold mt-0.5" style={{ color: 'var(--brand-text-muted)' }}>
-                {lang === 'fr' ? 'versets' : 'آيات'}
-              </p>
-            </div>
+            <button
+              onClick={() => setShowExplications(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all"
+              style={showExplications
+                ? { background: 'var(--brand-primary)', color: '#fff' }
+                : { background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', color: 'var(--brand-primary)' }}
+            >
+              <AlignLeft size={13} />
+              <span>{lang === 'fr' ? 'Tafsir' : 'تفسير'}</span>
+            </button>
+            <button
+              onClick={() => { setShowBookmarksOnly(v => !v); setCurrentPage(1); setSelectedVerse(null); }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all"
+              style={showBookmarksOnly
+                ? { background: 'var(--brand-secondary)', color: '#fff' }
+                : { background: 'color-mix(in srgb, var(--brand-secondary) 10%, transparent)', color: 'var(--brand-secondary)' }}
+            >
+              <Bookmark size={13} />
+              <span>{lang === 'fr' ? `Signets${bookmarks.size > 0 ? ` (${bookmarks.size})` : ''}` : `علامات`}</span>
+            </button>
           </div>
         </div>
 
-        {/* Search + filter */}
-        <div className="flex gap-2 mt-4">
-          <div className="relative flex-1">
-            <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--brand-text-muted)' }} />
-            <input
-              value={search}
-              onChange={e => { setSearch(e.target.value); setVisibleCount(40); }}
-              placeholder={lang === 'fr' ? 'Rechercher un verset, une explication…' : 'ابحث في الآيات…'}
-              className="mishkat-input pl-11"
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full" style={{ color: 'var(--brand-text-muted)' }}>
-                <X size={13} />
-              </button>
-            )}
-          </div>
-          <button
-            onClick={() => setShowBookmarksOnly(v => !v)}
-            className="px-4 py-2.5 rounded-2xl transition-all flex items-center gap-2 flex-shrink-0 font-bold text-[10px] uppercase tracking-wider"
-            style={showBookmarksOnly
-              ? { background: 'var(--brand-secondary)', color: '#fff' }
-              : { background: 'color-mix(in srgb, var(--brand-secondary) 10%, transparent)', color: 'var(--brand-secondary)' }
-            }
-          >
-            <Bookmark size={14} />
-            <span className="hidden sm:inline">{lang === 'fr' ? 'Signets' : 'علامات'}</span>
-          </button>
+        {/* Search */}
+        <div className="relative">
+          <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: 'var(--brand-text-muted)' }} />
+          <input
+            value={search}
+            onChange={e => { setSearch(e.target.value); setCurrentPage(1); setSelectedVerse(null); }}
+            placeholder={lang === 'fr' ? 'Verset, explication, numéro…' : 'ابحث في الآيات…'}
+            className="mishkat-input pl-10 text-sm"
+          />
+          {search && (
+            <button onClick={() => { setSearch(''); setCurrentPage(1); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full"
+              style={{ color: 'var(--brand-text-muted)' }}>
+              <X size={13} />
+            </button>
+          )}
         </div>
       </motion.div>
 
-      {/* ── Verses list ── */}
-      <div ref={listRef} className="flex-1 overflow-y-auto space-y-3 pr-1 pb-6 custom-scrollbar">
-        {visible.length === 0 && (
-          <div className="text-center py-20">
-            <BookOpen size={52} className="mx-auto mb-3 opacity-20" style={{ color: 'var(--brand-primary)' }} />
-            <p className="text-sm" style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? 'Aucun verset trouvé.' : 'لا توجد آية.'}
-            </p>
-          </div>
-        )}
+      {/* ── Empty state ── */}
+      {filtered.length === 0 && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3">
+          <BookOpen size={44} style={{ color: 'var(--brand-primary)', opacity: 0.2 }} />
+          <p className="text-sm" style={{ color: 'var(--brand-text-muted)' }}>
+            {lang === 'fr' ? 'Aucun verset trouvé.' : 'لا توجد آية.'}
+          </p>
+        </div>
+      )}
 
-        <AnimatePresence mode="popLayout">
-          {visible.map((verse, idx) => {
-            const isBookmarked = bookmarks.has(verse.id);
-            return (
+      {/* ── Content ── */}
+      {filtered.length > 0 && (
+        <div ref={pageRef} className="flex-1 overflow-y-auto pb-8">
+
+          {totalPages > 1 && <PageNav pos="top" />}
+
+          {/* The page */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${safePage}-${search}-${showBookmarksOnly}-${showExplications}`}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.22, ease: 'easeInOut' }}
+              className="mx-auto rounded-2xl sm:rounded-3xl overflow-hidden"
+              style={{
+                maxWidth: MAX_W,
+                background: 'var(--brand-surface)',
+                border: '1px solid var(--border-subtle)',
+                boxShadow: 'var(--shadow-medium)',
+              }}
+            >
+              {/* Top rainbow bar */}
+              <div className="h-1" style={{ background: 'linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-primary))' }} />
+
+              {/* Bismillah — page 1 only, no search active */}
+              {safePage === 1 && !search && !showBookmarksOnly && (
+                <div className="text-center pt-6 pb-3 px-4">
+                  <p className="text-2xl sm:text-3xl"
+                     style={{ color: 'var(--brand-secondary)', fontFamily: 'Amiri, serif', lineHeight: 2 }}>
+                    بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ
+                  </p>
+                  <div className="h-px mx-8 mt-3"
+                       style={{ background: 'linear-gradient(90deg, transparent, var(--border-accent), transparent)' }} />
+                </div>
+              )}
+
+              {/* Verses body */}
+              <div className="px-4 sm:px-8 md:px-12 py-5 sm:py-8">
+
+                {showExplications ? (
+                  /* ── Tafsir mode: verse + explanation per row ── */
+                  <div className="space-y-5 sm:space-y-7">
+                    {pageVerses.map(verse => {
+                      const marked = bookmarks.has(verse.id);
+                      return (
+                        <div key={verse.id} className="relative">
+                          {marked && (
+                            <div className="absolute -left-2 sm:-left-5 top-1 bottom-1 w-0.5 rounded-full"
+                                 style={{ background: 'var(--brand-secondary)' }} />
+                          )}
+                          <div dir="rtl" className="flex items-start gap-2 mb-2">
+                            <p className="flex-1 text-lg sm:text-xl md:text-2xl text-right"
+                               style={{ fontFamily: 'Amiri, serif', color: 'var(--brand-primary)', lineHeight: 2.2 }}>
+                              {verse.arabic}
+                            </p>
+                            <div className="flex flex-col items-center gap-1 pt-1 flex-shrink-0">
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[10px] font-black"
+                                   style={{
+                                     background: 'color-mix(in srgb, var(--brand-secondary) 15%, transparent)',
+                                     color: 'var(--brand-secondary)',
+                                     border: '1.5px solid color-mix(in srgb, var(--brand-secondary) 30%, transparent)',
+                                   }}>
+                                {verse.id}
+                              </div>
+                              <button
+                                onClick={e => toggleBookmark(verse.id, e)}
+                                className="p-1 rounded transition-all"
+                                style={{ color: marked ? 'var(--brand-secondary)' : 'var(--brand-text-muted)', opacity: marked ? 1 : 0.4 }}
+                              >
+                                {marked ? <BookMarked size={11} /> : <Bookmark size={11} />}
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-xs sm:text-sm leading-relaxed italic pl-2 border-l-2"
+                             style={{ color: 'var(--brand-text-muted)', borderColor: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)' }}>
+                            {verse.explication}
+                          </p>
+                          <div className="mt-5 h-px"
+                               style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* ── Continuous page mode ── */
+                  <p dir="rtl" className="text-right"
+                     style={{
+                       fontFamily: 'Amiri, serif',
+                       fontSize: 'clamp(1.1rem, 3vw, 1.4rem)',
+                       lineHeight: 2.6,
+                       color: 'var(--brand-primary)',
+                     }}>
+                    {pageVerses.map(verse => (
+                      <React.Fragment key={verse.id}>
+                        <span
+                          onClick={() => setSelectedVerse(selectedVerse?.id === verse.id ? null : verse)}
+                          style={{
+                            cursor: 'pointer',
+                            borderRadius: '3px',
+                            padding: '0 2px',
+                            transition: 'background 0.15s',
+                            background: selectedVerse?.id === verse.id
+                              ? 'color-mix(in srgb, var(--brand-secondary) 14%, transparent)'
+                              : 'transparent',
+                          }}
+                        >
+                          {verse.arabic}
+                        </span>
+                        <VerseBadge id={verse.id} />
+                      </React.Fragment>
+                    ))}
+                  </p>
+                )}
+              </div>
+
+              {/* Page footer */}
+              <div className="flex items-center justify-between px-5 sm:px-8 py-3 border-t"
+                   style={{ borderColor: 'var(--border-subtle)' }}>
+                <span className="text-[9px] uppercase tracking-widest font-black"
+                      style={{ color: 'var(--brand-text-muted)', opacity: 0.5 }}>
+                  {lang === 'fr' ? `Page ${safePage}` : `صفحة ${safePage}`}
+                </span>
+                <div className="flex gap-1 items-center">
+                  {pageVerses.map(v => (
+                    <div key={v.id} className="rounded-full transition-all"
+                         style={{
+                           width: '5px', height: '5px',
+                           background: bookmarks.has(v.id) ? 'var(--brand-secondary)' : 'var(--border-subtle)',
+                         }} />
+                  ))}
+                </div>
+                <span className="text-[9px] uppercase tracking-widest font-black"
+                      style={{ color: 'var(--brand-text-muted)', opacity: 0.5 }}>
+                  {pageVerses[0]?.id}–{pageVerses[pageVerses.length - 1]?.id}
+                </span>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* ── Selected verse detail (continuous mode) ── */}
+          <AnimatePresence>
+            {selectedVerse && !showExplications && (
               <motion.div
-                id={`verse-${verse.id}`}
-                key={verse.id}
-                layout
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-                transition={{ delay: Math.min(idx * 0.01, 0.3) }}
-                whileHover={{ y: -2 }}
-                onClick={() => setSelectedVerse(selectedVerse?.id === verse.id ? null : verse)}
-                className="glass-card p-5 cursor-pointer group relative overflow-hidden"
-                style={{ borderLeft: isBookmarked ? '3px solid var(--brand-secondary)' : '3px solid transparent' }}
+                exit={{ opacity: 0, y: 12 }}
+                className="mx-auto mt-4 glass-card p-4 sm:p-5 relative overflow-hidden"
+                style={{ maxWidth: MAX_W }}
               >
                 <div className="card-accent-bar" />
-
-                {/* Verse number + actions */}
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black"
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black"
                          style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', color: 'var(--brand-primary)' }}>
-                      {verse.id}
+                      {selectedVerse.id}
                     </div>
-                    <div className="text-[9px] uppercase tracking-widest font-bold" style={{ color: 'var(--brand-text-muted)' }}>
-                      {lang === 'fr' ? `Verset ${verse.id}` : `آية ${verse.id}`}
-                    </div>
+                    <span className="text-[9px] uppercase tracking-widest font-bold" style={{ color: 'var(--brand-text-muted)' }}>
+                      {lang === 'fr' ? `Verset ${selectedVerse.id}` : `الآية ${selectedVerse.id}`}
+                    </span>
                   </div>
-
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                    <button
-                      onClick={e => { e.stopPropagation(); copyVerse(verse); }}
-                      className="p-1.5 rounded-lg transition-all hover:scale-110"
-                      style={{ color: 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}
-                      title={lang === 'fr' ? 'Copier' : 'نسخ'}
-                    >
-                      <Copy size={12} />
+                  <div className="flex gap-1">
+                    <button onClick={e => copyVerse(selectedVerse, e)}
+                      className="p-2 rounded-lg transition-all"
+                      style={{ color: 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}>
+                      <Copy size={13} />
                     </button>
-                    <button
-                      onClick={e => toggleBookmark(verse.id, e)}
-                      className="p-1.5 rounded-lg transition-all hover:scale-110"
+                    <button onClick={e => toggleBookmark(selectedVerse.id, e)}
+                      className="p-2 rounded-lg transition-all"
                       style={{
-                        color: isBookmarked ? 'var(--brand-secondary)' : 'var(--brand-text-muted)',
-                        background: isBookmarked ? 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)' : 'color-mix(in srgb, var(--brand-primary) 6%, transparent)'
-                      }}
-                      title={lang === 'fr' ? (isBookmarked ? 'Retirer le signet' : 'Ajouter un signet') : (isBookmarked ? 'إزالة العلامة' : 'إضافة علامة')}
-                    >
-                      {isBookmarked ? <BookMarked size={12} /> : <Bookmark size={12} />}
+                        color: bookmarks.has(selectedVerse.id) ? 'var(--brand-secondary)' : 'var(--brand-text-muted)',
+                        background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)',
+                      }}>
+                      {bookmarks.has(selectedVerse.id) ? <BookMarked size={13} /> : <Bookmark size={13} />}
+                    </button>
+                    <button onClick={() => setSelectedVerse(null)}
+                      className="p-2 rounded-lg transition-all"
+                      style={{ color: 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}>
+                      <X size={13} />
                     </button>
                   </div>
                 </div>
-
-                {/* Arabic text */}
-                <p className="text-right text-xl leading-loose font-arabic mb-3"
-                   style={{ color: 'var(--brand-primary)', fontFamily: 'Amiri, serif', lineHeight: '2.2' }}>
-                  {verse.arabic}
+                <p dir="rtl" className="text-right text-lg sm:text-xl mb-3"
+                   style={{ fontFamily: 'Amiri, serif', color: 'var(--brand-primary)', lineHeight: 2.2 }}>
+                  {selectedVerse.arabic}
                 </p>
-
-                {/* Explication (expandable) */}
-                <AnimatePresence>
-                  {(selectedVerse?.id === verse.id || search) && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                        <p className="text-sm leading-relaxed italic" style={{ color: 'var(--brand-text-muted)' }}>
-                          {verse.explication}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Expand indicator */}
-                {selectedVerse?.id !== verse.id && !search && (
-                  <div className="flex items-center gap-1 mt-1 text-[9px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-60 transition-opacity"
-                       style={{ color: 'var(--brand-text-muted)' }}>
-                    <ChevronDown size={10} />
-                    {lang === 'fr' ? 'Voir explication' : 'عرض التفسير'}
-                  </div>
-                )}
+                <p className="text-xs sm:text-sm leading-relaxed italic pt-3 border-t"
+                   style={{ color: 'var(--brand-text-muted)', borderColor: 'var(--border-subtle)' }}>
+                  {selectedVerse.explication}
+                </p>
               </motion.div>
-            );
-          })}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
 
-        {/* Infinite scroll trigger */}
-        {visible.length < filtered.length && (
-          <div ref={loaderRef} className="flex justify-center py-6">
-            <div className="flex gap-1">
-              {[0,1,2].map(i => (
-                <motion.div key={i} className="w-2 h-2 rounded-full"
-                  style={{ background: 'var(--brand-primary)', opacity: 0.3 }}
-                  animate={{ opacity: [0.3, 0.8, 0.3] }}
-                  transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* End of list */}
-        {visible.length > 0 && visible.length >= filtered.length && (
-          <div className="text-center py-8 space-y-2">
-            <p className="text-[9px] uppercase tracking-widest font-black" style={{ color: 'var(--brand-text-muted)', opacity: 0.5 }}>
-              {lang === 'fr' ? `— Fin des ${filtered.length} versets —` : `— نهاية الآيات (${filtered.length}) —`}
-            </p>
-          </div>
-        )}
-      </div>
+          {totalPages > 1 && <PageNav pos="bottom" />}
+        </div>
+      )}
 
       {/* ── Copy toast ── */}
       <AnimatePresence>
         {copied && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl"
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
+            className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl pointer-events-none"
             style={{ background: 'var(--brand-primary)', color: '#fff' }}
           >
             <Check size={14} />
@@ -285,20 +442,6 @@ export const AlBaqaraSection = ({ userData, setUserData, lang, onBack }: AlBaqar
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ── Scroll to top ── */}
-      <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        onClick={() => listRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="fixed bottom-24 md:bottom-8 right-4 z-40 w-10 h-10 rounded-full shadow-xl flex items-center justify-center"
-        style={{ background: 'var(--brand-primary)', color: '#fff' }}
-        title={lang === 'fr' ? 'Haut de page' : 'أعلى الصفحة'}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-      >
-        <ChevronUp size={18} />
-      </motion.button>
     </div>
   );
 };
