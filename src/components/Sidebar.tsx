@@ -122,17 +122,20 @@ export const Sidebar = ({
               transition={{ duration: 0.2 }}
               className="flex-1"
             >
-              <div className="relative inline-block">
-                <h1 className="text-3xl text-gradient" style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>
-                  Mishkat
-                </h1>
-                <div className="absolute -bottom-0.5 left-0 right-4 h-px"
-                     style={{ background: 'linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), transparent)', opacity: 0.35 }} />
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-2xl overflow-hidden shadow-md flex-shrink-0">
+                  <img src="/favicon-96x96.png" alt="Mishkat" className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <h1 className="text-xl text-gradient leading-none" style={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
+                    Mishkat
+                  </h1>
+                  <p className="text-[8px] uppercase tracking-[0.3em] mt-0.5 font-bold"
+                     style={{ color: 'var(--brand-secondary)', opacity: 0.65 }}>
+                    مِشْكَاة · حِفْظ القرآن
+                  </p>
+                </div>
               </div>
-              <p className="text-[9px] uppercase tracking-[0.36em] mt-1.5 font-bold"
-                 style={{ color: 'var(--brand-secondary)', opacity: 0.65 }}>
-                مِشْكَاة · حِفْظ القرآن
-              </p>
             </motion.div>
           )}
         </AnimatePresence>

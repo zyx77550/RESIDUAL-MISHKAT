@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, Loader2, BookOpen } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { signIn, signUp } from '../lib/supabase';
 
 interface AuthProps {
@@ -72,9 +72,8 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
       >
         {/* Logo */}
         <div className="text-center space-y-2">
-          <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto shadow-xl"
-            style={{ background: 'var(--brand-primary)' }}>
-            <BookOpen size={30} className="text-white" />
+          <div className="w-20 h-20 rounded-3xl mx-auto shadow-xl overflow-hidden">
+            <img src="/icon-192.png" alt="Mishkat" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-serif italic" style={{ color: 'var(--brand-primary)' }}>
             مِشْكَاة
