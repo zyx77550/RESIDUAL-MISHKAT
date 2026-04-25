@@ -12,6 +12,7 @@ import { BadgesSection } from './components/Badges';
 import { KanbanSection } from './components/Kanban';
 import { SettingsSection } from './components/Settings';
 import { AlBaqaraSection } from './components/AlBaqara';
+import { AdminSection } from './components/Admin';
 import { jsPDF } from 'jspdf';
 import {
   LayoutDashboard,
@@ -263,7 +264,7 @@ export default function App() {
         </div>
       )}
 
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} loginStreak={userData.loginStreak} theme={userData.settings?.theme} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} loginStreak={userData.loginStreak} theme={userData.settings?.theme} isAdmin={userData.settings?.isAdmin} />
 
       <main className={cn('flex-1 relative z-10', activeTab === 'diftar' ? 'overflow-hidden p-1 md:p-2' : 'overflow-y-auto p-4 md:p-12 pb-32 md:pb-12', lang === 'ar' ? 'text-right' : 'text-left')}>
         <div className={cn('h-full', activeTab !== 'diftar' && 'max-w-7xl mx-auto')}>
@@ -287,6 +288,7 @@ export default function App() {
                 {activeTab === 'kanban'       && <KanbanSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
                 {activeTab === 'albaqara'     && <AlBaqaraSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
                 {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
+                {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang} />}
               </motion.div>
             </AnimatePresence>
         </div>

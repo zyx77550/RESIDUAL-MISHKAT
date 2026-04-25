@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Calendar as CalendarIcon, BookOpen, Target, Award,
   Palette, NotebookPen, Settings, ChevronRight, ChevronLeft, Languages,
-  Trash2, Wind, Kanban, Flame, Moon, Sun
+  Trash2, Wind, Kanban, Flame, Moon, Sun, Shield,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -17,11 +17,12 @@ interface SidebarProps {
   loginStreak?: number;
   theme?: string;
   onThemeToggle?: () => void;
+  isAdmin?: boolean;
 }
 
 export const Sidebar = ({
   activeTab, setActiveTab, lang, setLang,
-  isCollapsed, setIsCollapsed, loginStreak = 1, theme = 'light', onThemeToggle
+  isCollapsed, setIsCollapsed, loginStreak = 1, theme = 'light', onThemeToggle, isAdmin = false,
 }: SidebarProps) => {
 
   const menuItems = [
@@ -36,6 +37,7 @@ export const Sidebar = ({
     { id: 'kanban',       icon: Kanban,           labelFr: 'Suivi',            labelAr: 'المتابعة'    },
     { id: 'albaqara',     icon: BookOpen,         labelFr: 'Al-Baqarah',       labelAr: 'البقرة'      },
     { id: 'settings',     icon: Settings,         labelFr: 'Réglages',         labelAr: 'الإعدادات'   },
+    ...(isAdmin ? [{ id: 'admin', icon: Shield, labelFr: 'Admin', labelAr: 'الإدارة' }] : []),
   ];
 
   const isRtl = lang === 'ar';

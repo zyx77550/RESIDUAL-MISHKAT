@@ -55,6 +55,7 @@ export interface UserSettings {
   showArabicNames: boolean;
   username: string;
   avatar?: string;
+  isAdmin?: boolean;
   // Accessibility
   reduceAnimations?: boolean;
   dyslexiaFont?: boolean;
