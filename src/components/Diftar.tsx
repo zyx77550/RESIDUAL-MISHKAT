@@ -162,6 +162,8 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [showPaperSettings, setShowPaperSettings]   = useState(false);
   const [isSaving, setIsSaving]             = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [scrollCharging, setScrollCharging] = useState(false);
+  const [scrollCharged,  setScrollCharged]  = useState(false);
   const [paperStyle, setPaperStyle]         = useState<'lines'|'blank'|'grid'|'dots'|'arabesque'|'diamond'|'hexagonal'|'music'|'floral'|'islamic_star'|'waves'|'leaves'|'crosses'|'triangles'>('lines');
   const [paperColor, setPaperColor]         = useState('#fdfcf8');
   const [pageHeight, setPageHeight]         = useState(5000);
@@ -207,6 +209,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     handle: 'move' | 'nw' | 'ne' | 'sw' | 'se' | 'rotate';
     shapeStartRotation: number;
   } | null>(null);
+  const scrollDragRef     = useRef<{ startY: number; startScrollTop: number } | null>(null);
+  const chargeTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestPointerYRef = useRef(0);
 
   const activePage = userData.diftarPages.find(p => p.id === activePageId);
 
@@ -1875,59 +1880,147 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       </div>
       {/* ─── FIN TOOLBAR FIXÉE ──────────────────────────────────────────────── */}
 
-      {/* ─── Scroll Navigator ─── */}
-      <div className="fixed right-3 top-[88px] bottom-28 z-[70] flex flex-col items-center gap-2 pointer-events-none">
-        {/* Clickable track */}
+      {/* ─── SCROLL HANDLE ─────────────────────────────────────────────────────
+          Maintenir 2 s → gonfle → glisser haut/bas pour scroller.
+          Remplace l'ancien navigator + back-to-top en un seul élément cohérent.
+      ──────────────────────────────────────────────────────────────────────── */}
+      <motion.div
+        className="fixed z-[70] pointer-events-none"
+        animate={{ width: scrollCharged ? 52 : 20 }}
+        transition={{ type: 'spring', damping: 18, stiffness: 280 }}
+        style={{ right: 8, top: 96, bottom: 112 }}
+      >
+        {/* Track — tap pour sauter */}
         <div
-          className="flex-1 w-1 rounded-full relative pointer-events-auto cursor-pointer group/track"
-          style={{ background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)' }}
-          onClick={(e) => {
+          className="absolute inset-0 rounded-full pointer-events-auto"
+          style={{ background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}
+          onPointerDown={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             handleManualScroll(Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)));
           }}
         >
-          {/* Fill */}
-          <div className="absolute top-0 left-0 right-0 rounded-full transition-all duration-100"
-               style={{ height: `${scrollProgress * 100}%`, background: 'color-mix(in srgb, var(--brand-primary) 18%, transparent)' }} />
-          {/* Thumb */}
-          <motion.div
-            className="absolute left-1/2 -translate-x-1/2 w-3 h-8 rounded-full shadow-lg"
+          {/* Barre de progression */}
+          <div
+            className="absolute top-0 left-0 right-0 rounded-full"
             style={{
-              top: `${Math.max(0, Math.min(scrollProgress * 100, 100))}%`,
-              translateY: '-50%',
-              background: 'var(--brand-primary)',
-              boxShadow: '0 2px 10px color-mix(in srgb, var(--brand-primary) 40%, transparent)',
-              opacity: 0.85,
+              height: `${scrollProgress * 100}%`,
+              background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
+              transition: 'height 0.1s linear',
             }}
           />
         </div>
-      </div>
 
-      {/* ─── Scroll Progress Ring (back-to-top) ─── */}
+        {/* Thumb — maintenir 2 s puis glisser */}
+        <motion.div
+          className="absolute rounded-full pointer-events-auto select-none"
+          style={{
+            left: 0, right: 0,
+            top: `calc(${scrollProgress * 100}% - ${scrollProgress * 44}px)`,
+            touchAction: 'none',
+            background: 'var(--brand-primary)',
+          }}
+          animate={{
+            height:    scrollCharged ? 80 : 44,
+            y:         scrollCharged ? -18 : 0,
+            opacity:   scrollCharged ? 1 : scrollCharging ? 0.9 : 0.7,
+            boxShadow: scrollCharged
+              ? '0 0 0 4px color-mix(in srgb, var(--brand-primary) 16%, transparent), 0 4px 16px rgba(0,0,0,0.18)'
+              : 'none',
+          }}
+          transition={{ type: 'spring', damping: 15, stiffness: 260 }}
+          onPointerDown={(e) => {
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+            latestPointerYRef.current = e.clientY;
+            setScrollCharging(true);
+            chargeTimerRef.current = setTimeout(() => {
+              const sc = scrollContainerRef.current;
+              scrollDragRef.current = {
+                startY: latestPointerYRef.current,
+                startScrollTop: sc?.scrollTop ?? 0,
+              };
+              setScrollCharged(true);
+              setScrollCharging(false);
+            }, 2000);
+          }}
+          onPointerMove={(e) => {
+            latestPointerYRef.current = e.clientY;
+            const drag = scrollDragRef.current;
+            if (!drag || !scrollCharged) return;
+            const sc = scrollContainerRef.current;
+            if (!sc) return;
+            const trackEl = (e.currentTarget as HTMLElement).parentElement;
+            if (!trackEl) return;
+            const dy = e.clientY - drag.startY;
+            const trackH = trackEl.clientHeight - 80;
+            sc.scrollTop = drag.startScrollTop + (dy / (trackH || 1)) * (sc.scrollHeight - sc.clientHeight);
+          }}
+          onPointerUp={() => {
+            if (chargeTimerRef.current) clearTimeout(chargeTimerRef.current);
+            scrollDragRef.current = null;
+            setScrollCharged(false);
+            setScrollCharging(false);
+          }}
+          onPointerCancel={() => {
+            if (chargeTimerRef.current) clearTimeout(chargeTimerRef.current);
+            scrollDragRef.current = null;
+            setScrollCharged(false);
+            setScrollCharging(false);
+          }}
+        >
+          {/* Grip — 3 traits normaux, 5 quand gonflé */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-[4px]">
+            {[0, 1, 2, 3, 4].map(i => (
+              <motion.div
+                key={i}
+                className="rounded-full"
+                animate={{
+                  width:   scrollCharged ? 16 : 8,
+                  opacity: i >= 3 ? (scrollCharged ? 0.7 : 0) : 0.7,
+                }}
+                transition={{ type: 'spring', damping: 16, stiffness: 260 }}
+                style={{ height: 1.5, background: 'rgba(255,255,255,0.85)', flexShrink: 0 }}
+              />
+            ))}
+          </div>
+          {/* Halo pendant la charge */}
+          <AnimatePresence>
+            {scrollCharging && (
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 1, 0] }}
+                exit={{ opacity: 0 }}
+                transition={{ repeat: Infinity, duration: 0.9 }}
+                style={{ border: '1.5px solid rgba(255,255,255,0.5)' }}
+              />
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
+
+      {/* ─── Back-to-top (ring de progression) ─── */}
       <AnimatePresence>
-        {scrollProgress > 0.04 && (
+        {scrollProgress > 0.04 && !scrollCharged && (
           <motion.button
             initial={{ opacity: 0, scale: 0.75 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.75 }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
             onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="fixed bottom-6 right-4 z-[70] w-12 h-12 rounded-full flex items-center justify-center pointer-events-auto shadow-xl"
-            style={{ background: 'var(--brand-surface)', border: '1.5px solid color-mix(in srgb, var(--brand-primary) 12%, transparent)' }}
+            className="fixed bottom-28 right-4 z-[69] w-10 h-10 rounded-full flex items-center justify-center pointer-events-auto shadow-lg"
+            style={{ background: 'var(--brand-surface)', border: '1.5px solid color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}
             title={lang === 'fr' ? 'Retour en haut' : 'أعلى الصفحة'}
           >
-            <svg className="absolute inset-0 -rotate-90" width="48" height="48" viewBox="0 0 48 48">
-              <circle cx="24" cy="24" r="20" fill="none" stroke="color-mix(in srgb, var(--brand-primary) 8%, transparent)" strokeWidth="2.5" />
-              <circle cx="24" cy="24" r="20" fill="none" stroke="var(--brand-primary)" strokeWidth="2.5"
+            <svg className="absolute inset-0 -rotate-90" width="40" height="40" viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="color-mix(in srgb, var(--brand-primary) 7%, transparent)" strokeWidth="2" />
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--brand-primary)" strokeWidth="2"
                 strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 20}`}
-                strokeDashoffset={`${2 * Math.PI * 20 * (1 - scrollProgress)}`}
-                style={{ opacity: 0.75, transition: 'stroke-dashoffset 0.15s ease' }}
+                strokeDasharray={`${2 * Math.PI * 16}`}
+                strokeDashoffset={`${2 * Math.PI * 16 * (1 - scrollProgress)}`}
+                style={{ opacity: 0.7, transition: 'stroke-dashoffset 0.15s ease' }}
               />
             </svg>
-            <span className="text-[9px] font-black select-none" style={{ color: 'var(--brand-primary)' }}>
-              ↑
-            </span>
+            <span className="text-[8px] font-black select-none" style={{ color: 'var(--brand-primary)' }}>↑</span>
           </motion.button>
         )}
       </AnimatePresence>
