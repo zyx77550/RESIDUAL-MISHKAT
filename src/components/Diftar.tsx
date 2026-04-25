@@ -1013,9 +1013,12 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   };
 
   useEffect(() => {
-    const timer = setInterval(() => { if (activePageId) savePage(); }, 5000);
+    const intervalSec = userData.settings?.autoSaveInterval;
+    if (intervalSec === 0) return;
+    const ms = intervalSec ? intervalSec * 1000 : 5000;
+    const timer = setInterval(() => { if (activePageId) savePage(); }, ms);
     return () => clearInterval(timer);
-  }, [currentStrokes, shapes, activePageId]);
+  }, [currentStrokes, shapes, activePageId, userData.settings?.autoSaveInterval]);
 
   const createPage = (tpl?: typeof PAGE_TEMPLATES[0]) => {
     const template = tpl || PAGE_TEMPLATES[4];
@@ -1577,7 +1580,8 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="w-full max-w-2xl mx-auto pointer-events-auto"
+              className="w-full max-w-2xl mx-auto pointer-events-auto overflow-y-auto custom-scrollbar"
+              style={{ maxHeight: 'calc(100vh - 90px)' }}
             >
               {showToolsMenu && (
                 <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>

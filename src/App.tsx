@@ -121,6 +121,21 @@ export default function App() {
           parsed.lastLoginDate = today;
         }
 
+        // Migration v1→v2 : les settings d'accessibilité n'avaient aucun effet
+        // avant cette version, donc on remet à undefined les valeurs éventuellement
+        // stockées sans que l'utilisateur ait pu voir leur rendu.
+        if (!parsed.settings.settingsVersion) {
+          parsed.settings.reduceAnimations = undefined;
+          parsed.settings.dyslexiaFont     = undefined;
+          parsed.settings.highContrast     = undefined;
+          parsed.settings.staticBackground = undefined;
+          parsed.settings.lineSpacing      = undefined;
+          parsed.settings.textDirection    = undefined;
+          parsed.settings.colorBlindMode   = undefined;
+          parsed.settings.uiZoom           = undefined;
+          parsed.settings.settingsVersion  = 1;
+        }
+
         setUserData(parsed);
       } else {
         const initial: UserData = {
@@ -192,36 +207,61 @@ export default function App() {
 
   if (!userData) return null;
 
+  const s = userData.settings;
+  const effectiveDir = s?.textDirection === 'rtl' ? 'rtl'
+    : s?.textDirection === 'ltr' ? 'ltr'
+    : lang === 'ar' ? 'rtl' : 'ltr';
+
+  const filterParts = [
+    s?.colorBlindMode === 'deuteranopia' ? 'url(#deuteranopia)'
+      : s?.colorBlindMode === 'protanopia' ? 'url(#protanopia)'
+      : s?.colorBlindMode === 'tritanopia' ? 'url(#tritanopia)'
+      : null,
+    s?.highContrast ? 'contrast(1.35)' : null,
+  ].filter(Boolean);
+
   return (
     <div
       className={cn(
         'min-h-screen flex flex-col md:flex-row relative overflow-hidden transition-colors duration-500',
-        userData.settings?.theme === 'dark'    ? 'dark'
-          : userData.settings?.theme === 'sepia'   ? 'sepia'
-          : userData.settings?.theme === 'emerald' ? 'emerald'
-          : userData.settings?.theme === 'azur'    ? 'azur'
-          : userData.settings?.theme === 'safran'  ? 'safran'
-          : userData.settings?.theme === 'lilas'   ? 'lilas'
-          : userData.settings?.theme === 'ocean'   ? 'ocean'
-          : userData.settings?.theme === 'rose'    ? 'rose'
-          : userData.settings?.theme === 'menthe'  ? 'menthe'
-          : userData.settings?.theme === 'ardoise' ? 'ardoise'
-          : userData.settings?.theme === 'aurore'  ? 'aurore'
-          : userData.settings?.theme === 'prune'   ? 'prune'
-          : userData.settings?.theme === 'corail'  ? 'corail'
-          : '',
-        userData.settings?.fontSize === 'small' ? 'text-xs' : userData.settings?.fontSize === 'large' ? 'text-lg' : 'text-base',
-        lang === 'ar' ? 'rtl' : 'ltr'
+        s?.theme === 'dark'    ? 'dark'    : s?.theme === 'sepia'   ? 'sepia'   :
+        s?.theme === 'emerald' ? 'emerald' : s?.theme === 'azur'    ? 'azur'    :
+        s?.theme === 'safran'  ? 'safran'  : s?.theme === 'lilas'   ? 'lilas'   :
+        s?.theme === 'ocean'   ? 'ocean'   : s?.theme === 'rose'    ? 'rose'    :
+        s?.theme === 'menthe'  ? 'menthe'  : s?.theme === 'ardoise' ? 'ardoise' :
+        s?.theme === 'aurore'  ? 'aurore'  : s?.theme === 'prune'   ? 'prune'   :
+        s?.theme === 'corail'  ? 'corail'  : '',
+        s?.fontSize === 'small' ? 'text-xs' : s?.fontSize === 'large' ? 'text-lg' : 'text-base',
+        effectiveDir === 'rtl' ? 'rtl' : 'ltr',
+        s?.reduceAnimations ? 'reduce-animations'        : '',
+        s?.dyslexiaFont     ? 'dyslexia-font'            : '',
+        s?.highContrast     ? 'high-contrast'            : '',
+        s?.lineSpacing === 'comfortable' ? 'line-spacing-comfortable'
+          : s?.lineSpacing === 'large'   ? 'line-spacing-large' : '',
       )}
-      dir={lang === 'ar' ? 'rtl' : 'ltr'}
+      dir={effectiveDir}
+      style={filterParts.length || (s?.uiZoom && s.uiZoom !== 100) ? {
+        ...(s?.uiZoom && s.uiZoom !== 100 ? { zoom: `${s.uiZoom}%` } : {}),
+        ...(filterParts.length ? { filter: filterParts.join(' ') } : {}),
+      } : undefined}
     >
+      {/* SVG filters daltonisme */}
+      <svg width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }}>
+        <defs>
+          <filter id="deuteranopia"><feColorMatrix type="matrix" values="0.625 0.375 0 0 0  0.7 0.3 0 0 0  0 0.3 0.7 0 0  0 0 0 1 0"/></filter>
+          <filter id="protanopia"><feColorMatrix type="matrix" values="0.567 0.433 0 0 0  0.558 0.442 0 0 0  0 0.242 0.758 0 0  0 0 0 1 0"/></filter>
+          <filter id="tritanopia"><feColorMatrix type="matrix" values="0.95 0.05 0 0 0  0 0.433 0.567 0 0  0 0.475 0.525 0 0  0 0 0 1 0"/></filter>
+        </defs>
+      </svg>
       {/* Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-[15%] -left-[10%] w-[45%] h-[45%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-secondary) 8%, transparent), transparent 70%)', filter: 'blur(80px)', animationDelay: '0s' }} />
-        <div className="absolute top-[30%] -right-[8%] w-[35%] h-[35%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 6%, transparent), transparent 70%)', filter: 'blur(100px)', animationDelay: '-2.5s' }} />
-        <div className="absolute -bottom-[15%] left-[15%] w-[55%] h-[55%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-accent) 7%, transparent), transparent 70%)', filter: 'blur(120px)', animationDelay: '-5s' }} />
-        <div className="absolute inset-0 geometric-pattern opacity-40" style={{ color: 'var(--brand-primary)' }} />
-      </div>
+      {!s?.staticBackground && (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-[15%] -left-[10%] w-[45%] h-[45%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-secondary) 8%, transparent), transparent 70%)', filter: 'blur(80px)', animationDelay: '0s' }} />
+          <div className="absolute top-[30%] -right-[8%] w-[35%] h-[35%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 6%, transparent), transparent 70%)', filter: 'blur(100px)', animationDelay: '-2.5s' }} />
+          <div className="absolute -bottom-[15%] left-[15%] w-[55%] h-[55%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-accent) 7%, transparent), transparent 70%)', filter: 'blur(120px)', animationDelay: '-5s' }} />
+          <div className="absolute inset-0 geometric-pattern opacity-40" style={{ color: 'var(--brand-primary)' }} />
+        </div>
+      )}
 
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} loginStreak={userData.loginStreak} theme={userData.settings?.theme} />
 

@@ -70,6 +70,7 @@ export interface UserSettings {
   textDirection?: 'auto' | 'ltr' | 'rtl';
   colorBlindMode?: 'none' | 'deuteranopia' | 'protanopia' | 'tritanopia';
   city?: string;
+  settingsVersion?: number;
 }
 
 export interface Goal {
