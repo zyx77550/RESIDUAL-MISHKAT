@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Mishkat — Design Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0e0a08;color:#f5f0eb;font-family:'DM Sans',sans-serif;padding:40px 24px;min-height:100vh}
+h2{font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.45em;text-transform:uppercase;color:#C4973F;margin-bottom:20px;opacity:.8}
+section{margin-bottom:56px}
+.row{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.label{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:#666;margin-top:8px;text-align:center}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;border-radius:100px;font-size:13px;font-weight:600;cursor:pointer;border:none;letter-spacing:.04em;transition:all .25s;position:relative;overflow:hidden}
+
+/* B1 — Crimson solid */
+.b1{background:#8B2635;color:#fff;box-shadow:0 8px 24px rgba(139,38,53,.35)}
+.b1:hover{background:#a02d3e;box-shadow:0 12px 32px rgba(139,38,53,.5);transform:translateY(-2px)}
+
+/* B2 — Gold shimmer */
+.b2{background:linear-gradient(135deg,#C4973F,#e8bb6a,#C4973F);background-size:200% 100%;color:#1a0e08;font-weight:700;box-shadow:0 8px 24px rgba(196,151,63,.3)}
+.b2:hover{background-position:100% 0;box-shadow:0 12px 36px rgba(196,151,63,.5);transform:translateY(-2px)}
+
+/* B3 — Ghost outline */
+.b3{background:transparent;color:#C4973F;border:1.5px solid rgba(196,151,63,.4);border-radius:12px}
+.b3:hover{background:rgba(196,151,63,.08);border-color:#C4973F}
+
+/* B4 — Dark glass */
+.b4{background:rgba(255,255,255,.06);color:#f5f0eb;border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(12px);border-radius:14px}
+.b4:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2)}
+
+/* B5 — Pill minimal */
+.b5{background:transparent;color:#8B2635;border:2px solid #8B2635;border-radius:6px;padding:12px 24px;font-weight:700;letter-spacing:.08em;font-size:11px;text-transform:uppercase}
+.b5:hover{background:#8B2635;color:#fff}
+
+.btn-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+
+/* ── CARDS ── */
+.cards-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}
+
+/* C1 — Dark glass */
+.card1{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(20px);border-radius:20px;padding:24px;transition:all .3s}
+.card1:hover{background:rgba(255,255,255,.07);border-color:rgba(196,151,63,.3);transform:translateY(-4px)}
+
+/* C2 — Crimson accent left border */
+.card2{background:#16100d;border-left:3px solid #8B2635;border-radius:0 16px 16px 0;padding:24px;transition:all .3s}
+.card2:hover{border-left-color:#C4973F;background:#1c120e}
+
+/* C3 — Warm parchment (light) */
+.card3{background:#fdfcf8;border:1px solid rgba(139,38,53,.12);border-radius:16px;padding:24px;color:#1a0e08;box-shadow:0 4px 24px rgba(0,0,0,.08);transition:all .3s}
+.card3:hover{box-shadow:0 12px 40px rgba(139,38,53,.15);transform:translateY(-3px)}
+
+/* C4 — Gold border top */
+.card4{background:linear-gradient(160deg,rgba(196,151,63,.06),rgba(139,38,53,.04));border:1px solid rgba(196,151,63,.2);border-top:2px solid #C4973F;border-radius:16px;padding:24px;transition:all .3s}
+.card4:hover{border-color:rgba(196,151,63,.4);background:linear-gradient(160deg,rgba(196,151,63,.1),rgba(139,38,53,.07))}
+
+.card-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;margin-bottom:6px}
+.card-sub{font-size:11px;opacity:.5;letter-spacing:.04em}
+.card-val{font-size:28px;font-weight:700;margin:12px 0 4px;color:#C4973F}
+.card3 .card-val{color:#8B2635}
+.card3 .card-title{color:#1a0e08}
+.card3 .card-sub{color:#1a0e08}
+
+/* ── SIDEBARS ── */
+.sidebars-row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+
+/* S1 — Rounded floating dark */
+.sb1{width:68px;background:#16100d;border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.sb-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;transition:all .2s;color:rgba(255,255,255,.35)}
+.sb-icon:hover{background:rgba(196,151,63,.12);color:#C4973F}
+.sb-icon.active{background:#8B2635;color:#fff;box-shadow:0 6px 20px rgba(139,38,53,.4)}
+.sb-divider{width:32px;height:1px;background:rgba(255,255,255,.08);margin:4px 0}
+
+/* S2 — Wide panel with labels, light */
+.sb2{width:200px;background:#fdfcf8;border-radius:20px;padding:20px 14px;display:flex;flex-direction:column;gap:4px;box-shadow:0 8px 40px rgba(0,0,0,.12)}
+.sb2-logo{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:#8B2635;padding:8px 12px 20px;border-bottom:1px solid rgba(139,38,53,.1);margin-bottom:8px}
+.sb2-logo span{display:block;font-size:9px;letter-spacing:.3em;color:#C4973F;font-family:'DM Sans',sans-serif;font-weight:400;margin-top:2px}
+.sb2-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-size:12px;font-weight:500;color:#555;cursor:pointer;transition:all .2s}
+.sb2-item:hover{background:rgba(139,38,53,.06);color:#8B2635}
+.sb2-item.active{background:#8B2635;color:#fff;font-weight:600}
+.sb2-item span{font-size:15px}
+
+/* S3 — Vertical pill, very minimal */
+.sb3{width:56px;background:linear-gradient(180deg,#8B2635,#5c1820);border-radius:28px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;box-shadow:0 16px 48px rgba(139,38,53,.4)}
+.sb3-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:rgba(255,255,255,.4);transition:all .2s}
+.sb3-icon:hover{color:#fff;background:rgba(255,255,255,.1)}
+.sb3-icon.active{color:#C4973F;background:rgba(196,151,63,.15)}
+
+/* ── PAGE TITLE ── */
+.page-title{font-family:'Cormorant Garamond',serif;font-size:13px;letter-spacing:.5em;text-transform:uppercase;color:rgba(196,151,63,.6);margin-bottom:56px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.06)}
+.page-title span{color:#8B2635}
+
+/* inputs preview */
+.input-row{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.inp-wrap{display:flex;flex-direction:column;gap:6px}
+.inp-label{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:#666}
+
+.inp1{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:13px 16px;color:#f5f0eb;font-size:13px;font-family:'DM Sans',sans-serif;width:200px;outline:none;transition:all .2s}
+.inp1:focus{border-color:#C4973F;background:rgba(196,151,63,.05)}
+
+.inp2{background:#fdfcf8;border:none;border-bottom:2px solid rgba(139,38,53,.2);padding:12px 4px;color:#1a0e08;font-size:13px;font-family:'DM Sans',sans-serif;width:200px;outline:none;border-radius:0;transition:all .2s}
+.inp2:focus{border-bottom-color:#8B2635}
+
+.inp3{background:transparent;border:1.5px solid rgba(196,151,63,.3);border-radius:8px;padding:12px 16px;color:#f5f0eb;font-size:13px;font-family:'DM Sans',sans-serif;width:200px;outline:none;transition:all .2s}
+.inp3:focus{border-color:#C4973F;box-shadow:0 0 0 3px rgba(196,151,63,.1)}
+</style>
+</head>
+<body>
+
+<p class="page-title">Mishkat · <span>Design System Preview</span> · Choisis ce que tu aimes</p>
+
+<!-- BOUTONS -->
+<section>
+  <h2>Boutons</h2>
+  <div class="row">
+    <div class="btn-wrap"><button class="btn b1">Se connecter</button><span class="label">B1 · Crimson solid</span></div>
+    <div class="btn-wrap"><button class="btn b2">✦ Créer mon compte</button><span class="label">B2 · Gold shimmer</span></div>
+    <div class="btn-wrap"><button class="btn b3">Inscription</button><span class="label">B3 · Ghost outline</span></div>
+    <div class="btn-wrap"><button class="btn b4">Continuer →</button><span class="label">B4 · Dark glass</span></div>
+    <div class="btn-wrap"><button class="btn b5">Connexion</button><span class="label">B5 · Pill minimal</span></div>
+  </div>
+</section>
+
+<!-- INPUTS -->
+<section>
+  <h2>Champs de saisie</h2>
+  <div class="input-row">
+    <div class="inp-wrap"><span class="inp-label">I1 · Glass dark</span><input class="inp1" placeholder="Adresse email"/></div>
+    <div class="inp-wrap"><span class="inp-label">I2 · Underline light</span><input class="inp2" placeholder="Adresse email"/></div>
+    <div class="inp-wrap"><span class="inp-label">I3 · Gold border</span><input class="inp3" placeholder="Adresse email"/></div>
+  </div>
+</section>
+
+<!-- CARDS -->
+<section>
+  <h2>Cards / Tuiles</h2>
+  <div class="cards-row">
+    <div class="card1">
+      <div class="card-sub">Utilisateurs</div>
+      <div class="card-val">1 247</div>
+      <div class="card-title">C1 · Dark glass</div>
+    </div>
+    <div class="card2">
+      <div class="card-sub">Pages Diftar</div>
+      <div class="card-val">8 934</div>
+      <div class="card-title">C2 · Crimson border</div>
+    </div>
+    <div class="card3">
+      <div class="card-sub" style="color:#888">Actifs aujourd'hui</div>
+      <div class="card-val">342</div>
+      <div class="card-title">C3 · Parchment light</div>
+    </div>
+    <div class="card4">
+      <div class="card-sub">Nouveaux / semaine</div>
+      <div class="card-val">89</div>
+      <div class="card-title">C4 · Gold top</div>
+    </div>
+  </div>
+</section>
+
+<!-- SIDEBARS -->
+<section>
+  <h2>Sidebars</h2>
+  <div class="sidebars-row">
+
+    <!-- S1 icon-only dark -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div class="sb1">
+        <div class="sb-icon active">⊞</div>
+        <div class="sb-icon">📅</div>
+        <div class="sb-icon">📖</div>
+        <div class="sb-icon">🎯</div>
+        <div class="sb-divider"></div>
+        <div class="sb-icon">✏️</div>
+        <div class="sb-icon">🎨</div>
+        <div class="sb-icon">⚙️</div>
+      </div>
+      <span class="label">S1 · Icon-only dark</span>
+    </div>
+
+    <!-- S2 wide with labels light -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div class="sb2">
+        <div class="sb2-logo">Mishkat<span>مِشْكَاة · حِفْظ القرآن</span></div>
+        <div class="sb2-item active"><span>⊞</span> Tableau de bord</div>
+        <div class="sb2-item"><span>📅</span> Calendrier</div>
+        <div class="sb2-item"><span>📖</span> Mémorisation</div>
+        <div class="sb2-item"><span>🎯</span> Objectifs</div>
+        <div class="sb2-item"><span>✏️</span> Diftar</div>
+        <div class="sb2-item"><span>⚙️</span> Réglages</div>
+      </div>
+      <span class="label">S2 · Wide labels light</span>
+    </div>
+
+    <!-- S3 pill crimson -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div class="sb3">
+        <div class="sb3-icon active">⊞</div>
+        <div class="sb3-icon">📅</div>
+        <div class="sb3-icon">📖</div>
+        <div class="sb3-icon">🎯</div>
+        <div class="sb3-icon">✏️</div>
+        <div class="sb3-icon">🎨</div>
+        <div class="sb3-icon">⚙️</div>
+      </div>
+      <span class="label">S3 · Pill crimson</span>
+    </div>
+
+  </div>
+</section>
+
+</body>
+</html>
