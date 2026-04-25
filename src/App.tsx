@@ -325,10 +325,11 @@ export default function App() {
           : s?.lineSpacing === 'large'   ? 'line-spacing-large' : '',
       )}
       dir={effectiveDir}
-      style={filterParts.length || (s?.uiZoom && s.uiZoom !== 100) ? {
+      style={{
+        background: 'transparent',
         ...(s?.uiZoom && s.uiZoom !== 100 ? { zoom: `${s.uiZoom}%` } : {}),
         ...(filterParts.length ? { filter: filterParts.join(' ') } : {}),
-      } : undefined}
+      }}
     >
       {/* SVG filters daltonisme */}
       <svg width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }}>
@@ -340,7 +341,7 @@ export default function App() {
       </svg>
       {/* Background — Midnight Sky */}
       {!s?.staticBackground && (
-        <div className="uiverse-midnight-sky fixed inset-0 pointer-events-none" style={{ zIndex: 0 }}>
+        <div className="uiverse-midnight-sky pointer-events-none" style={{ position: 'fixed', inset: 0, zIndex: 0, minHeight: '100vh', height: '100vh', width: '100vw' }}>
           <div className="sky-canvas">
             <div className="stars stars-1"></div>
             <div className="stars stars-2"></div>
