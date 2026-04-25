@@ -75,9 +75,12 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
           <div className="w-20 h-20 rounded-3xl mx-auto shadow-xl overflow-hidden">
             <img src="/icon-192.png" alt="Mishkat" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-3xl font-serif italic" style={{ color: 'var(--brand-primary)' }}>
-            مِشْكَاة
+          <h1 style={{ fontFamily: "'Libre Baskerville', serif", fontWeight: 700, fontSize: '28px', color: 'var(--brand-primary)' }}>
+            Mishkat
           </h1>
+          <p style={{ fontFamily: "'Amiri', serif", fontSize: '18px', color: 'var(--brand-secondary)', opacity: 0.8 }}>
+            مِشْكَاة
+          </p>
           <p className="text-xs uppercase tracking-[0.35em] font-bold"
             style={{ color: 'var(--brand-secondary)', opacity: 0.65 }}>
             {fr ? 'Votre compagnon de mémorisation' : 'رفيق حفظ القرآن'}
