@@ -162,8 +162,8 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [showPaperSettings, setShowPaperSettings]   = useState(false);
   const [isSaving, setIsSaving]             = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [scrollCharging, setScrollCharging] = useState(false);
-  const [scrollCharged,  setScrollCharged]  = useState(false);
+  const [scrollHover,    setScrollHover]    = useState(false);
+  const [scrollActive,   setScrollActive]   = useState(false);
   const [paperStyle, setPaperStyle]         = useState<'lines'|'blank'|'grid'|'dots'|'arabesque'|'diamond'|'hexagonal'|'music'|'floral'|'islamic_star'|'waves'|'leaves'|'crosses'|'triangles'>('lines');
   const [paperColor, setPaperColor]         = useState('#fdfcf8');
   const [pageHeight, setPageHeight]         = useState(5000);
@@ -209,9 +209,8 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     handle: 'move' | 'nw' | 'ne' | 'sw' | 'se' | 'rotate';
     shapeStartRotation: number;
   } | null>(null);
-  const scrollDragRef     = useRef<{ startY: number; startScrollTop: number } | null>(null);
-  const chargeTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestPointerYRef = useRef(0);
+  const scrollDragRef  = useRef<{ startY: number; startScrollTop: number } | null>(null);
+  const hideTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activePage = userData.diftarPages.find(p => p.id === activePageId);
 
@@ -1880,157 +1879,180 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       </div>
       {/* ─── FIN TOOLBAR FIXÉE ──────────────────────────────────────────────── */}
 
-      {/* ─── SCROLL HANDLE ─────────────────────────────────────────────────────
-          Maintenir 2 s → gonfle → glisser haut/bas pour scroller.
-          Remplace l'ancien navigator + back-to-top en un seul élément cohérent.
+      {/* ─── SMART SCROLL HANDLE ────────────────────────────────────────────────
+          Comportement intelligent :
+          • Thumb proportionnel au ratio viewport/contenu (vrai OS scrollbar)
+          • Apparaît au scroll ou au survol du bord droit, disparaît après inactivité
+          • Stylet (pointerType='pen') → réponse immédiate, zéro latence
+          • Zone d'approche invisible 32px : pas de blocage du dessin sur le canvas
+          • Drag direct sans attente — vitesse 1:1 avec le déplacement
       ──────────────────────────────────────────────────────────────────────── */}
-      <motion.div
-        className="fixed z-[70] pointer-events-none"
-        animate={{ width: scrollCharged ? 52 : 20 }}
-        transition={{ type: 'spring', damping: 18, stiffness: 280 }}
-        style={{ right: 8, top: 96, bottom: 112 }}
-      >
-        {/* Track — tap pour sauter */}
-        <div
-          className="absolute inset-0 rounded-full pointer-events-auto"
-          style={{ background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}
-          onPointerDown={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            handleManualScroll(Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)));
-          }}
-        >
-          {/* Barre de progression */}
-          <div
-            className="absolute top-0 left-0 right-0 rounded-full"
-            style={{
-              height: `${scrollProgress * 100}%`,
-              background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
-              transition: 'height 0.1s linear',
-            }}
-          />
-        </div>
+      {(() => {
+        // Thumb proportionnel au ratio visible/total, recalculé à chaque render
+        const sc = scrollContainerRef.current;
+        const thumbPct = sc
+          ? Math.max(8, Math.min(60, (sc.clientHeight / sc.scrollHeight) * 100))
+          : 12;
+        const thumbTopPct = scrollProgress * (100 - thumbPct);
 
-        {/* Thumb — maintenir 2 s puis glisser */}
-        <motion.div
-          className="absolute rounded-full pointer-events-auto select-none"
-          style={{
-            left: 0, right: 0,
-            top: `calc(${scrollProgress * 100}% - ${scrollProgress * 44}px)`,
-            touchAction: 'none',
-            background: 'var(--brand-primary)',
-          }}
-          animate={{
-            height:    scrollCharged ? 80 : 44,
-            y:         scrollCharged ? -18 : 0,
-            opacity:   scrollCharged ? 1 : scrollCharging ? 0.9 : 0.7,
-            boxShadow: scrollCharged
-              ? '0 0 0 4px color-mix(in srgb, var(--brand-primary) 16%, transparent), 0 4px 16px rgba(0,0,0,0.18)'
-              : 'none',
-          }}
-          transition={{ type: 'spring', damping: 15, stiffness: 260 }}
-          onPointerDown={(e) => {
-            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-            latestPointerYRef.current = e.clientY;
-            setScrollCharging(true);
-            chargeTimerRef.current = setTimeout(() => {
-              const sc = scrollContainerRef.current;
-              scrollDragRef.current = {
-                startY: latestPointerYRef.current,
-                startScrollTop: sc?.scrollTop ?? 0,
-              };
-              setScrollCharged(true);
-              setScrollCharging(false);
-            }, 2000);
-          }}
-          onPointerMove={(e) => {
-            latestPointerYRef.current = e.clientY;
-            const drag = scrollDragRef.current;
-            if (!drag || !scrollCharged) return;
-            const sc = scrollContainerRef.current;
-            if (!sc) return;
-            const trackEl = (e.currentTarget as HTMLElement).parentElement;
-            if (!trackEl) return;
-            const dy = e.clientY - drag.startY;
-            const trackH = trackEl.clientHeight - 80;
-            sc.scrollTop = drag.startScrollTop + (dy / (trackH || 1)) * (sc.scrollHeight - sc.clientHeight);
-          }}
-          onPointerUp={() => {
-            if (chargeTimerRef.current) clearTimeout(chargeTimerRef.current);
-            scrollDragRef.current = null;
-            setScrollCharged(false);
-            setScrollCharging(false);
-          }}
-          onPointerCancel={() => {
-            if (chargeTimerRef.current) clearTimeout(chargeTimerRef.current);
-            scrollDragRef.current = null;
-            setScrollCharged(false);
-            setScrollCharging(false);
-          }}
-        >
-          {/* Grip — 3 traits normaux, 5 quand gonflé */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-[4px]">
-            {[0, 1, 2, 3, 4].map(i => (
+        const showHandle = (e?: React.PointerEvent) => {
+          // Pour touch, on n'active que si c'est un vrai touch dans la zone (pas dessin)
+          if (e && e.pointerType === 'touch' && !scrollHover) return;
+          setScrollHover(true);
+          if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        };
+        const scheduleHide = () => {
+          if (scrollActive) return;
+          hideTimerRef.current = setTimeout(() => setScrollHover(false), 1200);
+        };
+
+        return (
+          <>
+            {/* Zone d'approche invisible — détecte la proximité du bord droit */}
+            <div
+              className="fixed z-[70] pointer-events-auto"
+              style={{ right: 0, top: 88, bottom: 100, width: 32 }}
+              onPointerEnter={(e) => showHandle(e)}
+              onPointerLeave={scheduleHide}
+            />
+
+            {/* Handle visible — toujours monté, opacité animée */}
+            <motion.div
+              className="fixed z-[71] pointer-events-none"
+              style={{ right: 4, top: 88, bottom: 100 }}
+              animate={{ opacity: scrollHover || scrollActive ? 1 : 0 }}
+              transition={{ duration: 0.22 }}
+            >
+              {/* Piste de fond */}
               <motion.div
-                key={i}
-                className="rounded-full"
-                animate={{
-                  width:   scrollCharged ? 16 : 8,
-                  opacity: i >= 3 ? (scrollCharged ? 0.7 : 0) : 0.7,
+                className="absolute right-0 top-0 bottom-0 rounded-full pointer-events-auto"
+                animate={{ width: scrollActive ? 20 : scrollHover ? 13 : 4 }}
+                transition={{ type: 'spring', damping: 22, stiffness: 340 }}
+                style={{ background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)' }}
+                onPointerDown={(e) => {
+                  // Clic sur la piste (hors thumb) → sauter à la position
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  handleManualScroll(Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)));
                 }}
-                transition={{ type: 'spring', damping: 16, stiffness: 260 }}
-                style={{ height: 1.5, background: 'rgba(255,255,255,0.85)', flexShrink: 0 }}
-              />
-            ))}
-          </div>
-          {/* Halo pendant la charge */}
-          <AnimatePresence>
-            {scrollCharging && (
-              <motion.div
-                className="absolute inset-0 rounded-full"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 1, 0] }}
-                exit={{ opacity: 0 }}
-                transition={{ repeat: Infinity, duration: 0.9 }}
-                style={{ border: '1.5px solid rgba(255,255,255,0.5)' }}
-              />
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </motion.div>
+              >
+                {/* Fill de progression */}
+                <div
+                  className="absolute top-0 left-0 right-0 rounded-full"
+                  style={{
+                    height: `${scrollProgress * 100}%`,
+                    background: 'color-mix(in srgb, var(--brand-primary) 14%, transparent)',
+                    transition: 'height 0.08s linear',
+                  }}
+                />
+              </motion.div>
 
-      {/* ─── Back-to-top (ring de progression) ─── */}
-      <AnimatePresence>
-        {scrollProgress > 0.04 && !scrollCharged && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.75 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.75 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="fixed bottom-28 right-4 z-[69] w-10 h-10 rounded-full flex items-center justify-center pointer-events-auto shadow-lg"
-            style={{ background: 'var(--brand-surface)', border: '1.5px solid color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}
-            title={lang === 'fr' ? 'Retour en haut' : 'أعلى الصفحة'}
-          >
-            <svg className="absolute inset-0 -rotate-90" width="40" height="40" viewBox="0 0 40 40">
-              <circle cx="20" cy="20" r="16" fill="none" stroke="color-mix(in srgb, var(--brand-primary) 7%, transparent)" strokeWidth="2" />
-              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--brand-primary)" strokeWidth="2"
-                strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 16}`}
-                strokeDashoffset={`${2 * Math.PI * 16 * (1 - scrollProgress)}`}
-                style={{ opacity: 0.7, transition: 'stroke-dashoffset 0.15s ease' }}
-              />
-            </svg>
-            <span className="text-[8px] font-black select-none" style={{ color: 'var(--brand-primary)' }}>↑</span>
-          </motion.button>
-        )}
-      </AnimatePresence>
+              {/* Thumb — taille proportionnelle, drag immédiat */}
+              <motion.div
+                className="absolute right-0 rounded-full pointer-events-auto select-none"
+                style={{
+                  top: `${thumbTopPct}%`,
+                  height: `${thumbPct}%`,
+                  minHeight: 36,
+                  touchAction: 'none',
+                  background: 'var(--brand-primary)',
+                  cursor: scrollActive ? 'grabbing' : 'grab',
+                }}
+                animate={{
+                  width:     scrollActive ? 20 : scrollHover ? 13 : 4,
+                  opacity:   scrollActive ? 1  : scrollHover ? 0.82 : 0.55,
+                  boxShadow: scrollActive
+                    ? '0 2px 12px color-mix(in srgb, var(--brand-primary) 35%, transparent)'
+                    : 'none',
+                }}
+                transition={{ type: 'spring', damping: 22, stiffness: 340 }}
+                onPointerEnter={(e) => showHandle(e)}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                  if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+                  setScrollHover(true);
+                  setScrollActive(true);
+                  const s = scrollContainerRef.current;
+                  scrollDragRef.current = { startY: e.clientY, startScrollTop: s?.scrollTop ?? 0 };
+                }}
+                onPointerMove={(e) => {
+                  const drag = scrollDragRef.current;
+                  if (!drag) return;
+                  const s = scrollContainerRef.current;
+                  if (!s) return;
+                  const trackH = s.clientHeight * (1 - thumbPct / 100);
+                  const dy = e.clientY - drag.startY;
+                  s.scrollTop = drag.startScrollTop + (dy / (trackH || 1)) * (s.scrollHeight - s.clientHeight);
+                }}
+                onPointerUp={() => {
+                  scrollDragRef.current = null;
+                  setScrollActive(false);
+                  hideTimerRef.current = setTimeout(() => setScrollHover(false), 1500);
+                }}
+                onPointerCancel={() => {
+                  scrollDragRef.current = null;
+                  setScrollActive(false);
+                  setScrollHover(false);
+                }}
+              >
+                {/* Grip lines — 3 traits, visibles au hover */}
+                <AnimatePresence>
+                  {scrollHover && (
+                    <motion.div
+                      className="absolute inset-0 flex flex-col items-center justify-center gap-[4px]"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      {[0, 1, 2].map(i => (
+                        <div key={i} className="rounded-full" style={{ width: 7, height: 1.5, background: 'rgba(255,255,255,0.8)', flexShrink: 0 }} />
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </motion.div>
+
+            {/* Back-to-top compact — masqué quand le handle est actif */}
+            <AnimatePresence>
+              {scrollProgress > 0.06 && !scrollActive && !scrollHover && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ type: 'spring', damping: 22, stiffness: 320 }}
+                  onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="fixed bottom-28 right-3 z-[69] w-9 h-9 rounded-full flex items-center justify-center pointer-events-auto shadow-md"
+                  style={{ background: 'var(--brand-surface)', border: '1px solid color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}
+                  title={lang === 'fr' ? 'Retour en haut' : 'أعلى الصفحة'}
+                >
+                  <svg className="absolute inset-0 -rotate-90" width="36" height="36" viewBox="0 0 36 36">
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="color-mix(in srgb, var(--brand-primary) 7%, transparent)" strokeWidth="2" />
+                    <circle cx="18" cy="18" r="14" fill="none" stroke="var(--brand-primary)" strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 14}`}
+                      strokeDashoffset={`${2 * Math.PI * 14 * (1 - scrollProgress)}`}
+                      style={{ opacity: 0.65, transition: 'stroke-dashoffset 0.15s ease' }}
+                    />
+                  </svg>
+                  <span className="text-[8px] font-black select-none" style={{ color: 'var(--brand-primary)' }}>↑</span>
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </>
+        );
+      })()}
 
       {/* ─── ZONE SCROLLABLE (canvas) ───────────────────────────────────────── */}
       {/* FIX 3 : pt-20 pour compenser la hauteur de la toolbar fixed (~72px + gap) */}
       <div
         ref={scrollContainerRef}
         className="flex-1 rounded-[2rem] shadow-2xl overflow-y-auto relative border group cursor-none custom-scrollbar pt-20"
-        onScroll={e => { const s = e.currentTarget; setScrollProgress(s.scrollTop / (s.scrollHeight - s.clientHeight || 1)); }}
+        onScroll={e => {
+          const s = e.currentTarget;
+          setScrollProgress(s.scrollTop / (s.scrollHeight - s.clientHeight || 1));
+          // Afficher le handle lors du scroll, masquer après inactivité
+          setScrollHover(true);
+          if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+          hideTimerRef.current = setTimeout(() => setScrollHover(false), 1500);
+        }}
         style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', scrollBehavior: 'smooth' }}
       >
         {toastMessage && (
