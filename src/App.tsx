@@ -53,6 +53,8 @@ import { cn } from './lib/utils';
 import { Surah, DiftarPage, UserData, Badge, generateAllSurahs, Stroke, Shape, checkLoginStreak } from './types';
 import confetti from 'canvas-confetti';
 import { checkAndUnlockBadges, celebrateBadgeUnlock } from './lib/badgeEngine';
+import { supabase, loadUserData, saveUserData, migrateLocalToSupabase, isAdminEmail } from './lib/supabase';
+import { AuthScreen } from './components/Auth';
 
 export default function App() {
   const [activeTab, setActiveTab]           = useState('dashboard');
@@ -63,6 +65,10 @@ export default function App() {
   const [newlyUnlocked, setNewlyUnlocked]   = useState<Badge[]>([]);
   const [updateWorker, setUpdateWorker]     = useState<ServiceWorker | null>(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
+  // Auth Supabase
+  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
+  const [showAuth,  setShowAuth]  = useState(false);
+  const [localOnly, setLocalOnly] = useState(false);
 
   const updateUserDataWithBadges = useCallback((updater: UserData | ((prev: UserData) => UserData)) => {
     setUserData(prev => {
@@ -81,15 +87,74 @@ export default function App() {
     });
   }, []);
 
+  // ─── Auth state listener ──────────────────────────────────────────────────
+  useEffect(() => {
+    // Vérifier session existante au démarrage
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setSupabaseUserId(session.user.id);
+        setShowAuth(false);
+      } else if (!localOnly) {
+        setShowAuth(true);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        setSupabaseUserId(session.user.id);
+        setShowAuth(false);
+        // Lors d'un vrai login (pas juste la restauration de session), recharger depuis Supabase
+        if (_event === 'SIGNED_IN') {
+          try {
+            let cloudData = await migrateLocalToSupabase(session.user.id);
+            if (!cloudData) cloudData = await loadUserData(session.user.id);
+            if (cloudData) {
+              if (!cloudData.surahs || !Array.isArray(cloudData.surahs)) cloudData.surahs = generateAllSurahs();
+              if (!cloudData.diftarPages) cloudData.diftarPages = [];
+              if (!cloudData.goals) cloudData.goals = [];
+              if (!cloudData.badges) cloudData.badges = [];
+              if (!cloudData.calendar) cloudData.calendar = [];
+              if (!cloudData.settings) cloudData.settings = { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' };
+              if (typeof cloudData.tasbihCount !== 'number') cloudData.tasbihCount = 0;
+              if (typeof cloudData.loginStreak !== 'number') cloudData.loginStreak = 1;
+              cloudData.settings = { ...cloudData.settings, isAdmin: isAdminEmail(session.user.email) };
+              setUserData(cloudData);
+              return;
+            }
+          } catch {}
+        }
+        setUserData(prev => prev ? {
+          ...prev,
+          settings: { ...prev.settings, isAdmin: isAdminEmail(session.user.email) },
+        } : prev);
+      } else if (!localOnly) {
+        setSupabaseUserId(null);
+        setShowAuth(true);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [localOnly]);
+
   useEffect(() => {
     const load = async () => {
     try {
-      // Try localforage first (IndexedDB), fallback to localStorage for migration
-      let parsed: UserData | null = await localforage.getItem<UserData>('mishkat_user_data');
+      // Si connecté Supabase → charger depuis Supabase (avec migration si besoin)
+      const { data: { session } } = await supabase.auth.getSession();
+      let parsed: UserData | null = null;
+
+      if (session?.user) {
+        parsed = await migrateLocalToSupabase(session.user.id);
+        if (!parsed) parsed = await loadUserData(session.user.id);
+      }
+
+      // Fallback localforage / localStorage
       if (!parsed) {
-        const lsRaw = localStorage.getItem('mishkat_user_data');
-        if (lsRaw) {
-          try { parsed = JSON.parse(lsRaw); } catch {}
+        parsed = await localforage.getItem<UserData>('mishkat_user_data');
+        if (!parsed) {
+          const lsRaw = localStorage.getItem('mishkat_user_data');
+          if (lsRaw) {
+            try { parsed = JSON.parse(lsRaw); } catch {}
+          }
         }
       }
       const today = new Date().toISOString().split('T')[0];
@@ -137,6 +202,10 @@ export default function App() {
           parsed.settings.settingsVersion  = 1;
         }
 
+        if (session?.user) {
+          parsed.settings = { ...parsed.settings, isAdmin: isAdminEmail(session.user.email) };
+        }
+
         setUserData(parsed);
       } else {
         const initial: UserData = {
@@ -174,14 +243,17 @@ export default function App() {
     load();
   }, []);
 
-  // ─── CRITICAL: save userData to localforage (IndexedDB) whenever it changes ───
+  // ─── CRITICAL: save userData to localforage + Supabase whenever it changes ───
   useEffect(() => {
     if (userData) {
       localforage.setItem('mishkat_user_data', userData).catch(err => {
         console.error('Mishkat: failed to save data', err);
       });
+      if (supabaseUserId) {
+        saveUserData(supabaseUserId, userData).catch(() => {});
+      }
     }
-  }, [userData]);
+  }, [userData, supabaseUserId]);
 
   useEffect(() => {
     const handleUpdate = (e: any) => {
@@ -205,6 +277,18 @@ export default function App() {
       window.location.reload();
     }
   };
+
+  if (showAuth && !localOnly) {
+    return (
+      <AuthScreen
+        lang={lang}
+        onContinueLocal={() => {
+          setLocalOnly(true);
+          setShowAuth(false);
+        }}
+      />
+    );
+  }
 
   if (!userData) return null;
 
