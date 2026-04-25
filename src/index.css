@@ -26,19 +26,19 @@
    LIGHT THEME (default)
 ══════════════════════════════════════════════════ */
 :root {
-  --brand-primary: #8B2635;
+  --brand-primary: #C4973F;
   --brand-secondary: #D4AF37;
-  --brand-accent: #A8DADC;
-  --brand-surface: rgba(255, 255, 255, 0.78);
-  --brand-page: #F5F0E8;
-  --brand-text-main: #3D1A22;
-  --brand-text-muted: rgba(139, 38, 53, 0.45);
-  --border-subtle: rgba(139, 38, 53, 0.09);
-  --border-accent: rgba(212, 175, 55, 0.28);
-  --custom-input-bg: rgba(255, 255, 255, 0.92);
-  --shadow-soft: 0 2px 16px rgba(139, 38, 53, 0.06);
-  --shadow-medium: 0 8px 40px rgba(139, 38, 53, 0.1);
-  --shadow-strong: 0 20px 70px rgba(139, 38, 53, 0.15);
+  --brand-accent: #e8d5a3;
+  --brand-surface: rgba(55, 12, 24, 0.75);
+  --brand-page: #12040a;
+  --brand-text-main: #f5e8d0;
+  --brand-text-muted: rgba(212, 175, 55, 0.55);
+  --border-subtle: rgba(139, 38, 53, 0.35);
+  --border-accent: rgba(196, 151, 63, 0.45);
+  --custom-input-bg: rgba(45, 10, 20, 0.85);
+  --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --shadow-medium: 0 8px 40px rgba(0, 0, 0, 0.45);
+  --shadow-strong: 0 20px 70px rgba(0, 0, 0, 0.55);
 }
 
 /* ══════════════════════════════════════════════════
