@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Mishkat — Preview 3</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#080604;color:#f5f0eb;font-family:'DM Sans',sans-serif;padding:40px 24px}
+h2{font-size:9px;letter-spacing:.5em;text-transform:uppercase;color:#C4973F;margin-bottom:22px;opacity:.7}
+section{margin-bottom:72px}
+.label{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#444;margin-top:12px;text-align:center}
+.col{display:flex;flex-direction:column;align-items:center;gap:10px}
+.row{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.sep{width:100%;height:1px;background:rgba(255,255,255,.04);margin:40px 0}
+.mishkat{font-family:'Libre Baskerville',serif;font-weight:700}
+
+/* ════════════════════════════
+   LAYOUTS
+════════════════════════════ */
+
+.frame{width:300px;height:240px;background:#0e0a08;border-radius:22px;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,.06);flex-shrink:0}
+
+/* L1 — Dock flottant centré en bas (macOS style) */
+.dock{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:6px;background:rgba(20,12,10,.7);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:10px 14px}
+.dock-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:all .2s}
+.dock-item:hover .di{transform:translateY(-8px) scale(1.2)}
+.di{width:38px;height:38px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;background:rgba(255,255,255,.05)}
+.di.active{background:linear-gradient(135deg,#8B2635,#5c1820);box-shadow:0 6px 18px rgba(139,38,53,.5)}
+.dock-dot{width:4px;height:4px;border-radius:50%;background:#C4973F;opacity:.6;margin-top:2px}
+
+/* L2 — Barre latérale translucide avec labels flottants */
+.rail{position:absolute;top:12px;left:12px;bottom:12px;width:52px;background:rgba(255,255,255,.03);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.07);border-radius:18px;display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:2px}
+.rail-logo{font-family:'Amiri',serif;font-size:20px;color:#C4973F;margin-bottom:10px;line-height:1}
+.ri{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:rgba(255,255,255,.25);transition:all .2s;position:relative}
+.ri:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.06)}
+.ri.active{background:rgba(139,38,53,.3);color:#f5f0eb;box-shadow:inset 0 0 0 1px rgba(139,38,53,.5)}
+.ri.active::before{content:'';position:absolute;left:-1px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:#8B2635;border-radius:0 3px 3px 0}
+
+/* L3 — Menu cercle pulsant */
+.circle-nav{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.cn-hub{width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#8B2635,#C4973F);display:flex;align-items:center;justify-content:center;font-family:'Amiri',serif;font-size:26px;color:#fff;box-shadow:0 0 0 10px rgba(139,38,53,.1),0 0 0 22px rgba(139,38,53,.05),0 0 0 38px rgba(139,38,53,.03);z-index:2;cursor:pointer;animation:hub-pulse 3s ease-in-out infinite}
+@keyframes hub-pulse{0%,100%{box-shadow:0 0 0 10px rgba(139,38,53,.1),0 0 0 22px rgba(139,38,53,.05),0 0 0 38px rgba(139,38,53,.03)}50%{box-shadow:0 0 0 14px rgba(139,38,53,.08),0 0 0 28px rgba(139,38,53,.04),0 0 0 44px rgba(139,38,53,.02)}}
+.cn-node{position:absolute;transform:translate(-50%,-50%)}
+.cn-btn{width:36px;height:36px;border-radius:50%;background:rgba(15,10,8,.9);border:1px solid rgba(196,151,63,.3);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;transition:all .2s}
+.cn-btn:hover{border-color:#C4973F;background:rgba(196,151,63,.1);transform:scale(1.15)}
+
+/* L4 — Top ribbon collapsible */
+.ribbon{position:absolute;top:0;left:0;right:0;background:rgba(12,8,6,.95);border-bottom:1px solid rgba(196,151,63,.15);padding:0 16px;display:flex;align-items:center;height:48px;gap:12px}
+.ribbon-logo{font-family:'Libre Baskerville',serif;font-weight:700;font-size:14px;color:#f5f0eb;margin-right:auto;display:flex;align-items:center;gap:8px}
+.ribbon-logo img{width:26px;height:26px;border-radius:8px}
+.ribbon-logo span{color:#C4973F;font-size:11px;font-family:'Amiri',serif;font-weight:400}
+.rtab{padding:5px 12px;border-radius:20px;font-size:10px;color:rgba(255,255,255,.3);cursor:pointer;transition:all .2s;letter-spacing:.03em}
+.rtab.active{background:rgba(139,38,53,.25);color:#f5f0eb;border:1px solid rgba(139,38,53,.4)}
+
+/* L5 — Bottom sheet expandable */
+.bsheet-content{position:absolute;top:0;left:0;right:0;bottom:80px;display:flex;align-items:center;justify-content:center;opacity:.2;font-size:11px}
+.bsheet{position:absolute;bottom:0;left:0;right:0;height:80px;background:rgba(16,10,8,.98);border-top:1px solid rgba(255,255,255,.06);backdrop-filter:blur(30px)}
+.bsheet-handle{width:36px;height:3px;border-radius:99px;background:rgba(255,255,255,.15);margin:10px auto 10px}
+.bsheet-tabs{display:flex;justify-content:space-around;padding:0 8px}
+.bt{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:4px 8px;border-radius:10px;transition:all .2s}
+.bt.active{background:rgba(139,38,53,.15)}
+.bt-icon{font-size:19px;line-height:1}
+.bt-txt{font-size:7px;letter-spacing:.04em;color:rgba(255,255,255,.3)}
+.bt.active .bt-txt{color:#C4973F}
+
+/* ════════════════════════════
+   BACKGROUNDS
+════════════════════════════ */
+.bg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+.bgf{height:180px;border-radius:20px;overflow:hidden;position:relative;cursor:pointer;border:1px solid rgba(255,255,255,.07)}
+.bgl{position:absolute;bottom:14px;left:16px;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:rgba(255,255,255,.45);z-index:10;font-family:'DM Sans',sans-serif}
+
+/* BG-A : Velvet + constellation */
+.bga{background:#06040302}
+.bga-velvet{position:absolute;inset:0;background:radial-gradient(ellipse 130% 80% at 25% 70%,rgba(100,20,30,.7),transparent 55%),radial-gradient(ellipse 80% 60% at 75% 25%,rgba(60,15,20,.5),transparent 50%);animation:velvet 8s ease-in-out infinite alternate}
+@keyframes velvet{from{opacity:.8}to{opacity:1}}
+.star{position:absolute;border-radius:50%;background:#C4973F;animation:twinkle linear infinite}
+@keyframes twinkle{0%,100%{opacity:.1;transform:scale(1)}50%{opacity:.8;transform:scale(1.3)}}
+
+/* BG-B : Lava lamp */
+.bgb{background:#060402}
+.blob{position:absolute;border-radius:50%;filter:blur(35px);animation:lava ease-in-out infinite}
+@keyframes lava{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(15px,-20px) scale(1.1)}66%{transform:translate(-10px,10px) scale(.95)}}
+
+/* BG-C : Rayons divins */
+.bgc{background:radial-gradient(ellipse 60% 40% at 50% 100%,rgba(139,38,53,.25),transparent 70%),#060402}
+.ray{position:absolute;bottom:0;left:50%;width:1px;background:linear-gradient(to top,rgba(196,151,63,.4),transparent);transform-origin:bottom center;animation:ray-fade ease-in-out infinite}
+@keyframes ray-fade{0%,100%{opacity:.15}50%{opacity:.55}}
+
+/* BG-D : Aurora profonde */
+.bgd{background:#05030203}
+.aurora-layer{position:absolute;inset:0;animation:aurora-d ease-in-out infinite alternate}
+@keyframes aurora-d{from{opacity:.5;transform:scaleX(1)}to{opacity:1;transform:scaleX(1.04)}}
+
+/* BG-E : Tissu géométrique animé */
+.bge{background:#06040200;overflow:hidden}
+.geo-tile{position:absolute;inset:-50%;animation:geo-rot linear infinite}
+@keyframes geo-rot{to{transform:rotate(360deg)}}
+
+/* BG-F : Gradient liquide */
+.bgf2{background:#060402}
+.liquid{position:absolute;inset:0;background:linear-gradient(135deg,#8B2635,#C4973F,#8B2635,#3d1018);background-size:400% 400%;animation:liquid 10s ease infinite}
+@keyframes liquid{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.liquid-overlay{position:absolute;inset:0;background:rgba(6,4,2,.75)}
+</style>
+</head>
+<body>
+
+<!-- ════ LAYOUTS ════ -->
+<section>
+  <h2>Dispositions de navigation — nouvelles propositions</h2>
+  <div class="row">
+
+    <!-- L1 dock -->
+    <div class="col">
+      <div class="frame">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:.15;font-size:11px">Contenu</div>
+        <div class="dock">
+          <div class="dock-item"><div class="di active">⊞</div><div class="dock-dot"></div></div>
+          <div class="dock-item"><div class="di">📖</div></div>
+          <div class="dock-item"><div class="di">✏️</div></div>
+          <div class="dock-item"><div class="di">🎯</div></div>
+          <div class="dock-item"><div class="di">🎨</div></div>
+          <div class="dock-item"><div class="di">⚙️</div></div>
+        </div>
+      </div>
+      <span class="label">L1 · Dock flottant bas (macOS)</span>
+    </div>
+
+    <!-- L2 rail -->
+    <div class="col">
+      <div class="frame">
+        <div style="position:absolute;inset:0 0 0 76px;display:flex;align-items:center;justify-content:center;opacity:.15;font-size:11px">Contenu</div>
+        <div class="rail">
+          <div class="rail-logo">م</div>
+          <div class="ri active">⊞</div>
+          <div class="ri">📅</div>
+          <div class="ri">📖</div>
+          <div class="ri">🎯</div>
+          <div class="ri">✏️</div>
+          <div class="ri">🎨</div>
+          <div class="ri" style="margin-top:auto">⚙️</div>
+        </div>
+      </div>
+      <span class="label">L2 · Rail glass + indicateur actif</span>
+    </div>
+
+    <!-- L3 cercle -->
+    <div class="col">
+      <div class="frame">
+        <div class="circle-nav">
+          <div class="cn-node" style="top:18%;left:50%"><div class="cn-btn">⊞</div></div>
+          <div class="cn-node" style="top:32%;left:82%"><div class="cn-btn">📖</div></div>
+          <div class="cn-node" style="top:65%;left:80%"><div class="cn-btn">🎯</div></div>
+          <div class="cn-node" style="top:80%;left:50%"><div class="cn-btn">✏️</div></div>
+          <div class="cn-node" style="top:65%;left:20%"><div class="cn-btn">🎨</div></div>
+          <div class="cn-node" style="top:32%;left:18%"><div class="cn-btn">📅</div></div>
+          <div class="cn-hub">م</div>
+        </div>
+      </div>
+      <span class="label">L3 · Hub pulsant central</span>
+    </div>
+
+    <!-- L4 ribbon -->
+    <div class="col">
+      <div class="frame">
+        <div class="ribbon">
+          <div class="ribbon-logo">
+            <span style="font-size:20px;font-family:'Amiri',serif;color:#C4973F">م</span>
+            <span style="color:#f5f0eb;font-size:14px;font-family:'Libre Baskerville',serif;font-weight:700">Mishkat</span>
+          </div>
+          <div class="rtab active">Accueil</div>
+          <div class="rtab">Hafiz</div>
+          <div class="rtab">Diftar</div>
+          <div class="rtab">⚙</div>
+        </div>
+        <div style="position:absolute;top:48px;inset-x:0;bottom:0;display:flex;align-items:center;justify-content:center;opacity:.15;font-size:11px">Contenu</div>
+      </div>
+      <span class="label">L4 · Ruban haut compact</span>
+    </div>
+
+    <!-- L5 bottom sheet -->
+    <div class="col">
+      <div class="frame">
+        <div class="bsheet-content">Contenu principal</div>
+        <div class="bsheet">
+          <div class="bsheet-handle"></div>
+          <div class="bsheet-tabs">
+            <div class="bt active"><div class="bt-icon">⊞</div><div class="bt-txt">Accueil</div></div>
+            <div class="bt"><div class="bt-icon">📖</div><div class="bt-txt">Hafiz</div></div>
+            <div class="bt"><div class="bt-icon">✏️</div><div class="bt-txt">Diftar</div></div>
+            <div class="bt"><div class="bt-icon">🎯</div><div class="bt-txt">Goals</div></div>
+            <div class="bt"><div class="bt-icon">⚙️</div><div class="bt-txt">Plus</div></div>
+          </div>
+        </div>
+      </div>
+      <span class="label">L5 · Bottom sheet handle</span>
+    </div>
+
+  </div>
+</section>
+
+<div class="sep"></div>
+
+<!-- ════ BACKGROUNDS ════ -->
+<section>
+  <h2>Backgrounds animés — nouvelles propositions</h2>
+  <div class="bg-grid">
+
+    <!-- BGA velvet constellation -->
+    <div class="bgf bga">
+      <div class="bga-velvet"></div>
+      <!-- stars -->
+      <div class="star" style="width:2px;height:2px;top:15%;left:20%;animation-duration:2.1s;animation-delay:0s"></div>
+      <div class="star" style="width:1px;height:1px;top:30%;left:60%;animation-duration:3.4s;animation-delay:-.8s"></div>
+      <div class="star" style="width:3px;height:3px;top:50%;left:80%;animation-duration:2.8s;animation-delay:-1.2s"></div>
+      <div class="star" style="width:1px;height:1px;top:70%;left:35%;animation-duration:4s;animation-delay:-.4s"></div>
+      <div class="star" style="width:2px;height:2px;top:20%;left:50%;animation-duration:2.5s;animation-delay:-2s"></div>
+      <div class="star" style="width:1px;height:1px;top:80%;left:70%;animation-duration:3.1s;animation-delay:-.6s"></div>
+      <div class="star" style="width:2px;height:2px;top:60%;left:15%;animation-duration:2.7s;animation-delay:-1.8s"></div>
+      <div class="star" style="width:1px;height:1px;top:40%;left:90%;animation-duration:3.6s;animation-delay:-.2s"></div>
+      <div class="star" style="width:3px;height:3px;top:10%;left:75%;animation-duration:2.2s;animation-delay:-1s;background:#8B2635"></div>
+      <div class="star" style="width:2px;height:2px;top:85%;left:45%;animation-duration:4.2s;animation-delay:-3s"></div>
+      <div class="bgl">BG-A · Velvet + constellation</div>
+    </div>
+
+    <!-- BGB lava -->
+    <div class="bgf bgb">
+      <div class="blob" style="width:130px;height:130px;background:rgba(139,38,53,.55);top:-20px;left:-20px;animation-duration:9s;animation-delay:0s"></div>
+      <div class="blob" style="width:100px;height:100px;background:rgba(196,151,63,.3);bottom:-10px;right:-10px;animation-duration:11s;animation-delay:-3s"></div>
+      <div class="blob" style="width:80px;height:80px;background:rgba(100,20,30,.6);top:40%;left:40%;animation-duration:7s;animation-delay:-5s"></div>
+      <div class="bgl">BG-B · Lava lamp animé</div>
+    </div>
+
+    <!-- BGC rayons -->
+    <div class="bgf bgc">
+      <div class="ray" style="height:70%;transform-origin:bottom center;transform:translateX(-50%) rotate(-30deg);animation-duration:3s;animation-delay:0s"></div>
+      <div class="ray" style="height:80%;transform-origin:bottom center;transform:translateX(-50%) rotate(-15deg);animation-duration:4s;animation-delay:-.5s;background:linear-gradient(to top,rgba(196,151,63,.3),transparent)"></div>
+      <div class="ray" style="height:90%;transform-origin:bottom center;transform:translateX(-50%) rotate(0deg);animation-duration:3.5s;animation-delay:-1s;width:2px"></div>
+      <div class="ray" style="height:80%;transform-origin:bottom center;transform:translateX(-50%) rotate(15deg);animation-duration:4.5s;animation-delay:-1.5s;background:linear-gradient(to top,rgba(196,151,63,.3),transparent)"></div>
+      <div class="ray" style="height:70%;transform-origin:bottom center;transform:translateX(-50%) rotate(30deg);animation-duration:3.2s;animation-delay:-2s"></div>
+      <div class="bgl">BG-C · Rayons divins dorés</div>
+    </div>
+
+    <!-- BGD aurora profonde -->
+    <div class="bgf bgd">
+      <div class="aurora-layer" style="background:radial-gradient(ellipse 160% 60% at 20% 40%,rgba(139,38,53,.5),transparent 55%);animation-duration:6s"></div>
+      <div class="aurora-layer" style="background:radial-gradient(ellipse 120% 50% at 80% 60%,rgba(196,151,63,.25),transparent 50%);animation-duration:8s;animation-delay:-3s"></div>
+      <div class="aurora-layer" style="background:radial-gradient(ellipse 80% 40% at 50% 20%,rgba(80,15,25,.4),transparent 60%);animation-duration:10s;animation-delay:-5s"></div>
+      <div class="bgl">BG-D · Aurora profonde</div>
+    </div>
+
+    <!-- BGE geo animé -->
+    <div class="bgf bge">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(139,38,53,.1),transparent 70%)"></div>
+      <svg class="geo-tile" style="animation-duration:40s;opacity:.07" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g stroke="#C4973F" stroke-width="1">
+          <polygon points="200,20 260,80 340,80 280,140 300,220 200,170 100,220 120,140 60,80 140,80"/>
+          <polygon points="200,60 248,108 308,108 264,148 280,208 200,168 120,208 136,148 92,108 152,108"/>
+          <circle cx="200" cy="200" r="160"/>
+          <circle cx="200" cy="200" r="120"/>
+          <circle cx="200" cy="200" r="80"/>
+          <polygon points="200,20 260,80 340,80 280,140 300,220 200,170 100,220 120,140 60,80 140,80" transform="rotate(36,200,200)"/>
+          <polygon points="200,20 260,80 340,80 280,140 300,220 200,170 100,220 120,140 60,80 140,80" transform="rotate(72,200,200)"/>
+          <polygon points="200,20 260,80 340,80 280,140 300,220 200,170 100,220 120,140 60,80 140,80" transform="rotate(108,200,200)"/>
+          <polygon points="200,20 260,80 340,80 280,140 300,220 200,170 100,220 120,140 60,80 140,80" transform="rotate(144,200,200)"/>
+        </g>
+      </svg>
+      <div class="bgl">BG-E · Géo islamique respirant</div>
+    </div>
+
+    <!-- BGF liquide -->
+    <div class="bgf bgf2" style="position:relative">
+      <div class="liquid"></div>
+      <div class="liquid-overlay"></div>
+      <div class="bgl">BG-F · Gradient liquide crimson-or</div>
+    </div>
+
+  </div>
+</section>
+
+</body>
+</html>
