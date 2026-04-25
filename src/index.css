@@ -563,7 +563,7 @@
   height: 100%;
   min-height: 500px;
   overflow: hidden;
-  background-color: #050505;
+  background-color: #12040a;
   position: relative;
   display: flex;
   align-items: center;
@@ -574,7 +574,7 @@
   height: 100%;
   position: absolute;
   inset: 0;
-  background: #050505;
+  background: #12040a;
 }
 .uiverse-midnight-sky .stars {
   position: absolute;
