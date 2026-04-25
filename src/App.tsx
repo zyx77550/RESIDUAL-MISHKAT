@@ -338,13 +338,18 @@ export default function App() {
           <filter id="tritanopia"><feColorMatrix type="matrix" values="0.95 0.05 0 0 0  0 0.433 0.567 0 0  0 0.475 0.525 0 0  0 0 0 1 0"/></filter>
         </defs>
       </svg>
-      {/* Background */}
+      {/* Background — Midnight Sky */}
       {!s?.staticBackground && (
-        <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-[15%] -left-[10%] w-[45%] h-[45%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-secondary) 8%, transparent), transparent 70%)', filter: 'blur(80px)', animationDelay: '0s' }} />
-          <div className="absolute top-[30%] -right-[8%] w-[35%] h-[35%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-primary) 6%, transparent), transparent 70%)', filter: 'blur(100px)', animationDelay: '-2.5s' }} />
-          <div className="absolute -bottom-[15%] left-[15%] w-[55%] h-[55%] rounded-full floating-element" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--brand-accent) 7%, transparent), transparent 70%)', filter: 'blur(120px)', animationDelay: '-5s' }} />
-          <div className="absolute inset-0 geometric-pattern opacity-40" style={{ color: 'var(--brand-primary)' }} />
+        <div className="uiverse-midnight-sky fixed inset-0 pointer-events-none" style={{ zIndex: 0 }}>
+          <div className="sky-canvas">
+            <div className="stars stars-1"></div>
+            <div className="stars stars-2"></div>
+            <div className="stars stars-3"></div>
+            <div className="meteor m1"></div>
+            <div className="meteor m2"></div>
+            <div className="meteor m3"></div>
+            <div className="moon"></div>
+          </div>
         </div>
       )}
 
