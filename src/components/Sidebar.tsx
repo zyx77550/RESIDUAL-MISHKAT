@@ -50,9 +50,42 @@ export const Sidebar = ({
   }, []);
 
   return (
+    <>
+    {/* Floating tab to reopen sidebar when collapsed — desktop only */}
+    <AnimatePresence>
+      {!isMobile && isCollapsed && (
+        <motion.button
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+          onClick={() => setIsCollapsed(false)}
+          className="fixed z-50 flex items-center justify-center"
+          style={{
+            top: '50%',
+            left: 0,
+            transform: 'translateY(-50%)',
+            width: 20,
+            height: 56,
+            borderRadius: '0 10px 10px 0',
+            background: 'var(--brand-surface)',
+            border: '1px solid var(--border-subtle)',
+            borderLeft: 'none',
+            boxShadow: 'var(--shadow-soft)',
+            color: 'var(--brand-primary)',
+          }}
+        >
+          <ChevronRight size={13} />
+        </motion.button>
+      )}
+    </AnimatePresence>
+
     <motion.div
       initial={false}
-      animate={isMobile ? {} : { width: isCollapsed ? '78px' : '280px' }}
+      animate={isMobile ? {} : {
+        width: isCollapsed ? 0 : 280,
+        opacity: isCollapsed ? 0 : 1,
+      }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className={cn(
         /* Mobile: bottom floating bar */
@@ -72,6 +105,7 @@ export const Sidebar = ({
         WebkitBackdropFilter: 'blur(40px) saturate(200%)',
         border: '1px solid var(--border-subtle)',
         boxShadow: 'var(--shadow-medium), inset 0 1px 0 0 rgba(255,255,255,0.45)',
+        pointerEvents: !isMobile && isCollapsed ? 'none' : 'auto',
       }}
     >
       {/* ── Logo (desktop) ── */}
@@ -264,5 +298,6 @@ export const Sidebar = ({
         )}
       </AnimatePresence>
     </motion.div>
+    </>
   );
 };

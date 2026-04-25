@@ -770,7 +770,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const getCoords = (e: React.PointerEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
-    const rect = rectCacheRef.current ?? canvas.getBoundingClientRect();
+    // Always fetch a live rect so scroll offset is never stale
+    const rect = canvas.getBoundingClientRect();
+    rectCacheRef.current = rect;
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
