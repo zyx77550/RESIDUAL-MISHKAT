@@ -356,7 +356,7 @@ export default function App() {
 
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} loginStreak={userData.loginStreak} theme={userData.settings?.theme} isAdmin={userData.settings?.isAdmin} />
 
-      <main className={cn('flex-1 relative z-10', activeTab === 'diftar' ? 'overflow-hidden p-1 md:p-2' : 'overflow-y-auto p-4 md:p-12 pb-32 md:pb-12', lang === 'ar' ? 'text-right' : 'text-left')}>
+      <main className={cn('flex-1 relative z-10', activeTab === 'diftar' ? 'overflow-hidden p-1 md:p-2' : 'overflow-y-auto p-4 md:p-12 pb-32 md:pb-12', lang === 'ar' ? 'text-right' : 'text-left', isSidebarCollapsed ? 'md:ml-[44px]' : 'md:ml-[308px]')}>
         <div className={cn('h-full', activeTab !== 'diftar' && 'max-w-7xl mx-auto')}>
             <AnimatePresence mode="wait">
               <motion.div
