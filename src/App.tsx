@@ -269,18 +269,24 @@ export default function App() {
 
         {/* Main content */}
         <main style={{ flex: 1, overflowY: 'auto', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
+          {/* Dashboard and Diftar manage their own padding/layout */}
           {activeTab === 'dashboard'    && <Dashboard {...commonProps} onNavigate={setActiveTab}/>}
           {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang}/>}
-          {activeTab === 'coloring'     && <ColoringGrid {...commonProps}/>}
-          {activeTab === 'goals'        && <GoalsSection {...commonProps}/>}
-          {activeTab === 'tasbih'       && <TasbihSection {...commonProps}/>}
-          {activeTab === 'memorization' && <MemorizationSection {...commonProps}/>}
-          {activeTab === 'calendar'     && <CalendarSection {...commonProps}/>}
-          {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked}/>}
-          {activeTab === 'kanban'       && <KanbanSection {...commonProps}/>}
-          {activeTab === 'albaqara'     && <AlBaqaraSection {...commonProps}/>}
-          {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang}/>}
-          {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang}/>}
+          {/* All other sections get consistent padding */}
+          {!['dashboard','diftar'].includes(activeTab) && (
+            <div style={{ flex: 1, padding: '26px 34px 36px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {activeTab === 'coloring'     && <ColoringGrid {...commonProps}/>}
+              {activeTab === 'goals'        && <GoalsSection {...commonProps}/>}
+              {activeTab === 'tasbih'       && <TasbihSection {...commonProps}/>}
+              {activeTab === 'memorization' && <MemorizationSection {...commonProps}/>}
+              {activeTab === 'calendar'     && <CalendarSection {...commonProps}/>}
+              {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked}/>}
+              {activeTab === 'kanban'       && <KanbanSection {...commonProps}/>}
+              {activeTab === 'albaqara'     && <AlBaqaraSection {...commonProps}/>}
+              {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang}/>}
+              {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang}/>}
+            </div>
+          )}
         </main>
 
         {/* Mobile bottom nav */}
