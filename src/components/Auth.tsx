@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useT } from '../lib/theme';
+import { LanternMark, Icon, Icons } from './ui';
 import { signIn, signUp } from '../lib/supabase';
 
 interface AuthProps {
@@ -9,22 +9,19 @@ interface AuthProps {
 }
 
 export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
-  const [mode,     setMode]     = useState<'login' | 'signup'>('login');
-  const [email,    setEmail]    = useState('');
+  const t = useT();
+  const [mode, setMode]         = useState<'login' | 'signup'>('login');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [showPwd,  setShowPwd]  = useState(false);
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState<string | null>(null);
-  const [success,  setSuccess]  = useState<string | null>(null);
-
+  const [showPwd, setShowPwd]   = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const [success, setSuccess]   = useState<string | null>(null);
   const fr = lang === 'fr';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    setLoading(true);
-
+    setError(null); setSuccess(null); setLoading(true);
     try {
       if (mode === 'login') {
         const { error } = await signIn(email, password);
@@ -32,162 +29,126 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
       } else {
         const { error } = await signUp(email, password);
         if (error) throw error;
-        setSuccess(fr
-          ? 'Compte créé ! Vérifie ta boîte mail pour confirmer.'
-          : 'تم إنشاء الحساب! تحقق من بريدك الإلكتروني للتأكيد.'
-        );
+        setSuccess(fr ? 'Compte créé ! Vérifie ta boîte mail.' : 'تم إنشاء الحساب! تحقق من بريدك.');
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('Invalid login')) {
-        setError(fr ? 'Email ou mot de passe incorrect.' : 'البريد أو كلمة المرور خاطئة.');
-      } else if (msg.includes('already registered')) {
-        setError(fr ? 'Cet email est déjà utilisé.' : 'هذا البريد مسجل مسبقاً.');
-      } else {
-        setError(msg);
-      }
-    } finally {
-      setLoading(false);
-    }
+      if (msg.includes('Invalid login')) setError(fr ? 'Email ou mot de passe incorrect.' : 'البريد أو كلمة المرور خاطئة.');
+      else if (msg.includes('already registered')) setError(fr ? 'Cet email est déjà utilisé.' : 'هذا البريد مسجل مسبقاً.');
+      else setError(msg);
+    } finally { setLoading(false); }
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{ background: 'var(--brand-bg)' }}
-    >
-      {/* Fond décoratif */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-[0.06]"
-          style={{ background: 'var(--brand-primary)' }} />
-        <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full opacity-[0.04]"
-          style={{ background: 'var(--brand-secondary)' }} />
+    <div style={{ width: '100vw', height: '100vh', background: t.bg, color: t.ink, display: 'flex', overflow: 'hidden', fontFamily: 'Inter, sans-serif', position: 'relative' }}>
+      <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.04, pointerEvents: 'none' }}>
+        <defs>
+          <pattern id="auth-pat" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+            <rect x="20" y="20" width="40" height="40" fill="none" stroke={t.accent} strokeWidth="0.5"/>
+            <rect x="20" y="20" width="40" height="40" fill="none" stroke={t.accent} strokeWidth="0.5" transform="rotate(45 40 40)"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#auth-pat)"/>
+      </svg>
+
+      {/* Left — hero */}
+      <div className="hidden md:flex" style={{ flex: 1, padding: '60px 50px', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', borderRight: `1px solid ${t.line}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <LanternMark size={42} color={t.accent}/>
+          <div>
+            <div style={{ fontFamily: 'Fraunces, serif', fontSize: 22, color: t.ink, fontWeight: 300 }}>Mishkat</div>
+            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.32em', textTransform: 'uppercase' }}>مِشْكَاة · حِفْظ القرآن</div>
+          </div>
+        </div>
+        <div style={{ position: 'relative', maxWidth: 480 }}>
+          <svg width="420" height="420" viewBox="0 0 500 500" fill="none" style={{ position: 'absolute', left: -60, top: -60, opacity: 0.35, pointerEvents: 'none' }}>
+            <circle cx="250" cy="250" r="200" stroke={t.accent} strokeWidth="0.4"/>
+            <circle cx="250" cy="250" r="160" stroke={t.accent} strokeWidth="0.4"/>
+            <circle cx="250" cy="250" r="120" stroke={t.accent} strokeWidth="0.4"/>
+            <path d="M 250 50 L 290 130 L 380 130 L 320 190 L 350 280 L 250 220 L 150 280 L 180 190 L 120 130 L 210 130 Z" fill={t.accent} opacity="0.2"/>
+          </svg>
+          <div style={{ position: 'relative' }}>
+            <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 30, color: t.ink, lineHeight: 1.8, direction: 'rtl', textAlign: 'right' }}>
+              اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ
+            </div>
+            <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 15, color: t.inkDim, marginTop: 14, lineHeight: 1.6 }}>
+              « Lis, au nom de ton Seigneur qui a créé. »
+            </div>
+            <div style={{ fontSize: 10, color: t.accentBright, letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 8 }}>
+              Al-ʿAlaq · 96:1
+            </div>
+          </div>
+        </div>
+        <div style={{ fontSize: 10.5, color: t.inkMute, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+          Une lanterne pour la mémoire du cœur
+        </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', damping: 24, stiffness: 280 }}
-        className="w-full max-w-sm space-y-6"
-      >
-        {/* Logo */}
-        <div className="text-center space-y-2">
-          <div className="w-20 h-20 rounded-3xl mx-auto shadow-xl overflow-hidden">
-            <img src="/icon-192.png" alt="Mishkat" className="w-full h-full object-cover" />
-          </div>
-          <h1 style={{ fontFamily: "'Libre Baskerville', serif", fontWeight: 700, fontSize: '28px', color: 'var(--brand-primary)' }}>
-            Mishkat
-          </h1>
-          <p style={{ fontFamily: "'Amiri', serif", fontSize: '18px', color: 'var(--brand-secondary)', opacity: 0.8 }}>
-            مِشْكَاة
-          </p>
-          <p className="text-xs uppercase tracking-[0.35em] font-bold"
-            style={{ color: 'var(--brand-secondary)', opacity: 0.65 }}>
-            {fr ? 'Votre compagnon de mémorisation' : 'رفيق حفظ القرآن'}
-          </p>
+      {/* Right — form */}
+      <div style={{ width: '100%', maxWidth: 440, padding: '40px 32px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: t.bgSoft, overflowY: 'auto' }}>
+        <div style={{ fontSize: 11, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 8 }}>
+          {fr ? 'Bienvenue' : 'أهلاً وسهلاً'}
+        </div>
+        <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 28, margin: '0 0 28px', color: t.ink, letterSpacing: '-0.02em' }}>
+          {mode === 'login' ? (fr ? 'Reprenez votre mémorisation' : 'تابع حفظك') : (fr ? 'Créer votre compte' : 'إنشاء حساب')}
+        </h1>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 22, padding: 4, background: t.card, borderRadius: 10, border: `1px solid ${t.line}` }}>
+          {(['login', 'signup'] as const).map(m => (
+            <button key={m} onClick={() => { setMode(m); setError(null); setSuccess(null); }}
+              style={{ flex: 1, padding: '9px', borderRadius: 7, background: mode === m ? t.accent : 'transparent', color: mode === m ? '#1a0f00' : t.inkDim, fontFamily: 'Inter', fontWeight: 600, fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              {m === 'login' ? (fr ? 'Connexion' : 'دخول') : (fr ? 'Inscription' : 'تسجيل')}
+            </button>
+          ))}
         </div>
 
-        {/* Card */}
-        <div className="glass-card p-7 space-y-5">
-          {/* Tabs */}
-          <div className="flex rounded-2xl p-1 gap-1"
-            style={{ background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}>
-            {(['login', 'signup'] as const).map(m => (
-              <button
-                key={m}
-                onClick={() => { setMode(m); setError(null); setSuccess(null); }}
-                className="flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
-                style={mode === m
-                  ? { background: 'var(--brand-primary)', color: '#fff' }
-                  : { color: 'var(--brand-text-muted)' }}
-              >
-                {m === 'login'
-                  ? (fr ? 'Connexion' : 'تسجيل دخول')
-                  : (fr ? 'Inscription' : 'إنشاء حساب')}
-              </button>
-            ))}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <div style={{ fontSize: 10.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Email</div>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+              placeholder={fr ? 'vous@exemple.com' : 'بريدك@مثال.com'}
+              style={{ width: '100%', padding: '12px 14px', background: t.card, border: `1px solid ${t.line}`, borderRadius: 8, color: t.ink, fontSize: 13, outline: 'none' }}
+            />
           </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
-            <div className="relative">
-              <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: 'var(--brand-primary)', opacity: 0.5 }} />
-              <input
-                type="email" value={email} onChange={e => setEmail(e.target.value)}
-                required placeholder={fr ? 'Adresse email' : 'البريد الإلكتروني'}
-                className="w-full pl-10 pr-4 py-3 rounded-2xl text-sm border bg-transparent focus:outline-none focus:ring-2 transition-all"
-                style={{
-                  borderColor: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)',
-                  color: 'var(--brand-primary)',
-                  '--tw-ring-color': 'color-mix(in srgb, var(--brand-primary) 25%, transparent)',
-                } as React.CSSProperties}
-              />
+          <div>
+            <div style={{ fontSize: 10.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>
+              {fr ? 'Mot de passe' : 'كلمة المرور'}
             </div>
-
-            {/* Password */}
-            <div className="relative">
-              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: 'var(--brand-primary)', opacity: 0.5 }} />
-              <input
-                type={showPwd ? 'text' : 'password'} value={password}
-                onChange={e => setPassword(e.target.value)}
-                required placeholder={fr ? 'Mot de passe' : 'كلمة المرور'}
-                minLength={6}
-                className="w-full pl-10 pr-10 py-3 rounded-2xl text-sm border bg-transparent focus:outline-none focus:ring-2 transition-all"
-                style={{
-                  borderColor: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)',
-                  color: 'var(--brand-primary)',
-                } as React.CSSProperties}
+            <div style={{ position: 'relative' }}>
+              <input type={showPwd ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
+                placeholder="••••••••"
+                style={{ width: '100%', padding: '12px 40px 12px 14px', background: t.card, border: `1px solid ${t.line}`, borderRadius: 8, color: t.ink, fontSize: 13, outline: 'none' }}
               />
               <button type="button" onClick={() => setShowPwd(v => !v)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2"
-                style={{ color: 'var(--brand-primary)', opacity: 0.4 }}>
-                {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: t.inkMute }}>
+                <Icon d={showPwd ? Icons.eye : Icons.lock} size={14}/>
               </button>
             </div>
+          </div>
 
-            {/* Erreur / Succès */}
-            <AnimatePresence>
-              {(error || success) && (
-                <motion.p
-                  initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  className="text-xs font-bold px-3 py-2 rounded-xl"
-                  style={error
-                    ? { background: 'rgba(239,68,68,0.08)', color: '#ef4444' }
-                    : { background: 'rgba(34,197,94,0.08)', color: '#16a34a' }}
-                >
-                  {error || success}
-                </motion.p>
-              )}
-            </AnimatePresence>
+          {(error || success) && (
+            <div style={{ padding: '10px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500, background: error ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)', color: error ? '#ef4444' : '#16a34a', border: `1px solid ${error ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}` }}>
+              {error || success}
+            </div>
+          )}
 
-            <motion.button
-              type="submit" disabled={loading}
-              whileHover={{ scale: loading ? 1 : 1.02 }}
-              whileTap={{ scale: loading ? 1 : 0.97 }}
-              className="w-full py-3 rounded-2xl font-black text-sm text-white flex items-center justify-center gap-2 transition-all"
-              style={{ background: loading ? 'color-mix(in srgb, var(--brand-primary) 60%, transparent)' : 'var(--brand-primary)' }}
-            >
-              {loading && <Loader2 size={15} className="animate-spin" />}
-              {mode === 'login'
-                ? (fr ? 'Se connecter' : 'تسجيل الدخول')
-                : (fr ? 'Créer mon compte' : 'إنشاء الحساب')}
-            </motion.button>
-          </form>
-        </div>
-
-        {/* Continuer sans compte */}
-        <div className="text-center">
-          <button
-            onClick={onContinueLocal}
-            className="text-xs font-bold underline underline-offset-4 opacity-50 hover:opacity-80 transition-opacity"
-            style={{ color: 'var(--brand-text-muted)' }}
-          >
-            {fr ? 'Continuer sans compte (données locales)' : 'المتابعة بدون حساب (بيانات محلية)'}
+          <button type="submit" disabled={loading}
+            style={{ width: '100%', padding: '13px', borderRadius: 10, background: loading ? t.accentSoft : t.accent, color: '#1a0f00', fontFamily: 'Inter', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4 }}>
+            {loading ? (fr ? 'Chargement…' : 'جاري…') : mode === 'login' ? (fr ? 'Se connecter' : 'تسجيل الدخول') : (fr ? 'Créer mon compte' : 'إنشاء الحساب')}
+            {!loading && <Icon d={Icons.arrow} size={14}/>}
           </button>
+        </form>
+
+        <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1, height: 1, background: t.line }}/><span style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em' }}>ou</span><div style={{ flex: 1, height: 1, background: t.line }}/>
         </div>
-      </motion.div>
+
+        <button onClick={onContinueLocal}
+          style={{ width: '100%', padding: '11px', borderRadius: 10, border: `1px solid ${t.line}`, background: 'transparent', color: t.inkDim, fontFamily: 'Inter', fontWeight: 500, fontSize: 12 }}>
+          {fr ? 'Continuer sans compte (données locales)' : 'المتابعة بدون حساب'}
+        </button>
+      </div>
     </div>
   );
 };

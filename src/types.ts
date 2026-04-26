@@ -47,7 +47,8 @@ export interface DiftarPage {
 }
 
 export interface UserSettings {
-  theme: 'light' | 'dark' | 'sepia' | 'emerald' | 'azur' | 'safran' | 'lilas' | 'ocean'
+  theme: 'gold' | 'sakura' | 'azur' | 'emerald'
+       | 'light' | 'dark' | 'sepia' | 'safran' | 'lilas' | 'ocean'
        | 'rose' | 'menthe' | 'ardoise' | 'aurore' | 'prune' | 'corail';
   notifications: boolean;
   dailyReminder: string;

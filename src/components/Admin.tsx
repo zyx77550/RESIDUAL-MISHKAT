@@ -108,7 +108,7 @@ export const AdminSection = ({ userData, lang }: AdminProps) => {
     totalStrokes: userData.diftarPages.reduce((acc, p) => acc + p.strokes.length, 0),
     surahs:       userData.surahs?.filter(s => s.status !== 'not_started').length ?? 0,
     goals:        userData.goals?.length ?? 0,
-    badges:       userData.badges?.filter(b => b.unlocked).length ?? 0,
+    badges:       userData.badges?.filter(b => b.unlockedAt).length ?? 0,
     loginStreak:  userData.loginStreak ?? 1,
   };
 

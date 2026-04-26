@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
-import { Sidebar } from './components/Sidebar';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ThemeContext, THEMES, Theme } from './lib/theme';
+import { AppSidebar, LanternMark } from './components/ui';
 import { Dashboard } from './components/Dashboard';
 import { Diftar } from './components/Diftar';
 import { ColoringGrid } from './components/ColoringGrid';
@@ -13,62 +13,33 @@ import { KanbanSection } from './components/Kanban';
 import { SettingsSection } from './components/Settings';
 import { AlBaqaraSection } from './components/AlBaqara';
 import { AdminSection } from './components/Admin';
-import { jsPDF } from 'jspdf';
-import {
-  LayoutDashboard,
-  Calendar as CalendarIcon,
-  BookOpen,
-  Target,
-  Award,
-  Palette,
-  NotebookPen,
-  Edit2,
-  Settings,
-  ChevronRight,
-  ChevronLeft,
-  ChevronUp,
-  ChevronDown,
-  Plus,
-  Save,
-  Check,
-  Undo,
-  Redo,
-  Trash2,
-  Eraser,
-  Ruler,
-  Download,
-  X,
-  CheckCircle2,
-  Circle,
-  Languages,
-  Wind,
-  Star,
-  Highlighter,
-  Pencil,
-  Brush,
-  Settings2,
-} from 'lucide-react';
 import localforage from 'localforage';
-import { cn } from './lib/utils';
-import { Surah, DiftarPage, UserData, Badge, generateAllSurahs, Stroke, Shape, checkLoginStreak } from './types';
-import confetti from 'canvas-confetti';
+import { UserData, Badge, generateAllSurahs, checkLoginStreak } from './types';
 import { checkAndUnlockBadges, celebrateBadgeUnlock } from './lib/badgeEngine';
 import { supabase, loadUserData, saveUserData, migrateLocalToSupabase, isAdminEmail } from './lib/supabase';
 import { AuthScreen } from './components/Auth';
 
+// Map old theme name → new token key
+const mapTheme = (old?: string): string => {
+  if (old === 'sakura') return 'sakura';
+  if (old === 'azur') return 'azur';
+  if (old === 'emerald') return 'emerald';
+  return 'gold';
+};
+
 export default function App() {
-  const [activeTab, setActiveTab]           = useState('dashboard');
-  const [lang, setLang]                     = useState<'fr' | 'ar'>('fr');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [userData, setUserData]             = useState<UserData | null>(null);
-  const [newlyUnlocked, setNewlyUnlocked]   = useState<Badge[]>([]);
-  const [updateWorker, setUpdateWorker]     = useState<ServiceWorker | null>(null);
+  const [activeTab, setActiveTab]   = useState('dashboard');
+  const [lang, setLang]             = useState<'fr' | 'ar'>('fr');
+  const [userData, setUserData]     = useState<UserData | null>(null);
+  const [newlyUnlocked, setNewlyUnlocked] = useState<Badge[]>([]);
+  const [updateWorker, setUpdateWorker]   = useState<ServiceWorker | null>(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
-  // Auth Supabase
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
-  const [showAuth,  setShowAuth]  = useState(false);
-  const [localOnly, setLocalOnly] = useState(false);
+  const [showAuth,  setShowAuth]    = useState(false);
+  const [localOnly, setLocalOnly]   = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  const theme: Theme = THEMES[mapTheme(userData?.settings?.theme)] ?? THEMES.gold;
 
   const updateUserDataWithBadges = useCallback((updater: UserData | ((prev: UserData) => UserData)) => {
     setUserData(prev => {
@@ -87,9 +58,8 @@ export default function App() {
     });
   }, []);
 
-  // ─── Auth state listener ──────────────────────────────────────────────────
+  // ── Auth state listener ──────────────────────────────────────────────────
   useEffect(() => {
-    // Vérifier session existante au démarrage
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setSupabaseUserId(session.user.id);
@@ -103,7 +73,6 @@ export default function App() {
       if (session?.user) {
         setSupabaseUserId(session.user.id);
         setShowAuth(false);
-        // Lors d'un vrai login (pas juste la restauration de session), recharger depuis Supabase
         if (_event === 'SIGNED_IN') {
           try {
             let cloudData = await migrateLocalToSupabase(session.user.id);
@@ -114,7 +83,7 @@ export default function App() {
               if (!cloudData.goals) cloudData.goals = [];
               if (!cloudData.badges) cloudData.badges = [];
               if (!cloudData.calendar) cloudData.calendar = [];
-              if (!cloudData.settings) cloudData.settings = { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' };
+              if (!cloudData.settings) cloudData.settings = { theme: 'gold', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' };
               if (typeof cloudData.tasbihCount !== 'number') cloudData.tasbihCount = 0;
               if (typeof cloudData.loginStreak !== 'number') cloudData.loginStreak = 1;
               cloudData.settings = { ...cloudData.settings, isAdmin: isAdminEmail(session.user.email) };
@@ -135,126 +104,95 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, [localOnly]);
 
+  // ── Load data ────────────────────────────────────────────────────────────
   useEffect(() => {
     const load = async () => {
-    try {
-      // Si connecté Supabase → charger depuis Supabase (avec migration si besoin)
-      const { data: { session } } = await supabase.auth.getSession();
-      let parsed: UserData | null = null;
-
-      if (session?.user) {
-        parsed = await migrateLocalToSupabase(session.user.id);
-        if (!parsed) parsed = await loadUserData(session.user.id);
-      }
-
-      // Fallback localforage / localStorage
-      if (!parsed) {
-        parsed = await localforage.getItem<UserData>('mishkat_user_data');
-        if (!parsed) {
-          const lsRaw = localStorage.getItem('mishkat_user_data');
-          if (lsRaw) {
-            try { parsed = JSON.parse(lsRaw); } catch {}
-          }
-        }
-      }
-      const today = new Date().toISOString().split('T')[0];
-
-      if (parsed) {
-        if (!parsed.surahs || !Array.isArray(parsed.surahs)) parsed.surahs = generateAllSurahs();
-        if (!parsed.diftarPages || !Array.isArray(parsed.diftarPages)) parsed.diftarPages = [];
-        if (!parsed.goals || !Array.isArray(parsed.goals)) parsed.goals = [];
-        if (!parsed.badges || !Array.isArray(parsed.badges)) parsed.badges = [];
-        if (!parsed.calendar || !Array.isArray(parsed.calendar)) parsed.calendar = [];
-        if (!parsed.settings) parsed.settings = { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' };
-
-        if (typeof parsed.tasbihCount !== 'number') parsed.tasbihCount = 0;
-        if (typeof parsed.loginStreak !== 'number') parsed.loginStreak = 1;
-        if (typeof parsed.tasbihSessionBest !== 'number') parsed.tasbihSessionBest = 0;
-        if (typeof parsed.onboarded !== 'boolean') parsed.onboarded = false;
-
-        if (parsed.surahs && parsed.surahs[0]?.name === 'Surah 1') {
-          const freshSurahs = generateAllSurahs();
-          parsed.surahs = freshSurahs.map((fresh: any, i: number) => ({
-            ...fresh,
-            status: parsed!.surahs[i]?.status || 'not_started',
-            color: parsed!.surahs[i]?.color,
-          }));
-        }
-
-        if (parsed.lastLoginDate !== today) {
-          const { newStreak } = checkLoginStreak(parsed);
-          parsed.loginStreak = newStreak;
-          parsed.lastLoginDate = today;
-        }
-
-        // Migration v1→v2 : les settings d'accessibilité n'avaient aucun effet
-        // avant cette version, donc on remet à undefined les valeurs éventuellement
-        // stockées sans que l'utilisateur ait pu voir leur rendu.
-        if (!parsed.settings.settingsVersion) {
-          parsed.settings.reduceAnimations = undefined;
-          parsed.settings.dyslexiaFont     = undefined;
-          parsed.settings.highContrast     = undefined;
-          parsed.settings.staticBackground = undefined;
-          parsed.settings.lineSpacing      = undefined;
-          parsed.settings.textDirection    = undefined;
-          parsed.settings.colorBlindMode   = undefined;
-          parsed.settings.uiZoom           = undefined;
-          parsed.settings.settingsVersion  = 1;
-        }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        let parsed: UserData | null = null;
 
         if (session?.user) {
-          parsed.settings = { ...parsed.settings, isAdmin: isAdminEmail(session.user.email) };
+          parsed = await migrateLocalToSupabase(session.user.id);
+          if (!parsed) parsed = await loadUserData(session.user.id);
+        }
+        if (!parsed) {
+          parsed = await localforage.getItem<UserData>('mishkat_user_data');
+          if (!parsed) {
+            const lsRaw = localStorage.getItem('mishkat_user_data');
+            if (lsRaw) { try { parsed = JSON.parse(lsRaw); } catch {} }
+          }
         }
 
-        setUserData(parsed);
-      } else {
-        const initial: UserData = {
-          surahs: generateAllSurahs(),
-          diftarPages: [],
-          goals: [
-            { id: '1', text: 'Mémoriser Sourate Al-Mulk', completed: false, month: 3 },
-            { id: '2', text: 'Lire 5 pages par jour', completed: true, month: 3 },
-          ],
-          badges: [], calendar: [], tasbihCount: 0, onboarded: false,
-          loginStreak: 1,
-          lastLoginDate: today,
-          tasbihSessionBest: 0,
-          settings: { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' },
-        };
-        setUserData(initial);
-        setShowOnboarding(true);
+        const today = new Date().toISOString().split('T')[0];
+
+        if (parsed) {
+          if (!parsed.surahs || !Array.isArray(parsed.surahs)) parsed.surahs = generateAllSurahs();
+          if (!parsed.diftarPages || !Array.isArray(parsed.diftarPages)) parsed.diftarPages = [];
+          if (!parsed.goals || !Array.isArray(parsed.goals)) parsed.goals = [];
+          if (!parsed.badges || !Array.isArray(parsed.badges)) parsed.badges = [];
+          if (!parsed.calendar || !Array.isArray(parsed.calendar)) parsed.calendar = [];
+          if (!parsed.settings) parsed.settings = { theme: 'gold', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' };
+          if (typeof parsed.tasbihCount !== 'number') parsed.tasbihCount = 0;
+          if (typeof parsed.loginStreak !== 'number') parsed.loginStreak = 1;
+          if (typeof parsed.tasbihSessionBest !== 'number') parsed.tasbihSessionBest = 0;
+          if (typeof parsed.onboarded !== 'boolean') parsed.onboarded = false;
+
+          if (parsed.surahs && parsed.surahs[0]?.name === 'Surah 1') {
+            const freshSurahs = generateAllSurahs();
+            parsed.surahs = freshSurahs.map((fresh: any, i: number) => ({
+              ...fresh,
+              status: parsed!.surahs[i]?.status || 'not_started',
+              color: parsed!.surahs[i]?.color,
+            }));
+          }
+          if (parsed.lastLoginDate !== today) {
+            const { newStreak } = checkLoginStreak(parsed);
+            parsed.loginStreak = newStreak;
+            parsed.lastLoginDate = today;
+          }
+          if (!parsed.settings.settingsVersion) {
+            parsed.settings.settingsVersion = 1;
+          }
+          if (session?.user) {
+            parsed.settings = { ...parsed.settings, isAdmin: isAdminEmail(session.user.email) };
+          }
+          setUserData(parsed);
+        } else {
+          const initial: UserData = {
+            surahs: generateAllSurahs(), diftarPages: [],
+            goals: [
+              { id: '1', text: 'Mémoriser Sourate Al-Mulk', completed: false, month: 3 },
+              { id: '2', text: 'Lire 5 pages par jour', completed: true, month: 3 },
+            ],
+            badges: [], calendar: [], tasbihCount: 0, onboarded: false,
+            loginStreak: 1, lastLoginDate: today, tasbihSessionBest: 0,
+            settings: { theme: 'gold', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' },
+          };
+          setUserData(initial);
+          setShowOnboarding(true);
+        }
+      } catch {
+        const today = new Date().toISOString().split('T')[0];
+        setUserData({
+          surahs: generateAllSurahs(), diftarPages: [], goals: [], badges: [],
+          calendar: [], tasbihCount: 0, onboarded: true, loginStreak: 1,
+          lastLoginDate: today, tasbihSessionBest: 0,
+          settings: { theme: 'gold', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' },
+        });
       }
-    } catch (error) {
-      console.error('Fatal error loading user data:', error);
-      const today = new Date().toISOString().split('T')[0];
-      const initial: UserData = {
-        surahs: generateAllSurahs(),
-        diftarPages: [],
-        goals: [],
-        badges: [], calendar: [], tasbihCount: 0, onboarded: true,
-        loginStreak: 1,
-        lastLoginDate: today,
-        tasbihSessionBest: 0,
-        settings: { theme: 'light', notifications: true, dailyReminder: '20:00', fontSize: 'medium', showArabicNames: true, username: 'Hafiz' },
-      };
-      setUserData(initial);
-    }
     };
     load();
   }, []);
 
-  // ─── CRITICAL: save userData to localforage + Supabase whenever it changes ───
+  // ── Save ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (userData) {
-      localforage.setItem('mishkat_user_data', userData).catch(err => {
-        console.error('Mishkat: failed to save data', err);
-      });
-      if (supabaseUserId) {
-        saveUserData(supabaseUserId, userData).catch(() => {});
-      }
+      localforage.setItem('mishkat_user_data', userData).catch(() => {});
+      if (supabaseUserId) saveUserData(supabaseUserId, userData).catch(() => {});
     }
   }, [userData, supabaseUserId]);
 
+  // ── SW update ────────────────────────────────────────────────────────────
   useEffect(() => {
     const handleUpdate = (e: any) => {
       setUpdateWorker(e.detail.waiting);
@@ -268,70 +206,35 @@ export default function App() {
     if (updateWorker) {
       let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (refreshing) return;
-        refreshing = true;
-        window.location.reload();
+        if (refreshing) return; refreshing = true; window.location.reload();
       });
       updateWorker.postMessage({ type: 'SKIP_WAITING' });
-    } else {
-      window.location.reload();
-    }
+    } else window.location.reload();
   };
 
+  // ── Auth screen ──────────────────────────────────────────────────────────
   if (showAuth && !localOnly) {
     return (
-      <AuthScreen
-        lang={lang}
-        onContinueLocal={() => {
-          setLocalOnly(true);
-          setShowAuth(false);
-        }}
-      />
+      <ThemeContext.Provider value={theme}>
+        <AuthScreen lang={lang} onContinueLocal={() => { setLocalOnly(true); setShowAuth(false); }}/>
+      </ThemeContext.Provider>
     );
   }
 
-  if (!userData) return null;
+  if (!userData) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', background: '#0c0a08', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <LanternMark size={48} color="#d4a64a"/>
+      </div>
+    );
+  }
 
-  const s = userData.settings;
-  const effectiveDir = s?.textDirection === 'rtl' ? 'rtl'
-    : s?.textDirection === 'ltr' ? 'ltr'
-    : lang === 'ar' ? 'rtl' : 'ltr';
-
-  const filterParts = [
-    s?.colorBlindMode === 'deuteranopia' ? 'url(#deuteranopia)'
-      : s?.colorBlindMode === 'protanopia' ? 'url(#protanopia)'
-      : s?.colorBlindMode === 'tritanopia' ? 'url(#tritanopia)'
-      : null,
-    s?.highContrast ? 'contrast(1.35)' : null,
-  ].filter(Boolean);
+  const t = theme;
+  const commonProps = { userData, setUserData: updateUserDataWithBadges, lang };
 
   return (
-    <div
-      className={cn(
-        'min-h-screen flex flex-col md:flex-row relative overflow-hidden transition-colors duration-500',
-        s?.theme === 'dark'    ? 'dark'    : s?.theme === 'sepia'   ? 'sepia'   :
-        s?.theme === 'emerald' ? 'emerald' : s?.theme === 'azur'    ? 'azur'    :
-        s?.theme === 'safran'  ? 'safran'  : s?.theme === 'lilas'   ? 'lilas'   :
-        s?.theme === 'ocean'   ? 'ocean'   : s?.theme === 'rose'    ? 'rose'    :
-        s?.theme === 'menthe'  ? 'menthe'  : s?.theme === 'ardoise' ? 'ardoise' :
-        s?.theme === 'aurore'  ? 'aurore'  : s?.theme === 'prune'   ? 'prune'   :
-        s?.theme === 'corail'  ? 'corail'  : '',
-        s?.fontSize === 'small' ? 'text-xs' : s?.fontSize === 'large' ? 'text-lg' : 'text-base',
-        effectiveDir === 'rtl' ? 'rtl' : 'ltr',
-        s?.reduceAnimations ? 'reduce-animations'        : '',
-        s?.dyslexiaFont     ? 'dyslexia-font'            : '',
-        s?.highContrast     ? 'high-contrast'            : '',
-        s?.lineSpacing === 'comfortable' ? 'line-spacing-comfortable'
-          : s?.lineSpacing === 'large'   ? 'line-spacing-large' : '',
-      )}
-      dir={effectiveDir}
-      style={{
-        background: 'transparent',
-        ...(s?.uiZoom && s.uiZoom !== 100 ? { zoom: `${s.uiZoom}%` } : {}),
-        ...(filterParts.length ? { filter: filterParts.join(' ') } : {}),
-      }}
-    >
-      {/* SVG filters daltonisme */}
+    <ThemeContext.Provider value={t}>
+      {/* SVG colour-blind filters */}
       <svg width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }}>
         <defs>
           <filter id="deuteranopia"><feColorMatrix type="matrix" values="0.625 0.375 0 0 0  0.7 0.3 0 0 0  0 0.3 0.7 0 0  0 0 0 1 0"/></filter>
@@ -339,111 +242,96 @@ export default function App() {
           <filter id="tritanopia"><feColorMatrix type="matrix" values="0.95 0.05 0 0 0  0 0.433 0.567 0 0  0 0.475 0.525 0 0  0 0 0 1 0"/></filter>
         </defs>
       </svg>
-      {/* Background — Midnight Sky */}
-      {!s?.staticBackground && (
-        <div className="uiverse-midnight-sky pointer-events-none" style={{ position: 'fixed', inset: 0, zIndex: 0, minHeight: '100vh', height: '100vh', width: '100vw' }}>
-          <div className="sky-canvas">
-            <div className="stars stars-1"></div>
-            <div className="stars stars-2"></div>
-            <div className="stars stars-3"></div>
-            <div className="meteor m1"></div>
-            <div className="meteor m2"></div>
-            <div className="meteor m3"></div>
-            <div className="moon"></div>
+
+      {/* Full-screen layout */}
+      <div style={{ width: '100vw', height: '100vh', background: t.bg, display: 'flex', overflow: 'hidden', fontFamily: 'Inter, sans-serif', color: t.ink, position: 'relative' }}>
+        {/* Geometric background pattern */}
+        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.025, pointerEvents: 'none', zIndex: 0 }}>
+          <defs>
+            <pattern id="app-pat" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+              <rect x="20" y="20" width="40" height="40" fill="none" stroke={t.accent} strokeWidth="0.5"/>
+              <rect x="20" y="20" width="40" height="40" fill="none" stroke={t.accent} strokeWidth="0.5" transform="rotate(45 40 40)"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#app-pat)"/>
+        </svg>
+
+        {/* Sidebar — desktop */}
+        <div className="hidden md:block" style={{ position: 'relative', zIndex: 1, flexShrink: 0 }}>
+          <AppSidebar
+            active={activeTab}
+            onNavigate={setActiveTab}
+            streak={userData.loginStreak}
+            isAdmin={userData.settings?.isAdmin}
+            lang={lang}
+          />
+        </div>
+
+        {/* Main content */}
+        <main style={{ flex: 1, overflowY: 'auto', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
+          {activeTab === 'dashboard'    && <Dashboard {...commonProps}/>}
+          {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang}/>}
+          {activeTab === 'coloring'     && <ColoringGrid {...commonProps}/>}
+          {activeTab === 'goals'        && <GoalsSection {...commonProps}/>}
+          {activeTab === 'tasbih'       && <TasbihSection {...commonProps}/>}
+          {activeTab === 'memorization' && <MemorizationSection {...commonProps}/>}
+          {activeTab === 'calendar'     && <CalendarSection {...commonProps}/>}
+          {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked}/>}
+          {activeTab === 'kanban'       && <KanbanSection {...commonProps}/>}
+          {activeTab === 'albaqara'     && <AlBaqaraSection {...commonProps}/>}
+          {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang}/>}
+          {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang}/>}
+        </main>
+
+        {/* Mobile bottom nav */}
+        <div className="md:hidden" style={{ position: 'relative', zIndex: 1 }}>
+          <AppSidebar active={activeTab} onNavigate={setActiveTab} streak={userData.loginStreak} isAdmin={userData.settings?.isAdmin} lang={lang}/>
+        </div>
+      </div>
+
+      {/* Onboarding modal */}
+      {showOnboarding && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: t.card, border: `1px solid ${t.line}`, borderRadius: 16, padding: '48px 40px', maxWidth: 420, width: '100%', textAlign: 'center' }}>
+            <LanternMark size={64} color={t.accent}/>
+            <h2 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, color: t.ink, margin: '20px 0 8px', letterSpacing: '-0.02em' }}>Mishkat</h2>
+            <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 20, color: t.accentBright, marginBottom: 16 }}>مِشْكَاة</div>
+            <p style={{ fontSize: 13, color: t.inkDim, lineHeight: 1.7, marginBottom: 28 }}>
+              {lang === 'fr'
+                ? 'Bienvenue dans votre compagnon de mémorisation. Suivez vos progrès et écrivez vos notes.'
+                : 'مرحباً بك في رفيقك في الحفظ.'}
+            </p>
+            <button
+              onClick={() => setShowOnboarding(false)}
+              style={{ width: '100%', padding: '13px', borderRadius: 10, background: t.accent, color: '#1a0f00', fontFamily: 'Inter', fontWeight: 600, fontSize: 14 }}
+            >
+              {lang === 'fr' ? 'Commencer' : 'ابدأ'}
+            </button>
+            <div style={{ marginTop: 16, fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+              Artisans du Savoir · Rahima & hamda_wa_chakra
+            </div>
           </div>
         </div>
       )}
 
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} lang={lang} setLang={setLang} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} loginStreak={userData.loginStreak} theme={userData.settings?.theme} isAdmin={userData.settings?.isAdmin} />
-
-      <main className={cn('flex-1 relative z-10', activeTab === 'diftar' ? 'overflow-hidden p-1 md:p-2' : 'overflow-y-auto p-4 md:p-12 pb-32 md:pb-12', lang === 'ar' ? 'text-right' : 'text-left', isSidebarCollapsed ? 'md:ml-[44px]' : 'md:ml-[308px]')}>
-        <div className={cn('h-full', activeTab !== 'diftar' && 'max-w-7xl mx-auto')}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="h-full"
-              >
-                {activeTab === 'dashboard'    && <Dashboard userData={userData} lang={lang} />}
-                {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-                {activeTab === 'coloring'     && <ColoringGrid userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-                {activeTab === 'goals'        && <GoalsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-                {activeTab === 'tasbih'       && <TasbihSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-                {activeTab === 'memorization' && <MemorizationSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-                {activeTab === 'calendar'     && <CalendarSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-                {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked} />}
-                {activeTab === 'kanban'       && <KanbanSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-                {activeTab === 'albaqara'     && <AlBaqaraSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-                {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} />}
-                {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang} />}
-              </motion.div>
-            </AnimatePresence>
-        </div>
-      </main>
-
-      {/* Onboarding */}
-      <AnimatePresence>
-        {showOnboarding && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 backdrop-blur-sm z-[100] flex items-center justify-center p-6" style={{ background: 'color-mix(in srgb, var(--brand-primary) 35%, transparent)' }}>
-            <motion.div initial={{ scale: 0.88, y: 24 }} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', bounce: 0.3 }} className="glass-card p-12 max-w-md text-center space-y-7 relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), var(--brand-primary))' }} />
-              <div className="w-24 h-24 rounded-2xl flex items-center justify-center mx-auto shadow-2xl relative" style={{ background: 'var(--brand-primary)' }}>
-                <div className="absolute inset-0 rounded-2xl" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.2), transparent)' }} />
-                <span className="text-4xl text-white" style={{ fontFamily: 'Amiri, serif', fontWeight: 700 }}>م</span>
+      {/* Update prompt */}
+      {showUpdatePrompt && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 110, width: 'calc(100% - 48px)', maxWidth: 360 }}>
+          <div style={{ background: t.card, border: `1px solid ${t.line}`, borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 10, color: t.accent, letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 600 }}>
+                {lang === 'fr' ? 'Mise à jour disponible' : 'تحديث متاح'}
               </div>
-              <div>
-                <h2 className="text-3xl font-bold" style={{ color: 'var(--brand-primary)' }}>Mishkat</h2>
-                <p className="text-lg mt-1" style={{ color: 'var(--brand-secondary)', fontFamily: 'Amiri, serif' }}>مِشْكَاة · تَطْبِيقُ الحِفْظِ</p>
+              <div style={{ fontSize: 11, color: t.inkDim, marginTop: 2 }}>
+                {lang === 'fr' ? 'Nouvelle version de Mishkat !' : 'إصدار جديد من مشكاة!'}
               </div>
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>
-                {lang === 'fr' ? 'Bienvenue dans votre compagnon de mémorisation. Suivez vos progrès, coloriez vos réussites et écrivez vos notes dans votre Diftar numérique.' : 'مرحباً بك في رفيقك في الحفظ. تتبع تقدمك، لون إنجaserاتك، واكتب ملاحظاتك في دفترك الرقمي.'}
-              </p>
-              <button onClick={() => setShowOnboarding(false)} className="premium-button w-full text-lg">
-                {lang === 'fr' ? "Commencer l'aventure ✦" : 'ابدأ الرحلة ✦'}
-              </button>
-              <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--brand-text-muted)', opacity: 0.6 }}>Par Rahima & hamda_wa_chakra</p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showUpdatePrompt && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[110] w-[calc(100%-3rem)] max-w-sm"
-          >
-            <div className="glass-card p-4 flex items-center justify-between gap-4 shadow-2xl border-white/20 bg-white/5 backdrop-blur-3xl">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#8B2635] text-white shadow-lg">
-                  <span className="text-xl">✨</span>
-                </div>
-                <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-[#8B2635]">Mise à jour</p>
-                  <p className="text-[10px] text-muted-foreground">{lang === 'fr' ? 'Nouvelle version disponible !' : 'إصدار جديد متاح !'}</p>
-                </div>
-              </div>
-              <button 
-                onClick={applyUpdate}
-                className="px-4 py-2 rounded-xl bg-[#8B2635] text-white text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all"
-              >
-                {lang === 'fr' ? 'Actualiser' : 'تحديث'}
-              </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <style>{`
-        .animate-spin-slow { animation: spin 8s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes pulse-ring { 0%,100% { transform: scale(1); opacity: 0.2; } 50% { transform: scale(1.1); opacity: 0.05; } }
-      `}</style>
-    </div>
+            <button onClick={applyUpdate} style={{ padding: '8px 14px', borderRadius: 8, background: t.accent, color: '#1a0f00', fontFamily: 'Inter', fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
+              {lang === 'fr' ? 'Actualiser' : 'تحديث'}
+            </button>
+          </div>
+        </div>
+      )}
+    </ThemeContext.Provider>
   );
 }
