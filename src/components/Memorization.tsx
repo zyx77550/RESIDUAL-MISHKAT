@@ -68,16 +68,18 @@ export const MemorizationSection = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* ── Header ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, margin: 0, color: t.ink, letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 6 }}>
+            {fr
+              ? `114 sourates · Juz ${juzFilter ?? '1 — 30'}`
+              : `١١٤ سورة · الجزء ${juzFilter ?? '١ — ٣٠'}`}
+          </div>
+          <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, margin: 0, color: t.ink, letterSpacing: '-0.02em', lineHeight: 1 }}>
             {fr ? 'Mémorisation' : 'الحِفْظ'}
           </h1>
-          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: 4 }}>
-            {fr ? `114 sourates · ${memorizedCount} mémorisées` : `١١٤ سورة · ${memorizedCount} محفوظة`}
-          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
           <select
             value={juzFilter ?? ''}
             onChange={e => setJuzFilter(e.target.value === '' ? null : parseInt(e.target.value))}
@@ -88,6 +90,16 @@ export const MemorizationSection = ({
               <option key={i + 1} value={i + 1}>{fr ? `Juz ${i + 1}` : `الجزء ${i + 1}`}</option>
             ))}
           </select>
+          <button
+            style={{ padding: '7px 14px', borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, color: t.inkDim, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+          >
+            <Icon d={Icons.filter} size={12}/> {fr ? 'Filtrer' : 'تصفية'}
+          </button>
+          <button
+            style={{ padding: '7px 16px', borderRadius: 8, background: t.accent, border: 'none', color: '#1a0f00', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+          >
+            <Icon d={Icons.play} size={11}/> {fr ? 'Reprendre' : 'متابعة'}
+          </button>
         </div>
       </div>
 
@@ -110,36 +122,35 @@ export const MemorizationSection = ({
       </div>
 
       {/* ── Filter bar ── */}
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '8px 14px', background: t.bgSoft ?? t.cardElev, border: `1px solid ${t.line}`, borderRadius: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '10px 14px', background: t.card, border: `1px solid ${t.line}`, borderRadius: 10 }}>
+        <span style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', flexShrink: 0, marginRight: 6 }}>
           {fr ? 'Filtre' : 'تصفية'}
         </span>
         {filterTabs.map(tab => (
           <button key={tab.id} onClick={() => setStatusFilter(tab.id)}
             style={{
-              padding: '4px 12px', borderRadius: 999, fontSize: 11.5,
+              padding: '4px 12px', borderRadius: 999, fontSize: 11.5, flexShrink: 0,
               fontWeight: statusFilter === tab.id ? 500 : 400,
               color: statusFilter === tab.id ? t.ink : t.inkDim,
               background: statusFilter === tab.id ? `${t.accent}18` : 'transparent',
               border: statusFilter === tab.id ? `1px solid ${t.accent}33` : '1px solid transparent',
-              cursor: 'pointer', flexShrink: 0,
+              cursor: 'pointer',
             }}>
             {fr ? tab.labelFr : tab.labelAr}
           </button>
         ))}
-        <div style={{ flex: 1, minWidth: 120 }}>
-          <div style={{ position: 'relative' }}>
-            <Icon d={Icons.search} size={12} color={t.inkMute} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}/>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={fr ? 'Rechercher…' : 'بحث…'}
-              style={{ width: '100%', padding: '5px 8px 5px 26px', background: 'transparent', border: `1px solid ${t.line}`, borderRadius: 7, color: t.ink, fontSize: 11, outline: 'none', boxSizing: 'border-box' as const }}
-            />
-          </div>
+        <div style={{ position: 'relative', marginLeft: 6 }}>
+          <Icon d={Icons.search} size={12} color={t.inkMute} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}/>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={fr ? 'Rechercher…' : 'بحث…'}
+            style={{ width: 140, padding: '5px 8px 5px 26px', background: t.cardElev, border: `1px solid ${t.line}`, borderRadius: 7, color: t.ink, fontSize: 11, outline: 'none' }}
+          />
         </div>
+        <div style={{ flex: 1 }}/>
         <span style={{ fontSize: 11, color: t.inkMute, flexShrink: 0 }}>
-          {filtered.length} {fr ? 'sourates' : 'سورة'}
+          {fr ? `Tri : N° de sourate ↓` : `ترتيب: رقم السورة ↓`}
         </span>
       </div>
 
