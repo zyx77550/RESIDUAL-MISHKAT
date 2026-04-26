@@ -2,7 +2,6 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { UserData } from '../types';
 import { useT } from '../lib/theme';
 import { Icon, Icons } from './ui';
-import { getNextBadgeToUnlock, getBadgeProgress } from '../lib/badgeEngine';
 
 interface PrayerTime { name: string; nameAr: string; time: string; }
 
@@ -22,7 +21,7 @@ async function fetchPrayerTimes(city: string): Promise<PrayerTime[]> {
   } catch { return []; }
 }
 
-async function fetchVerseOfDay(): Promise<{ ar: string; fr: string; ref: string } | null> {
+async function fetchVerseOfDay(): Promise<{ ar: string; fr: string; ref: string; surahName: string; verseNum: number } | null> {
   try {
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
     const verseNum = (dayOfYear % 6236) + 1;
@@ -35,25 +34,25 @@ async function fetchVerseOfDay(): Promise<{ ar: string; fr: string; ref: string 
     return {
       ar: arData.data.text,
       fr: frData.data.text,
-      ref: `${arData.data.surah.englishName} ${arData.data.numberInSurah}:${arData.data.surah.number}`,
+      ref: `${arData.data.surah.englishName} · ${arData.data.surah.number}:${arData.data.numberInSurah}`,
+      surahName: arData.data.surah.englishName,
+      verseNum: arData.data.numberInSurah,
     };
   } catch { return null; }
 }
 
-const QUOTES = [
-  { ar: 'وَنُنَزِّلُ مِنَ الْقُرْآنِ مَا هُوَ شِفَاءٌ وَرَحْمَةٌ', fr: 'Nous faisons descendre du Coran ce qui est une guérison et une miséricorde.' },
-  { ar: 'إِنَّ هَٰذَا الْقُرْآنَ يَهْدِي لِلَّتِي هِيَ أَقْوَمُ', fr: 'Certes ce Coran guide vers ce qui est le plus droit.' },
-  { ar: 'وَلَقَدْ يَسَّرْنَا الْقُرْآنَ لِلذِّكْرِ فَهَلْ مِن مُّدَّكِرٍ', fr: 'Nous avons facilité le Coran pour la méditation. Y a-t-il quelqu\'un pour réfléchir?' },
-  { ar: 'الَّذِينَ آمَنُوا وَتَطْمَئِنُّ قُلُوبُهُم بِذِكْرِ اللَّهِ', fr: 'Ceux qui croient et dont les cœurs se tranquillisent au souvenir d\'Allah.' },
-  { ar: 'فَاقْرَءُوا مَا تَيَسَّرَ مِنَ الْقُرْآنِ', fr: 'Récitez ce qui vous est facile du Coran.' },
-  { ar: 'كِتَابٌ أَنزَلْنَاهُ إِلَيْكَ مُبَارَكٌ لِّيَدَّبَّرُوا آيَاتِهِ', fr: 'Un Livre béni que Nous t\'avons révélé, afin qu\'ils méditent ses versets.' },
-  { ar: 'وَرَتِّلِ الْقُرْآنَ تَرْتِيلًا', fr: 'Et récite le Coran lentement et distinctement.' },
-];
+const FALLBACK_VERSE = {
+  ar: 'اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ',
+  fr: 'Lis, au nom de ton Seigneur qui a créé.',
+  ref: 'Al-ʿAlaq · 96:1',
+  surahName: 'Al-ʿAlaq',
+  verseNum: 1,
+};
 
-const Ring = ({ pct, size = 140, stroke = 7, color }: { pct: number; size?: number; stroke?: number; color: string }) => {
+const Ring = ({ pct, size = 100, stroke = 5, color }: { pct: number; size?: number; stroke?: number; color: string }) => {
   const r = (size - stroke * 2) / 2;
   const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - pct / 100);
+  const offset = circ * (1 - Math.min(pct, 100) / 100);
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke} opacity={0.12}/>
@@ -65,24 +64,25 @@ const Ring = ({ pct, size = 140, stroke = 7, color }: { pct: number; size?: numb
 
 export const Dashboard = ({ userData, lang }: { userData: UserData; lang: string }) => {
   const t = useT();
-  const memorizedCount = userData.surahs.filter(s => s.status === 'memorized').length;
-  const inProgressCount = userData.surahs.filter(s => s.status === 'in_progress').length;
-  const reviewCount = userData.surahs.filter(s => s.status === 'review').length;
-  const memoPct = Math.round((memorizedCount / 114) * 100);
-  const username = userData.settings?.username || 'Hafiz';
-  const streak = userData.loginStreak || 1;
-  const city = userData.settings?.city;
   const fr = lang === 'fr';
 
-  const [apiVerse, setApiVerse] = useState<{ ar: string; fr: string; ref: string } | null>(null);
-  const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([]);
-  const [nowTime, setNowTime] = useState(new Date());
+  const memorizedCount  = userData.surahs.filter(s => s.status === 'memorized').length;
+  const inProgressSurah = userData.surahs.find(s => s.status === 'in_progress') ?? null;
+  const reviewSurahs    = userData.surahs.filter(s => s.status === 'review').slice(0, 5);
+  const totalVersets    = userData.surahs.filter(s => s.status === 'memorized').reduce((acc, s) => acc + s.verses, 0);
+  const streak          = userData.loginStreak || 1;
+  const username        = userData.settings?.username || 'Hafiz';
+  const city            = userData.settings?.city;
 
-  useEffect(() => { fetchVerseOfDay().then(v => { if (v) setApiVerse(v); }); }, []);
-  useEffect(() => { if (!city) return; fetchPrayerTimes(city).then(setPrayerTimes); }, [city]);
+  const [verse, setVerse]             = useState<typeof FALLBACK_VERSE>(FALLBACK_VERSE);
+  const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([]);
+  const [nowTime, setNowTime]         = useState(new Date());
+
+  useEffect(() => { fetchVerseOfDay().then(v => { if (v) setVerse(v); }); }, []);
+  useEffect(() => { if (city) fetchPrayerTimes(city).then(setPrayerTimes); }, [city]);
   useEffect(() => {
-    const tid = setInterval(() => setNowTime(new Date()), 30000);
-    return () => clearInterval(tid);
+    const id = setInterval(() => setNowTime(new Date()), 30000);
+    return () => clearInterval(id);
   }, []);
 
   const nextPrayer = useMemo(() => {
@@ -90,254 +90,277 @@ export const Dashboard = ({ userData, lang }: { userData: UserData; lang: string
     const now = nowTime.getHours() * 60 + nowTime.getMinutes();
     for (const p of prayerTimes) {
       const [h, m] = p.time.split(':').map(Number);
-      const mins = h * 60 + m;
-      if (mins > now) return { ...p, minsLeft: mins - now };
+      if (h * 60 + m > now) return { ...p, minsLeft: h * 60 + m - now };
     }
     const [h, m] = prayerTimes[0].time.split(':').map(Number);
     return { ...prayerTimes[0], minsLeft: 24 * 60 - now + h * 60 + m };
   }, [prayerTimes, nowTime]);
 
-  const todayQuote = useMemo(() => {
-    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-    return QUOTES[dayOfYear % QUOTES.length];
-  }, []);
+  const dateStr = new Date().toLocaleDateString(fr ? 'fr-FR' : 'ar-EG', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  });
 
-  const nextBadge = useMemo(() => getNextBadgeToUnlock(userData), [userData]);
-  const nextBadgeProgress = nextBadge ? getBadgeProgress(userData, nextBadge.id) : 0;
-  const completedGoals = userData.goals.filter(g => g.completed).length;
+  // Monthly progress — calendar entries this month
+  const now = new Date();
+  const monthSessions = userData.calendar.filter(e => {
+    const d = new Date(e.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const monthTarget = 30;
 
-  const dateStr = fr
-    ? new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-    : new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
+  // Verse tiles for in-progress surah
+  const tiles = inProgressSurah
+    ? Array.from({ length: Math.min(inProgressSurah.verses, 40) }, (_, i) => {
+        const ratio = inProgressSurah.verses > 0 ? i / inProgressSurah.verses : 0;
+        if (ratio < 0.4)  return 'memorized';
+        if (ratio < 0.55) return 'progress';
+        return 'none';
+      })
+    : [];
 
-  const card = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 14, padding: '22px 24px' };
-
-  const statItems = [
-    { label: fr ? 'Mémorisées' : 'محفوظة', value: memorizedCount, icon: Icons.book, sub: '/ 114' },
-    { label: fr ? 'Objectifs' : 'الأهداف', value: completedGoals, icon: Icons.target, sub: `/ ${userData.goals.length}` },
-    { label: fr ? 'Badges' : 'الأوسمة', value: userData.badges.length, icon: Icons.badge, sub: fr ? 'débloqués' : 'مفتوحة' },
-    { label: fr ? 'Sessions' : 'الأيام', value: userData.calendar.length, icon: Icons.calendar, sub: fr ? 'enregistrées' : 'مسجلة' },
-  ];
+  const card: React.CSSProperties = {
+    background: t.card, border: `1px solid ${t.line}`, borderRadius: 12,
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, height: '100%', overflowY: 'auto' }} className="no-scrollbar">
+      <div style={{ padding: '26px 34px 24px', display: 'flex', flexDirection: 'column', gap: 20, minHeight: '100%' }}>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 6 }}>{dateStr}</div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, color: t.ink, lineHeight: 1.2 }}>
-            {fr ? 'As-salāmu ʿalaykum,' : 'السلام عليك،'}
-          </div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 400, fontSize: 32, color: t.accent, lineHeight: 1.2 }}>
-            {fr ? username : `يا ${username}`}
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: t.card, border: `1px solid ${t.line}`, borderRadius: 12 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon d={Icons.flame} size={14} color="#1a0f00"/>
-          </div>
+        {/* ── Header ─────────────────────────────────────── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
           <div>
-            <div style={{ fontFamily: 'Fraunces, serif', fontSize: 22, color: t.accent, lineHeight: 1 }}>{streak}</div>
-            <div style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-              {fr ? 'jours de suite' : 'يوم متواصل'}
+            <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 6 }}>
+              {dateStr}
             </div>
+            <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, margin: 0, color: t.ink, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+              {fr ? `As-salāmu ʿalaykum,` : 'السلام عليك،'}<br/>
+              <span style={{ color: t.accent }}>{username}</span>
+            </h1>
           </div>
-        </div>
-      </div>
 
-      {/* Progress + stats grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-
-        {/* Ring progress card */}
-        <div style={{ ...card, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 24px', position: 'relative' }}>
-          <div style={{ position: 'relative', width: 140, height: 140 }}>
-            <Ring pct={memoPct} color={t.accent}/>
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ fontFamily: 'Fraunces, serif', fontSize: 34, color: t.accent, lineHeight: 1 }}>{memoPct}%</div>
-              <div style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 4 }}>
-                {fr ? 'Accompli' : 'تم الإنجاز'}
-              </div>
-            </div>
-          </div>
-          <div style={{ marginTop: 18, textAlign: 'center' }}>
-            <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 18, color: t.ink }}>
-              {fr ? 'Votre Voyage' : 'رحلتك'}
-            </div>
-            <div style={{ fontSize: 12, color: t.inkDim, marginTop: 6 }}>
-              {memorizedCount} / 114 {fr ? 'sourates mémorisées' : 'سورة محفوظة'}
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-              {inProgressCount > 0 && (
-                <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: `${t.accentSoft}40`, color: t.accent }}>
-                  {inProgressCount} {fr ? 'en cours' : 'قيد الحفظ'}
-                </span>
-              )}
-              {reviewCount > 0 && (
-                <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: `${t.accentSoft}30`, color: t.accentBright }}>
-                  {reviewCount} {fr ? 'en révision' : 'مراجعة'}
-                </span>
-              )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginTop: 4 }}>
+            <button style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.inkMute }}>
+              <Icon d={Icons.search} size={14}/>
+            </button>
+            <button style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.inkMute }}>
+              <Icon d={Icons.bell} size={14}/>
+            </button>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 16, color: '#1a0f00', fontWeight: 400 }}>
+              {username.charAt(0).toUpperCase()}
             </div>
           </div>
         </div>
 
-        {/* 4 stat tiles */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {statItems.map((s, i) => (
-            <div key={i} style={{ ...card, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, background: t.cardElev, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon d={s.icon} size={13} color={t.accent}/>
-              </div>
-              <div>
-                <div style={{ fontFamily: 'Fraunces, serif', fontSize: 28, color: t.ink, lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 3 }}>{s.label}</div>
-                <div style={{ fontSize: 9, color: t.inkMute, opacity: 0.7 }}>{s.sub}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+        {/* ── Main 2-column grid ─────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', gap: 14 }}>
 
-      {/* Verse of the day */}
-      <div style={{ ...card, position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: 16, right: 20, fontSize: 9, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-          {apiVerse?.ref}
-        </div>
-        <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 14 }}>
-          {fr ? 'Verset du jour' : 'آية اليوم'}
-        </div>
-        <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 22, color: t.ink, lineHeight: 2, direction: 'rtl', textAlign: 'right' }}>
-          {apiVerse ? apiVerse.ar : todayQuote.ar}
-        </div>
-        {fr && (
-          <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 13, color: t.inkDim, marginTop: 10, lineHeight: 1.7 }}>
-            « {apiVerse ? apiVerse.fr : todayQuote.fr} »
-          </div>
-        )}
-      </div>
+          {/* ── LEFT COLUMN ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-      {/* Prayer times */}
-      {prayerTimes.length > 0 && (
-        <div style={card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase' }}>
-              {fr ? 'Horaires de prière' : 'مواقيت الصلاة'}
-            </div>
-            {city && (
-              <div style={{ fontSize: 10, color: t.inkMute }}>{city}</div>
-            )}
-          </div>
+            {/* Hero card — verse / current surah */}
+            <div style={{ ...card, padding: '24px 28px', position: 'relative', overflow: 'hidden' }}>
+              {/* subtle gradient overlay */}
+              <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(135deg, ${t.accent}0d, transparent 60%)`, pointerEvents: 'none' }}/>
 
-          {nextPrayer && (
-            <div style={{ padding: '12px 16px', borderRadius: 10, background: t.cardElev, border: `1px solid ${t.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div>
-                <div style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 3 }}>
-                  {fr ? 'Prochaine prière' : 'الصلاة القادمة'}
-                </div>
-                <div style={{ fontFamily: 'Fraunces, serif', fontSize: 16, color: t.ink }}>
-                  {fr ? nextPrayer.name : nextPrayer.nameAr}
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: 'Fraunces, serif', fontSize: 20, color: t.accent }}>{nextPrayer.time}</div>
-                <div style={{ fontSize: 9, color: t.inkMute, marginTop: 2 }}>
-                  {nextPrayer.minsLeft >= 60
-                    ? `${Math.floor(nextPrayer.minsLeft / 60)}h ${nextPrayer.minsLeft % 60}min`
-                    : `${nextPrayer.minsLeft} min`}
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
-            {prayerTimes.map(p => {
-              const isNext = nextPrayer?.name === p.name;
-              return (
-                <div key={p.name} style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                  padding: '10px 4px', borderRadius: 8,
-                  background: isNext ? t.cardElev : 'transparent',
-                  border: `1px solid ${isNext ? t.accent : t.line}`,
-                }}>
-                  <div style={{ fontSize: 9, color: isNext ? t.accent : t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
-                    {fr ? p.name : p.nameAr}
+              <div style={{ position: 'relative' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <div style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase' }}>
+                    {inProgressSurah
+                      ? (fr ? `À reprendre · ${inProgressSurah.name}` : `للمتابعة · ${inProgressSurah.arabicName}`)
+                      : (fr ? 'Verset du jour' : 'آية اليوم')
+                    }
                   </div>
-                  <div style={{ fontSize: 11, color: isNext ? t.ink : t.inkDim, fontFamily: 'Fraunces, serif' }}>{p.time}</div>
+                  {inProgressSurah && (
+                    <div style={{ padding: '3px 10px', borderRadius: 999, background: `${t.accent}22`, border: `1px solid ${t.accent}44`, fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: t.accent }}>
+                      {fr ? 'EN COURS' : 'قيد الحفظ'}
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
-      {/* Bottom row: next badge + goals */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+                <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 28, color: t.ink, lineHeight: 1.9, direction: 'rtl', textAlign: 'right' }}>
+                  {verse.ar}
+                </div>
 
-        {nextBadge && (
-          <div style={card}>
-            <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 16 }}>
-              {fr ? 'Prochain badge' : 'الشارة التالية'}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: t.cardElev, border: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon d={Icons.badge} size={18} color={t.accent}/>
+                <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 13, color: t.inkDim, marginTop: 12, lineHeight: 1.7 }}>
+                  « {verse.fr} »
+                </div>
+
+                <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 8 }}>
+                  {verse.ref}
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+                  <button style={{ padding: '9px 18px', borderRadius: 8, background: t.accent, color: '#1a0f00', fontFamily: 'Inter', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {fr ? 'Continuer' : 'متابعة'} <Icon d={Icons.arrow} size={12}/>
+                  </button>
+                  <button style={{ padding: '9px 14px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, fontFamily: 'Inter', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Icon d={Icons.play} size={12}/> {fr ? 'Écouter' : 'استماع'}
+                  </button>
+                  <button style={{ padding: '9px 14px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, fontFamily: 'Inter', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Icon d={Icons.edit} size={12}/> {fr ? 'Annoter' : 'تعليق'}
+                  </button>
+                </div>
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, color: t.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {fr ? nextBadge.title : nextBadge.titleAr}
-                </div>
-                <div style={{ marginTop: 8, height: 4, borderRadius: 2, background: t.cardElev, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${nextBadgeProgress}%`, background: t.accent, borderRadius: 2 }}/>
-                </div>
-                <div style={{ fontSize: 10, color: t.inkMute, marginTop: 4 }}>{Math.round(nextBadgeProgress)}%</div>
-              </div>
             </div>
-          </div>
-        )}
 
-        <div style={card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase' }}>
-              {fr ? 'Intentions du mois' : 'نوايا الشهر'}
-            </div>
-            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: t.cardElev, color: t.inkDim }}>
-              {completedGoals}/{userData.goals.length}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {userData.goals.slice(0, 3).map(goal => (
-              <div key={goal.id} style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8,
-                background: goal.completed ? `${t.accentSoft}20` : t.cardElev,
-                border: `1px solid ${t.line}`,
-              }}>
-                <div style={{
-                  width: 18, height: 18, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: goal.completed ? t.accent : 'transparent',
-                  border: goal.completed ? 'none' : `1.5px solid ${t.inkMute}`,
-                }}>
-                  {goal.completed && <Icon d={Icons.check} size={10} color="#1a0f00"/>}
+            {/* Sourate en cours */}
+            {inProgressSurah && (
+              <div style={{ ...card, padding: '18px 22px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div>
+                    <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 4 }}>
+                      {fr ? 'Sourate en cours' : 'السورة الحالية'}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                      <span style={{ fontFamily: 'Fraunces, serif', fontSize: 17, color: t.ink, fontWeight: 300 }}>{inProgressSurah.name}</span>
+                      <span style={{ fontFamily: 'Amiri Quran, serif', fontSize: 15, color: t.accentBright }}>{inProgressSurah.arabicName}</span>
+                      <span style={{ fontSize: 11, color: t.inkMute }}>{Math.round(tiles.filter(x => x === 'memorized').length / Math.max(tiles.length, 1) * inProgressSurah.verses)}/{inProgressSurah.verses} {fr ? 'versets' : 'آية'}</span>
+                    </div>
+                  </div>
+                  <button style={{ fontSize: 11, color: t.accentBright, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'Inter' }}>
+                    {fr ? 'Voir tout' : 'عرض الكل'}
+                  </button>
                 </div>
-                <span style={{
-                  fontSize: 12, color: goal.completed ? t.inkMute : t.ink, flex: 1,
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  textDecoration: goal.completed ? 'line-through' : 'none', opacity: goal.completed ? 0.6 : 1,
-                }}>
-                  {goal.text}
-                </span>
+
+                {/* Verse tiles */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                  {tiles.map((status, i) => (
+                    <div key={i} style={{
+                      width: 18, height: 18, borderRadius: 4,
+                      background: status === 'memorized' ? t.accent : status === 'progress' ? `${t.accent}40` : t.cardElev,
+                      border: `1px solid ${status === 'none' ? t.line : 'transparent'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontFamily: 'Fraunces, serif', fontSize: 7, color: status === 'memorized' ? '#1a0f00' : t.inkMute,
+                    }}>{i + 1}</div>
+                  ))}
+                </div>
+
+                {/* Legend */}
+                <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
+                  {[
+                    { color: t.accent, label: fr ? 'Mémorisé' : 'محفوظ' },
+                    { color: `${t.accent}40`, label: fr ? 'En cours' : 'قيد الحفظ' },
+                    { color: t.cardElev, label: fr ? 'À venir' : 'قادم' },
+                  ].map(item => (
+                    <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: 2, background: item.color, border: `1px solid ${t.line}` }}/>
+                      <span style={{ fontSize: 9.5, color: t.inkMute }}>{item.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-            {userData.goals.length === 0 && (
-              <div style={{ fontSize: 12, color: t.inkMute, textAlign: 'center', padding: '16px 0' }}>
-                {fr ? 'Aucun objectif — créez-en un !' : 'لا أهداف — أنشئ هدفاً!'}
+            )}
+
+            {/* Prayer times */}
+            {prayerTimes.length > 0 && (
+              <div style={{ ...card, padding: '18px 22px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+                    {fr ? 'Horaires de prière' : 'مواقيت الصلاة'}
+                  </div>
+                  {city && <div style={{ fontSize: 10, color: t.inkMute }}>{city}</div>}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+                  {prayerTimes.map(p => {
+                    const isNext = nextPrayer?.name === p.name;
+                    return (
+                      <div key={p.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 4px', borderRadius: 8, background: isNext ? `${t.accent}14` : t.cardElev, border: `1px solid ${isNext ? t.accent : t.line}` }}>
+                        <div style={{ fontSize: 9, color: isNext ? t.accent : t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>{fr ? p.name : p.nameAr}</div>
+                        <div style={{ fontSize: 11, color: isNext ? t.ink : t.inkDim, fontFamily: 'Fraunces, serif' }}>{p.time}</div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
+
+          {/* ── RIGHT COLUMN ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+            {/* Today card — ring + stats */}
+            <div style={{ ...card, padding: '20px 22px' }}>
+              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 14 }}>
+                {fr ? "Aujourd'hui" : 'اليوم'}
+              </div>
+
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                {/* Ring */}
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <Ring pct={memorizedCount / 114 * 100} size={90} stroke={5} color={t.accent}/>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ fontFamily: 'Fraunces, serif', fontSize: 20, color: t.accent, lineHeight: 1 }}>{memorizedCount}</div>
+                    <div style={{ fontSize: 7.5, color: t.inkMute, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 2 }}>{fr ? 'sour.' : 'سور'}</div>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { icon: Icons.flame, value: streak, label: fr ? 'jours de suite' : 'يوم متواصل' },
+                    { icon: Icons.book,  value: totalVersets, label: fr ? 'versets totaux' : 'آية محفوظة' },
+                    { icon: Icons.badge, value: `${memorizedCount}/114`, label: fr ? 'sourates' : 'سورة' },
+                  ].map((s, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Icon d={s.icon} size={12} color={t.accent}/>
+                      <span style={{ fontFamily: 'Fraunces, serif', fontSize: 14, color: t.ink, fontWeight: 300 }}>{s.value}</span>
+                      <span style={{ fontSize: 10, color: t.inkDim }}>{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Progression mensuelle */}
+            <div style={{ ...card, padding: '18px 22px' }}>
+              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10 }}>
+                {fr ? 'Progression mensuelle' : 'التقدم الشهري'}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}>
+                <span style={{ fontFamily: 'Fraunces, serif', fontSize: 26, color: t.ink, fontWeight: 300 }}>{monthSessions.length}</span>
+                <span style={{ fontSize: 12, color: t.inkDim }}>/ {monthTarget} {fr ? 'sessions' : 'جلسة'}</span>
+              </div>
+              <div style={{ height: 4, background: t.lineSoft, borderRadius: 4 }}>
+                <div style={{ height: '100%', width: `${Math.min(monthSessions.length / monthTarget * 100, 100)}%`, background: `linear-gradient(90deg, ${t.accent}, ${t.accentBright})`, borderRadius: 4 }}/>
+              </div>
+            </div>
+
+            {/* Révisions du jour */}
+            <div style={{ ...card, padding: '18px 22px', flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+                  {fr ? 'Révisions du jour' : 'مراجعات اليوم'}
+                </div>
+                <div style={{ padding: '2px 8px', borderRadius: 10, background: t.cardElev, fontSize: 10, color: t.inkDim }}>{reviewSurahs.length}</div>
+              </div>
+
+              {reviewSurahs.length === 0 ? (
+                <div style={{ fontSize: 12, color: t.inkMute, textAlign: 'center', padding: '20px 0', fontFamily: 'Fraunces, serif', fontStyle: 'italic' }}>
+                  {fr ? 'Aucune révision prévue' : 'لا مراجعات اليوم'}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {reviewSurahs.map((s, i) => (
+                    <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}` }}>
+                      <div style={{ width: 24, height: 24, borderRadius: 6, background: `${t.accent}18`, border: `1px solid ${t.accent}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ fontFamily: 'Fraunces, serif', fontSize: 10, color: t.accent }}>{i + 1}</span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: 12, color: t.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
+                          <span style={{ fontFamily: 'Amiri Quran, serif', fontSize: 13, color: t.accentBright, flexShrink: 0, marginLeft: 8 }}>{s.arabicName}</span>
+                        </div>
+                        <div style={{ fontSize: 9.5, color: t.inkMute, marginTop: 2 }}>{s.verses} {fr ? 'versets' : 'آية'}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
         </div>
       </div>
-
     </div>
   );
 };
