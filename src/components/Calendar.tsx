@@ -116,40 +116,38 @@ export const CalendarSection = ({
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
 
         {/* ── LEFT : Calendar card ── */}
-        <div style={{ ...card, padding: '18px 20px' }}>
+        <div style={{ ...card, padding: '14px 14px 10px' }}>
           {/* Day headers */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 4 }}>
             {DAY_HEADERS.map(d => (
-              <div key={d} style={{ textAlign: 'center', fontSize: 9.5, color: t.inkMute, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '6px 0' }}>{d}</div>
+              <div key={d} style={{ textAlign: 'center', fontSize: 9.5, color: t.inkMute, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '4px 0 6px' }}>{d}</div>
             ))}
           </div>
 
           {/* Day cells */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
             {paddingDays.map((_, i) => (
-              <div key={`pad-${i}`} style={{ aspectRatio: '1', background: t.bg, borderRadius: 7, opacity: 0.4 }}/>
+              <div key={`pad-${i}`} style={{ aspectRatio: '1', background: t.bg, borderRadius: 7, opacity: 0.3 }}/>
             ))}
             {days.map(day => {
-              const data   = getDayData(day);
-              const has    = data.prayers.length > 0 || data.fasting || (data.pagesRead || 0) > 0;
-              const isNow  = isToday(day);
+              const data  = getDayData(day);
+              const has   = data.prayers.length > 0 || data.fasting || (data.pagesRead || 0) > 0;
+              const isNow = isToday(day);
               return (
                 <div key={format(day, 'yyyy-MM-dd')} style={{
-                  aspectRatio: '1', borderRadius: 7, padding: '6px 7px', position: 'relative',
+                  aspectRatio: '1', borderRadius: 7, padding: '7px 8px', position: 'relative',
                   background: isNow ? `${t.accent}22` : has ? t.cardElev : t.bg,
                   border: isNow ? `1.5px solid ${t.accent}` : `1px solid ${has ? t.line : t.lineSoft ?? t.line}`,
                 }}>
-                  <div style={{ fontFamily: 'Fraunces, serif', fontSize: 13, color: isNow ? t.accentBright : t.ink, fontWeight: 300, lineHeight: 1 }}>
+                  <div style={{ fontFamily: 'Fraunces, serif', fontSize: 14, color: isNow ? t.accentBright : t.ink, fontWeight: 300, lineHeight: 1 }}>
                     {format(day, 'd')}
                   </div>
                   <div style={{ position: 'absolute', bottom: 5, left: 6, right: 6, display: 'flex', gap: 2, alignItems: 'center' }}>
-                    {data.prayers.length > 0 && (
-                      <div style={{ display: 'flex', gap: 1.5 }}>
-                        {Array.from({ length: 5 }).map((_, k) => (
-                          <span key={k} style={{ width: 3, height: 3, borderRadius: '50%', background: k < data.prayers.length ? t.accent : `${t.inkMute}30` }}/>
-                        ))}
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', gap: 1.5 }}>
+                      {Array.from({ length: 5 }).map((_, k) => (
+                        <span key={k} style={{ width: 3, height: 3, borderRadius: '50%', background: k < data.prayers.length ? t.accent : `${t.inkMute}25` }}/>
+                      ))}
+                    </div>
                     {data.fasting && (
                       <span style={{ fontSize: 8, color: t.accentBright, marginLeft: 'auto' }}>◐</span>
                     )}
@@ -169,46 +167,56 @@ export const CalendarSection = ({
               {fr ? `Aujourd'hui · ${format(today, 'd MMM', { locale })}` : `اليوم · ${format(today, 'd MMM', { locale })}`}
             </div>
 
+            {/* Prayers */}
             <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
               {fr ? 'Prières' : 'الصلوات'}
             </div>
-            <div style={{ display: 'flex', gap: 5, marginBottom: 14 }}>
+            <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
               {PRAYERS.map(p => {
                 const done = todayData.prayers.includes(p);
+                const shortName: Record<string, string> = { Fajr: 'Fajr', Dhuhr: 'Dhuhr', Asr: 'Asr', Maghrib: 'Mag', Isha: 'Isha' };
                 return (
                   <button key={p} onClick={() => togglePrayer(todayStr, p)}
-                    style={{ flex: 1, padding: '8px 4px', borderRadius: 7, textAlign: 'center', cursor: 'pointer',
+                    style={{ flex: 1, padding: '8px 2px', borderRadius: 7, textAlign: 'center', cursor: 'pointer',
                       background: done ? `${t.accent}22` : t.cardElev,
                       border: `1px solid ${done ? `${t.accent}55` : t.line}` }}>
-                    <div style={{ fontSize: 8.5, color: t.inkDim, marginBottom: 4 }}>{p.slice(0, 3)}</div>
+                    <div style={{ fontSize: 8, color: done ? t.accent : t.inkDim, marginBottom: 4, fontWeight: 600 }}>{shortName[p]}</div>
                     {done
-                      ? <Icon d={Icons.check} size={11} color={t.accent}/>
+                      ? <Icon d={Icons.check} size={10} color={t.accent}/>
                       : <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: t.line }}/>}
                   </button>
                 );
               })}
             </div>
 
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => toggleFasting(todayStr)}
-                style={{ padding: '6px 12px', borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: 600,
-                  background: todayData.fasting ? `${'#818cf8'}22` : t.cardElev,
-                  color: todayData.fasting ? '#818cf8' : t.inkDim,
-                  border: `1px solid ${todayData.fasting ? '#818cf8' : t.line}` }}>
-                {fr ? '◐ Jeûne' : '◐ صيام'}
-              </button>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 7, background: t.cardElev, border: `1px solid ${t.line}` }}>
-                <Icon d={Icons.book} size={12} color={t.accent}/>
+            {/* Lecture */}
+            <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+              {fr ? 'Lecture' : 'قراءة'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
+              <span style={{ fontFamily: 'Fraunces, serif', fontSize: 24, color: t.ink, fontWeight: 300 }}>
+                {todayData.pagesRead || 0}
+              </span>
+              <span style={{ fontSize: 11, color: t.inkDim }}>{fr ? 'versets aujourd\'hui' : 'آية اليوم'}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 7, background: t.cardElev, border: `1px solid ${t.line}` }}>
+                <span style={{ fontSize: 10, color: t.inkMute }}>+</span>
                 <input
                   type="number" min="0" max="604"
                   value={todayData.pagesRead || 0}
                   onChange={e => updatePages(todayStr, parseInt(e.target.value) || 0)}
-                  style={{ width: 36, background: 'transparent', fontSize: 12, fontWeight: 700, outline: 'none', color: t.ink, border: 'none' }}
+                  style={{ width: 40, background: 'transparent', fontSize: 12, fontWeight: 700, outline: 'none', color: t.ink, border: 'none' }}
                 />
-                <span style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                  {fr ? 'pages' : 'صفح'}
-                </span>
+                <span style={{ fontSize: 9, color: t.inkMute }}>{fr ? 'versets' : 'آية'}</span>
               </div>
+              <button onClick={() => toggleFasting(todayStr)}
+                style={{ padding: '6px 12px', borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                  background: todayData.fasting ? '#818cf822' : t.cardElev,
+                  color: todayData.fasting ? '#818cf8' : t.inkDim,
+                  border: `1px solid ${todayData.fasting ? '#818cf8' : t.line}` }}>
+                {fr ? '◐ Jeûne' : '◐ صيام'}
+              </button>
             </div>
           </div>
 
