@@ -269,7 +269,7 @@ export default function App() {
 
         {/* Main content */}
         <main style={{ flex: 1, overflowY: 'auto', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
-          {activeTab === 'dashboard'    && <Dashboard {...commonProps}/>}
+          {activeTab === 'dashboard'    && <Dashboard {...commonProps} onNavigate={setActiveTab}/>}
           {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang}/>}
           {activeTab === 'coloring'     && <ColoringGrid {...commonProps}/>}
           {activeTab === 'goals'        && <GoalsSection {...commonProps}/>}

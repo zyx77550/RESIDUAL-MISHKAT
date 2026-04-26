@@ -62,7 +62,7 @@ const Ring = ({ pct, size = 100, stroke = 5, color }: { pct: number; size?: numb
   );
 };
 
-export const Dashboard = ({ userData, lang }: { userData: UserData; lang: string }) => {
+export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; lang: string; onNavigate?: (section: string) => void }) => {
   const t = useT();
   const fr = lang === 'fr';
 
@@ -151,6 +151,26 @@ export const Dashboard = ({ userData, lang }: { userData: UserData; lang: string
           </div>
         </div>
 
+        {/* ── Stats tiles row ────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+          {[
+            { icon: Icons.flame,    value: streak,                   label: fr ? 'Jours de suite'   : 'يوم متواصل',  color: t.accent },
+            { icon: Icons.book,     value: totalVersets,             label: fr ? 'Versets mémorisés' : 'آية محفوظة',  color: t.accent },
+            { icon: Icons.bookmark, value: `${memorizedCount}/114`,  label: fr ? 'Sourates'          : 'سورة',        color: t.accent },
+            { icon: Icons.badge,    value: userData.badges?.filter(b => b.unlockedAt).length ?? 0, label: fr ? 'Badges'  : 'شارة', color: '#a78bdb' },
+          ].map((s, i) => (
+            <div key={i} style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: `${s.color}16`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon d={s.icon} size={15} color={s.color}/>
+              </div>
+              <div>
+                <div style={{ fontFamily: 'Fraunces, serif', fontSize: 18, color: t.ink, fontWeight: 300, lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: 9.5, color: t.inkMute, marginTop: 3, letterSpacing: '0.08em' }}>{s.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* ── Main 2-column grid ─────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', gap: 14 }}>
 
@@ -189,15 +209,21 @@ export const Dashboard = ({ userData, lang }: { userData: UserData; lang: string
                   {verse.ref}
                 </div>
 
-                <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-                  <button style={{ padding: '9px 18px', borderRadius: 8, background: t.accent, color: '#1a0f00', fontFamily: 'Inter', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {fr ? 'Continuer' : 'متابعة'} <Icon d={Icons.arrow} size={12}/>
+                <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => onNavigate?.('memorization')}
+                    style={{ padding: '9px 18px', borderRadius: 8, background: t.accent, color: '#1a0f00', fontFamily: 'Inter', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', border: 'none' }}>
+                    {fr ? 'Mémorisation' : 'الحفظ'} <Icon d={Icons.arrow} size={12}/>
                   </button>
-                  <button style={{ padding: '9px 14px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, fontFamily: 'Inter', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Icon d={Icons.play} size={12}/> {fr ? 'Écouter' : 'استماع'}
+                  <button
+                    onClick={() => onNavigate?.('kanban')}
+                    style={{ padding: '9px 14px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, fontFamily: 'Inter', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                    <Icon d={Icons.grid} size={12}/> {fr ? 'Kanban' : 'كانبان'}
                   </button>
-                  <button style={{ padding: '9px 14px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, fontFamily: 'Inter', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Icon d={Icons.edit} size={12}/> {fr ? 'Annoter' : 'تعليق'}
+                  <button
+                    onClick={() => onNavigate?.('diftar')}
+                    style={{ padding: '9px 14px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, fontFamily: 'Inter', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                    <Icon d={Icons.edit} size={12}/> {fr ? 'Diftar' : 'الدفتر'}
                   </button>
                 </div>
               </div>
@@ -324,6 +350,38 @@ export const Dashboard = ({ userData, lang }: { userData: UserData; lang: string
                 <div style={{ height: '100%', width: `${Math.min(monthSessions.length / monthTarget * 100, 100)}%`, background: `linear-gradient(90deg, ${t.accent}, ${t.accentBright})`, borderRadius: 4 }}/>
               </div>
             </div>
+
+            {/* Prochaine étape */}
+            {(() => {
+              const nextSurah = userData.surahs.find(s => s.status === 'not_started');
+              if (!nextSurah) return null;
+              return (
+                <div style={{ ...card, padding: '16px 20px' }}>
+                  <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10 }}>
+                    {fr ? 'Prochaine étape' : 'الخطوة التالية'}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: `${t.accent}14`, border: `1px solid ${t.accent}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontFamily: 'Fraunces, serif', fontSize: 13, color: t.accent }}>{nextSurah.id}</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, color: t.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nextSurah.name}</div>
+                      <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 13, color: t.accentBright }}>{nextSurah.arabicName}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                      {[1,2,3,4,5].map(star => (
+                        <span key={star} style={{ fontSize: 8, color: star <= nextSurah.difficulty ? t.accent : `${t.inkMute}40` }}>★</span>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onNavigate?.('memorization')}
+                    style={{ width: '100%', marginTop: 12, padding: '8px 0', borderRadius: 7, background: `${t.accent}18`, border: `1px solid ${t.accent}33`, color: t.accent, fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', cursor: 'pointer' }}>
+                    {fr ? 'Commencer' : 'ابدأ'}
+                  </button>
+                </div>
+              );
+            })()}
 
             {/* Révisions du jour */}
             <div style={{ ...card, padding: '18px 22px', flex: 1 }}>
