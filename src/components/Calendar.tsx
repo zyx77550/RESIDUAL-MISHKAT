@@ -3,7 +3,7 @@ import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
   isToday, addMonths, subMonths, getDay
 } from 'date-fns';
-import { fr, ar } from 'date-fns/locale';
+import { fr as frLocale, ar as arLocale } from 'date-fns/locale';
 import { UserData } from '../types';
 import { useT } from '../lib/theme';
 import { Icon, Icons } from './ui';
@@ -11,255 +11,231 @@ import { Icon, Icons } from './ui';
 const PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as const;
 type Prayer = typeof PRAYERS[number];
 
-const PRAYER_COLORS: Record<Prayer, string> = {
-  Fajr:    '#a8dadc',
-  Dhuhr:   '#d4a64a',
-  Asr:     '#86efac',
-  Maghrib: '#f59e0b',
-  Isha:    '#818cf8',
-};
-
 export const CalendarSection = ({
   userData, setUserData, lang
 }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const t = useT();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  const fr_lang = lang === 'fr';
+  const fr = lang === 'fr';
 
-  const locale = lang === 'fr' ? fr : ar;
-  const monthStart = startOfMonth(currentDate);
-  const monthEnd = endOfMonth(currentDate);
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const locale = lang === 'fr' ? frLocale : arLocale;
+  const monthStart   = startOfMonth(currentDate);
+  const monthEnd     = endOfMonth(currentDate);
+  const days         = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const firstDayOfWeek = (getDay(monthStart) + 6) % 7;
-  const paddingDays = Array.from({ length: firstDayOfWeek });
+  const paddingDays  = Array.from({ length: firstDayOfWeek });
+
+  const today = new Date();
+  const todayStr = format(today, 'yyyy-MM-dd');
 
   const getDayData = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return userData.calendar.find(c => c.date === dateStr) || { prayers: [], fasting: false, pagesRead: 0 };
+    return userData.calendar.find(c => c.date === dateStr) ?? { prayers: [], fasting: false, pagesRead: 0 };
   };
 
-  const togglePrayer = (date: Date, prayer: string) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
+  const togglePrayer = (dateStr: string, prayer: string) => {
     setUserData((prev: UserData) => {
       const existing = prev.calendar.find(c => c.date === dateStr);
-      let newCalendar;
       if (existing) {
         const prayers = existing.prayers.includes(prayer)
           ? existing.prayers.filter(p => p !== prayer)
           : [...existing.prayers, prayer];
-        newCalendar = prev.calendar.map(c => c.date === dateStr ? { ...c, prayers } : c);
-      } else {
-        newCalendar = [...prev.calendar, { date: dateStr, prayers: [prayer], fasting: false, pagesRead: 0 }];
+        return { ...prev, calendar: prev.calendar.map(c => c.date === dateStr ? { ...c, prayers } : c) };
       }
-      return { ...prev, calendar: newCalendar };
+      return { ...prev, calendar: [...prev.calendar, { date: dateStr, prayers: [prayer], fasting: false, pagesRead: 0 }] };
     });
   };
 
-  const toggleFasting = (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
+  const toggleFasting = (dateStr: string) => {
     setUserData((prev: UserData) => {
       const existing = prev.calendar.find(c => c.date === dateStr);
-      let newCalendar;
       if (existing) {
-        newCalendar = prev.calendar.map(c => c.date === dateStr ? { ...c, fasting: !c.fasting } : c);
-      } else {
-        newCalendar = [...prev.calendar, { date: dateStr, prayers: [], fasting: true, pagesRead: 0 }];
+        return { ...prev, calendar: prev.calendar.map(c => c.date === dateStr ? { ...c, fasting: !c.fasting } : c) };
       }
-      return { ...prev, calendar: newCalendar };
+      return { ...prev, calendar: [...prev.calendar, { date: dateStr, prayers: [], fasting: true, pagesRead: 0 }] };
     });
   };
 
-  const updatePages = (date: Date, pages: number) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
+  const updatePages = (dateStr: string, pages: number) => {
     setUserData((prev: UserData) => {
       const existing = prev.calendar.find(c => c.date === dateStr);
-      let newCalendar;
       if (existing) {
-        newCalendar = prev.calendar.map(c => c.date === dateStr ? { ...c, pagesRead: pages } : c);
-      } else {
-        newCalendar = [...prev.calendar, { date: dateStr, prayers: [], fasting: false, pagesRead: pages }];
+        return { ...prev, calendar: prev.calendar.map(c => c.date === dateStr ? { ...c, pagesRead: pages } : c) };
       }
-      return { ...prev, calendar: newCalendar };
+      return { ...prev, calendar: [...prev.calendar, { date: dateStr, prayers: [], fasting: false, pagesRead: pages }] };
     });
   };
 
-  const monthStr = format(currentDate, 'yyyy-MM');
-  const monthEntries = userData.calendar.filter(c => c.date.startsWith(monthStr));
-  const totalPrayers5Days = monthEntries.filter(c => c.prayers.length === 5).length;
-  const totalFastingDays = monthEntries.filter(c => c.fasting).length;
-  const totalPages = monthEntries.reduce((sum, c) => sum + (c.pagesRead || 0), 0);
-  const daysTracked = monthEntries.length;
+  const monthStr      = format(currentDate, 'yyyy-MM');
+  const monthEntries  = userData.calendar.filter(c => c.date.startsWith(monthStr));
+  const totalPrayers  = monthEntries.reduce((sum, c) => sum + c.prayers.length, 0);
+  const totalPossible = days.filter(d => !isToday(d) || true).length * 5;
+  const fastingDays   = monthEntries.filter(c => c.fasting).length;
+  const totalPages    = monthEntries.reduce((sum, c) => sum + (c.pagesRead || 0), 0);
+  const streak        = userData.loginStreak || 0;
 
-  const selectedDayData = selectedDay ? getDayData(selectedDay) : null;
+  const todayData = getDayData(today);
 
-  const DAY_HEADERS = fr_lang
+  const DAY_HEADERS = fr
     ? ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
     : ['اث', 'ثل', 'أر', 'خم', 'جم', 'سب', 'أح'];
 
-  const card = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 14 };
+  const card: React.CSSProperties = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 12 };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, color: t.ink }}>
-            {fr_lang ? 'Calendrier' : 'التقويم'}
+          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 6 }}>
+            {fr ? 'Mois en cours' : 'الشهر الحالي'} · {format(currentDate, 'MMMM yyyy', { locale })}
           </div>
-          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 4 }}>
-            {format(currentDate, 'MMMM yyyy', { locale })}
-          </div>
+          <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, margin: 0, color: t.ink, letterSpacing: '-0.02em', lineHeight: 1 }}>
+            {fr ? 'Calendrier' : 'التقويم'}
+          </h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+
+        {/* Month nav */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
           <button onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-            style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, color: t.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <Icon d={Icons.arrowDown} size={14} color={t.ink} style={{ transform: 'rotate(90deg)' }}/>
+            style={{ width: 34, height: 34, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, color: t.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Icon d={Icons.arrow} size={13} style={{ transform: 'rotate(180deg)' }}/>
           </button>
-          <button onClick={() => setCurrentDate(new Date())}
-            style={{ padding: '7px 12px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
-            {fr_lang ? 'Auj.' : 'اليوم'}
-          </button>
+          <span style={{ fontFamily: 'Fraunces, serif', fontSize: 16, color: t.ink, padding: '0 8px', minWidth: 110, textAlign: 'center' }}>
+            {format(currentDate, 'MMM yyyy', { locale })}
+          </span>
           <button onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-            style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, color: t.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <Icon d={Icons.arrow} size={14} color={t.ink}/>
+            style={{ width: 34, height: 34, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, color: t.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Icon d={Icons.arrow} size={13}/>
           </button>
         </div>
       </div>
 
-      {/* Monthly stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-        {[
-          { label: fr_lang ? 'Jours complets' : 'أيام كاملة', value: totalPrayers5Days, color: '#d4a64a' },
-          { label: fr_lang ? 'Jours de jeûne' : 'أيام الصيام', value: totalFastingDays, color: '#818cf8' },
-          { label: fr_lang ? 'Pages lues' : 'صفحات مقروءة', value: totalPages, color: '#60a5fa' },
-          { label: fr_lang ? 'Jours suivis' : 'أيام متتبعة', value: daysTracked, color: '#4ade80' },
-        ].map((stat, i) => (
-          <div key={i} style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, color: stat.color, lineHeight: 1 }}>{stat.value}</div>
-            <div style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1.4 }}>{stat.label}</div>
+      {/* ── 2-column grid ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+
+        {/* ── LEFT : Calendar card ── */}
+        <div style={{ ...card, padding: '18px 20px' }}>
+          {/* Day headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 6 }}>
+            {DAY_HEADERS.map(d => (
+              <div key={d} style={{ textAlign: 'center', fontSize: 9.5, color: t.inkMute, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '6px 0' }}>{d}</div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Calendar grid */}
-      <div style={{ ...card, padding: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 8 }}>
-          {DAY_HEADERS.map((d, i) => (
-            <div key={i} style={{ textAlign: 'center', fontSize: 9, color: t.inkMute, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '6px 0' }}>{d}</div>
-          ))}
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
-          {paddingDays.map((_, i) => <div key={`pad-${i}`}/>)}
-          {days.map((day) => {
-            const data = getDayData(day);
-            const prayerCount = data.prayers.length;
-            const isSelected = selectedDay && format(selectedDay, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
-            const isTodayDay = isToday(day);
-
-            return (
-              <button
-                key={format(day, 'yyyy-MM-dd')}
-                onClick={() => setSelectedDay(isSelected ? null : day)}
-                style={{
-                  aspectRatio: '1', borderRadius: 8, display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center', gap: 2, padding: 3,
-                  cursor: 'pointer',
-                  background: prayerCount === 5 ? `${t.accent}22` : prayerCount > 0 ? `${t.accent}11` : 'transparent',
-                  border: isTodayDay ? `2px solid ${t.accent}` : isSelected ? `2px solid ${t.accentBright}` : '2px solid transparent',
-                }}
-              >
-                <span style={{ fontSize: 10, fontWeight: 700, color: prayerCount === 5 ? t.accent : t.ink, lineHeight: 1 }}>
-                  {format(day, 'd')}
-                </span>
-                <div style={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center', maxWidth: '100%' }}>
-                  {PRAYERS.map(p => (
-                    <div key={p} style={{ width: 4, height: 4, borderRadius: '50%', background: data.prayers.includes(p) ? PRAYER_COLORS[p] : `${t.inkMute}30` }}/>
-                  ))}
+          {/* Day cells */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+            {paddingDays.map((_, i) => (
+              <div key={`pad-${i}`} style={{ aspectRatio: '1', background: t.bg, borderRadius: 7, opacity: 0.4 }}/>
+            ))}
+            {days.map(day => {
+              const data   = getDayData(day);
+              const has    = data.prayers.length > 0 || data.fasting || (data.pagesRead || 0) > 0;
+              const isNow  = isToday(day);
+              return (
+                <div key={format(day, 'yyyy-MM-dd')} style={{
+                  aspectRatio: '1', borderRadius: 7, padding: '6px 7px', position: 'relative',
+                  background: isNow ? `${t.accent}22` : has ? t.cardElev : t.bg,
+                  border: isNow ? `1.5px solid ${t.accent}` : `1px solid ${has ? t.line : t.lineSoft ?? t.line}`,
+                }}>
+                  <div style={{ fontFamily: 'Fraunces, serif', fontSize: 13, color: isNow ? t.accentBright : t.ink, fontWeight: 300, lineHeight: 1 }}>
+                    {format(day, 'd')}
+                  </div>
+                  <div style={{ position: 'absolute', bottom: 5, left: 6, right: 6, display: 'flex', gap: 2, alignItems: 'center' }}>
+                    {data.prayers.length > 0 && (
+                      <div style={{ display: 'flex', gap: 1.5 }}>
+                        {Array.from({ length: 5 }).map((_, k) => (
+                          <span key={k} style={{ width: 3, height: 3, borderRadius: '50%', background: k < data.prayers.length ? t.accent : `${t.inkMute}30` }}/>
+                        ))}
+                      </div>
+                    )}
+                    {data.fasting && (
+                      <span style={{ fontSize: 8, color: t.accentBright, marginLeft: 'auto' }}>◐</span>
+                    )}
+                  </div>
                 </div>
-                {data.fasting && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#818cf8' }}/>}
-                {data.pagesRead > 0 && <span style={{ fontSize: 6, color: t.accentBright, fontWeight: 700 }}>{data.pagesRead}p</span>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Selected day panel */}
-      {selectedDay && selectedDayData && (
-        <div style={{ ...card, padding: 22 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-            <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 18, color: t.ink }}>
-              {format(selectedDay, 'EEEE d MMMM', { locale })}
-            </div>
-            <button onClick={() => setSelectedDay(null)}
-              style={{ width: 26, height: 26, borderRadius: '50%', background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkMute, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              ✕
-            </button>
+              );
+            })}
           </div>
+        </div>
 
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
-              {fr_lang ? 'Prières' : 'الصلوات'}
+        {/* ── RIGHT : Today + Monthly summary ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* Today card */}
+          <div style={{ ...card, padding: '16px 18px' }}>
+            <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 12 }}>
+              {fr ? `Aujourd'hui · ${format(today, 'd MMM', { locale })}` : `اليوم · ${format(today, 'd MMM', { locale })}`}
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {PRAYERS.map(prayer => {
-                const done = selectedDayData.prayers.includes(prayer);
+
+            <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+              {fr ? 'Prières' : 'الصلوات'}
+            </div>
+            <div style={{ display: 'flex', gap: 5, marginBottom: 14 }}>
+              {PRAYERS.map(p => {
+                const done = todayData.prayers.includes(p);
                 return (
-                  <button key={prayer} onClick={() => togglePrayer(selectedDay, prayer)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 10, cursor: 'pointer',
-                      background: done ? `${PRAYER_COLORS[prayer]}22` : t.cardElev,
-                      color: done ? PRAYER_COLORS[prayer] : t.inkDim,
-                      border: `1.5px solid ${done ? PRAYER_COLORS[prayer] : t.line}`,
-                      fontSize: 12, fontWeight: 600,
-                    }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: done ? PRAYER_COLORS[prayer] : t.line }}/>
-                    {prayer}
+                  <button key={p} onClick={() => togglePrayer(todayStr, p)}
+                    style={{ flex: 1, padding: '8px 4px', borderRadius: 7, textAlign: 'center', cursor: 'pointer',
+                      background: done ? `${t.accent}22` : t.cardElev,
+                      border: `1px solid ${done ? `${t.accent}55` : t.line}` }}>
+                    <div style={{ fontSize: 8.5, color: t.inkDim, marginBottom: 4 }}>{p.slice(0, 3)}</div>
+                    {done
+                      ? <Icon d={Icons.check} size={11} color={t.accent}/>
+                      : <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: t.line }}/>}
                   </button>
                 );
               })}
             </div>
-          </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <button onClick={() => toggleFasting(selectedDay)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 10, cursor: 'pointer',
-                background: selectedDayData.fasting ? '#818cf822' : t.cardElev,
-                color: selectedDayData.fasting ? '#818cf8' : t.inkDim,
-                border: `1.5px solid ${selectedDayData.fasting ? '#818cf8' : t.line}`,
-                fontSize: 12, fontWeight: 600,
-              }}>
-              {fr_lang ? 'Jeûne' : 'صيام'}
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 10, background: t.cardElev, border: `1.5px solid ${t.line}` }}>
-              <Icon d={Icons.book} size={13} color={t.accent}/>
-              <input
-                type="number" min="0" max="604"
-                value={selectedDayData.pagesRead || 0}
-                onChange={e => updatePages(selectedDay, parseInt(e.target.value) || 0)}
-                style={{ width: 44, background: 'transparent', fontSize: 12, fontWeight: 700, outline: 'none', color: t.ink, border: 'none' }}
-              />
-              <span style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                {fr_lang ? 'pages' : 'صفحة'}
-              </span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => toggleFasting(todayStr)}
+                style={{ padding: '6px 12px', borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                  background: todayData.fasting ? `${'#818cf8'}22` : t.cardElev,
+                  color: todayData.fasting ? '#818cf8' : t.inkDim,
+                  border: `1px solid ${todayData.fasting ? '#818cf8' : t.line}` }}>
+                {fr ? '◐ Jeûne' : '◐ صيام'}
+              </button>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 7, background: t.cardElev, border: `1px solid ${t.line}` }}>
+                <Icon d={Icons.book} size={12} color={t.accent}/>
+                <input
+                  type="number" min="0" max="604"
+                  value={todayData.pagesRead || 0}
+                  onChange={e => updatePages(todayStr, parseInt(e.target.value) || 0)}
+                  style={{ width: 36, background: 'transparent', fontSize: 12, fontWeight: 700, outline: 'none', color: t.ink, border: 'none' }}
+                />
+                <span style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                  {fr ? 'pages' : 'صفح'}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Legend */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '0 4px' }}>
-        {PRAYERS.map(p => (
-          <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: PRAYER_COLORS[p] }}/>
-            <span style={{ fontSize: 9, color: t.inkMute, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{p}</span>
+          {/* Monthly summary */}
+          <div style={{ ...card, padding: '16px 18px', flex: 1 }}>
+            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 14 }}>
+              {fr ? 'Mois — résumé' : 'ملخص الشهر'}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[
+                { icon: Icons.flame, value: streak,                                         label: fr ? "jours d'affilée"  : 'يوم متواصل' },
+                { icon: Icons.moon,  value: fastingDays,                                    label: fr ? 'jours de jeûne'   : 'يوم صيام'   },
+                { icon: Icons.book,  value: totalPages,                                     label: fr ? 'pages ce mois'    : 'صفحة هذا الشهر' },
+                { icon: Icons.check, value: `${totalPrayers}/${totalPossible}`,             label: fr ? 'prières faites'   : 'صلاة مؤداة' },
+              ].map((s, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: `${t.accent}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon d={s.icon} size={13} color={t.accent}/>
+                  </div>
+                  <span style={{ fontFamily: 'Fraunces, serif', fontSize: 16, color: t.ink, fontWeight: 300, minWidth: 36 }}>{s.value}</span>
+                  <span style={{ fontSize: 10, color: t.inkDim }}>{s.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
+
+        </div>
       </div>
     </div>
   );
