@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence, useMotionValue, useSpring, useScroll, useMotionValueEvent } from 'framer-motion';
-import { NotebookPen, Edit2, ChevronRight, ChevronLeft, Plus, Save, Check, Undo, Redo, Trash2, Eraser, Ruler, Download, X, Settings2, Pencil, Brush, Highlighter, Palette, Star, Wind, Zap, Pen, Smile, MousePointer2, ZoomIn, ZoomOut, Info, Move, RotateCcw, Copy } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { getStroke } from 'perfect-freehand';
 import { HexColorPicker } from 'react-colorful';
-import { cn } from '../lib/utils';
 import { Stroke, Shape, DiftarPage, UserData } from '../types';
+import { useT } from '../lib/theme';
 
 // Page templates
 const PAGE_TEMPLATES = [
@@ -139,6 +137,8 @@ const COLOR_PALETTE = {
 };
 
 export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
+  const t = useT();
+  const fr = lang === 'fr';
   const [activePageId, setActivePageId]     = useState<string | null>(null);
   const [editingPageId, setEditingPageId]   = useState<string | null>(null);
   const [tool, setTool]                     = useState<'select' | 'pen' | 'highlighter' | 'fountain-pen' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon' | 'pencil' | 'watercolor' | 'calligraphy' | 'dotted' | 'brush'>('pen');
@@ -1080,9 +1080,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     };
   }, [activePageId]);
 
-  const cursorX = useMotionValue(0), cursorY = useMotionValue(0);
-  const springConfig = { damping: 25, stiffness: 200 };
-  const cursorXSpring = useSpring(cursorX, springConfig), cursorYSpring = useSpring(cursorY, springConfig);
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const container = scrollContainerRef.current; if (!container || !activePageId) return;
@@ -1095,7 +1093,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   }, [activePageId]);
 
   useEffect(() => {
-    const handle = (e: MouseEvent) => { cursorX.set(e.clientX); cursorY.set(e.clientY); };
+    const handle = (e: MouseEvent) => { setCursorPos({ x: e.clientX, y: e.clientY }); };
     window.addEventListener('mousemove', handle);
     return () => window.removeEventListener('mousemove', handle);
   }, []);
@@ -1144,321 +1142,267 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     return () => window.removeEventListener('keydown', handleKey);
   }, [activePageId, undo, redo, savePage]);
 
-  const { scrollY } = useScroll({ container: scrollContainerRef });
-
   // ──────────────────────────────────
   // PAGE LIST VIEW (Gallery)
   // ──────────────────────────────────
   if (!activePageId) {
     const lastModified = userData.diftarPages.length > 0
-      ? new Date(Math.max(...userData.diftarPages.map(p => p.lastSaved))).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'ar-SA')
+      ? new Date(Math.max(...userData.diftarPages.map(p => p.lastSaved))).toLocaleDateString(fr ? 'fr-FR' : 'ar-SA')
       : null;
 
     return (
-      <div className="flex flex-col gap-7 pb-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 28, paddingBottom: 16 }}>
 
-        {/* ── Header ── */}
-        <div className="flex flex-wrap justify-between items-end gap-4">
+        {/* Header */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16 }}>
           <div>
-            <h2 className="text-4xl sm:text-5xl font-serif italic leading-tight" style={{ color: 'var(--brand-primary)' }}>
-              {lang === 'fr' ? 'Mon Diftar' : 'دفتري'}
-            </h2>
-            <p className="text-[10px] uppercase tracking-[0.4em] font-bold mt-1.5" style={{ color: 'var(--brand-secondary)', opacity: 0.65 }}>
+            <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontStyle: 'italic', fontSize: 36, color: t.accent, lineHeight: 1.1 }}>
+              {fr ? 'Mon Diftar' : 'دفتري'}
+            </div>
+            <div style={{ fontSize: 10, color: t.accentBright, opacity: 0.65, letterSpacing: '0.4em', textTransform: 'uppercase', fontWeight: 700, marginTop: 6 }}>
               دَفْتَرُ الحِفْظِ الرَّقْمِي
-            </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Stats chips */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {userData.diftarPages.length > 0 && (
-              <div className="hidden sm:flex items-center gap-2">
-                <span className="px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest"
-                      style={{ background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', color: 'var(--brand-primary)' }}>
-                  {userData.diftarPages.length} {lang === 'fr' ? 'page(s)' : 'صفحة'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ padding: '6px 12px', borderRadius: 20, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', background: `${t.accent}14`, color: t.accent }}>
+                  {userData.diftarPages.length} {fr ? 'page(s)' : 'صفحة'}
                 </span>
                 {lastModified && (
-                  <span className="px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest"
-                        style={{ background: 'color-mix(in srgb, var(--brand-secondary) 8%, transparent)', color: 'var(--brand-secondary)' }}>
-                    {lang === 'fr' ? `Modifié le ${lastModified}` : `آخر تعديل ${lastModified}`}
+                  <span style={{ padding: '6px 12px', borderRadius: 20, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', background: `${t.accentBright}14`, color: t.accentBright }}>
+                    {fr ? `Modifié le ${lastModified}` : `آخر تعديل ${lastModified}`}
                   </span>
                 )}
               </div>
             )}
-
-            <motion.button
-              whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.96 }}
+            <button
               onClick={() => setShowTemplateModal(true)}
-              className="premium-button flex items-center gap-2"
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 20, background: t.accent, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
             >
-              <Plus size={18} />
-              <span className="text-sm">{lang === 'fr' ? 'Nouvelle page' : 'صفحة جديدة'}</span>
-            </motion.button>
+              <span style={{ fontSize: 16 }}>+</span>
+              {fr ? 'Nouvelle page' : 'صفحة جديدة'}
+            </button>
           </div>
         </div>
 
-        {/* ── Empty state ── */}
+        {/* Empty state */}
         {userData.diftarPages.length === 0 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="flex-1 flex flex-col items-center justify-center gap-6 py-24 glass-card relative overflow-hidden">
-            <div className="absolute inset-0 arabesque-pattern opacity-30" style={{ color: 'var(--brand-primary)' }} />
-            <div className="relative z-10 text-center space-y-4">
-              <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto shadow-xl"
-                   style={{ background: 'var(--brand-primary)' }}>
-                <NotebookPen size={36} className="text-white" />
-              </div>
-              <h3 className="text-2xl font-serif italic" style={{ color: 'var(--brand-primary)' }}>
-                {lang === 'fr' ? 'Votre Diftar est vide' : 'دفترك فارغ'}
-              </h3>
-              <p className="text-sm max-w-xs" style={{ color: 'var(--brand-text-muted)' }}>
-                {lang === 'fr'
-                  ? 'Créez votre première page pour commencer à écrire vos notes, révisions ou réflexions.'
-                  : 'أنشئ أول صفحة لك وابدأ في كتابة ملاحظاتك ومراجعاتك.'}
-              </p>
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                onClick={() => setShowTemplateModal(true)}
-                className="premium-button inline-flex items-center gap-2 mx-auto">
-                <Plus size={17} />
-                {lang === 'fr' ? 'Créer une page' : 'إنشاء صفحة'}
-              </motion.button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, padding: '96px 0', background: t.card, borderRadius: 20, border: `1px solid ${t.line}` }}>
+            <div style={{ width: 80, height: 80, borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.accent, fontSize: 36 }}>
+              📓
             </div>
-          </motion.div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 22, color: t.accent, marginBottom: 8 }}>
+                {fr ? 'Votre Diftar est vide' : 'دفترك فارغ'}
+              </div>
+              <div style={{ fontSize: 13, color: t.inkMute, maxWidth: 280, margin: '0 auto', lineHeight: 1.6 }}>
+                {fr ? 'Créez votre première page pour commencer à écrire vos notes, révisions ou réflexions.' : 'أنشئ أول صفحة لك وابدأ في كتابة ملاحظاتك ومراجعاتك.'}
+              </div>
+              <button
+                onClick={() => setShowTemplateModal(true)}
+                style={{ marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 20, background: t.accent, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+              >
+                <span>+</span> {fr ? 'Créer une page' : 'إنشاء صفحة'}
+              </button>
+            </div>
+          </div>
         )}
 
-        {/* ── Grid ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
-          <AnimatePresence>
-            {userData.diftarPages.map((page, idx) => {
-              const paperBg = (page as any).paperColor || '#fdfcf8';
-              const isDark = paperBg === '#0f172a';
-              const borderColor = isDark ? '#D4AF37' : 'var(--brand-primary)';
-              const templateIcon = PAGE_TEMPLATES.find(t => t.type === page.type)?.icon || '📄';
+        {/* Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 20 }}>
+          {userData.diftarPages.map((page) => {
+            const paperBg = (page as any).paperColor || '#fdfcf8';
+            const borderColor = t.accent;
+            const tpl = PAGE_TEMPLATES.find(tp => tp.type === page.type);
+            const templateIcon = tpl?.icon || '📄';
 
-              return (
-                <motion.div
-                  key={page.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.88, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.88 }}
-                  transition={{ delay: idx * 0.04 }}
-                  whileHover={{ y: -8 }}
-                  className="group flex flex-col gap-2"
+            return (
+              <div key={page.id} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* Notebook cover */}
+                <div
+                  onClick={() => setActivePageId(page.id)}
+                  style={{
+                    position: 'relative', aspectRatio: '3/4', cursor: 'pointer',
+                    borderRadius: '0 16px 16px 0', overflow: 'hidden',
+                    background: paperBg, borderLeft: `10px solid ${borderColor}`,
+                    boxShadow: '0 6px 24px rgba(0,0,0,0.1)', transition: 'box-shadow 0.2s',
+                  }}
                 >
-                  {/* Notebook cover */}
-                  <div
-                    className="relative aspect-[3/4] cursor-pointer rounded-r-2xl overflow-hidden transition-all duration-300 group-hover:shadow-2xl"
-                    style={{ background: paperBg, borderLeft: `10px solid ${borderColor}`, boxShadow: '0 6px 24px rgba(0,0,0,0.1)' }}
-                    onClick={() => setActivePageId(page.id)}
-                  >
-                    {/* Paper texture */}
-                    {page.paperStyle && page.paperStyle !== 'blank' && (
-                      <div className="absolute inset-0 opacity-40" style={{
-                        backgroundImage: page.paperStyle === 'grid'
-                          ? `linear-gradient(${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(139,38,53,0.05)'} 1px, transparent 1px), linear-gradient(90deg, ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(139,38,53,0.05)'} 1px, transparent 1px)`
-                          : page.paperStyle === 'lines'
-                            ? `repeating-linear-gradient(transparent, transparent 19px, ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(139,38,53,0.07)'} 20px)`
-                            : 'none',
-                        backgroundSize: page.paperStyle === 'grid' ? '20px 20px' : 'auto',
-                      }} />
-                    )}
+                  {/* Paper texture */}
+                  {page.paperStyle && page.paperStyle !== 'blank' && (
+                    <div style={{
+                      position: 'absolute', inset: 0, opacity: 0.4,
+                      backgroundImage: page.paperStyle === 'grid'
+                        ? `linear-gradient(rgba(139,38,53,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(139,38,53,0.05) 1px, transparent 1px)`
+                        : page.paperStyle === 'lines'
+                          ? `repeating-linear-gradient(transparent, transparent 19px, rgba(139,38,53,0.07) 20px)`
+                          : 'none',
+                      backgroundSize: page.paperStyle === 'grid' ? '20px 20px' : 'auto',
+                    }} />
+                  )}
 
-                    {/* Spiral holes */}
-                    <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-around py-4 px-2">
-                      {[...Array(6)].map((_, i) => (
-                        <div key={i} className="w-2.5 h-2.5 rounded-full border-2 shadow-inner"
-                             style={{ borderColor, background: 'var(--brand-page)', opacity: 0.5 }} />
-                      ))}
-                    </div>
+                  {/* Spiral holes */}
+                  <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-around', padding: '16px 8px' }}>
+                    {[...Array(6)].map((_, i) => (
+                      <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', border: `2px solid ${borderColor}`, background: '#fff', opacity: 0.5 }} />
+                    ))}
+                  </div>
 
-                    {/* Content */}
-                    <div className="p-4 h-full flex flex-col justify-between ml-3 relative z-10">
-                      <div className="space-y-2">
-                        {/* Type badge + icon */}
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-base">{templateIcon}</span>
-                          {page.type && page.type !== 'custom' && (
-                            <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full"
-                                  style={{ background: isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,38,53,0.08)', color: isDark ? '#D4AF37' : 'var(--brand-primary)' }}>
-                              {PAGE_TEMPLATES.find(t => t.type === page.type)?.[lang === 'fr' ? 'labelFr' : 'labelAr']}
-                            </span>
-                          )}
-                        </div>
-
-                        {editingPageId === page.id ? (
-                          <div onClick={e => e.stopPropagation()}>
-                            <input
-                              autoFocus
-                              className="w-full bg-transparent border-b-2 px-1 py-0.5 text-sm font-serif italic focus:outline-none"
-                              style={{ borderColor, color: isDark ? '#fff' : 'var(--brand-primary)' }}
-                              value={page.title}
-                              onChange={e => renamePage(page.id, e.target.value)}
-                              onBlur={() => setEditingPageId(null)}
-                              onKeyDown={e => e.key === 'Enter' && setEditingPageId(null)}
-                            />
-                          </div>
-                        ) : (
-                          <h3 className="text-sm font-serif italic leading-snug"
-                              style={{ color: isDark ? '#F5EFE6' : 'var(--brand-primary)' }}>
-                            {page.title}
-                          </h3>
+                  {/* Content */}
+                  <div style={{ padding: 16, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', marginLeft: 12, position: 'relative', zIndex: 1, boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 14 }}>{templateIcon}</span>
+                        {page.type && page.type !== 'custom' && (
+                          <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', borderRadius: 10, background: `${t.accent}14`, color: t.accent }}>
+                            {tpl?.[fr ? 'labelFr' : 'labelAr']}
+                          </span>
                         )}
-
-                        <div className="w-6 h-0.5 rounded-full" style={{ background: isDark ? '#D4AF37' : 'var(--brand-secondary)', opacity: 0.4 }} />
                       </div>
 
-                      <div className="space-y-1">
-                        {/* Paper style tag */}
-                        <p className="text-[8px] uppercase tracking-widest font-bold"
-                           style={{ color: isDark ? 'rgba(255,255,255,0.3)' : 'var(--brand-primary)', opacity: 0.4 }}>
-                          {PAPER_COLOR_NAMES[paperBg] || 'Crème'} · {
-                            page.paperStyle === 'lines' ? '≡' :
-                            page.paperStyle === 'grid' ? '⊞' :
-                            page.paperStyle === 'dots' ? '⁝' :
-                            page.paperStyle === 'arabesque' ? '✦' : '□'
-                          }
-                        </p>
-                        <p className="text-[8px] uppercase tracking-widest font-bold"
-                           style={{ color: isDark ? 'rgba(255,255,255,0.25)' : 'var(--brand-primary)', opacity: 0.35 }}>
-                          {new Date(page.lastSaved).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'ar-SA')}
-                        </p>
-                      </div>
+                      {editingPageId === page.id ? (
+                        <div onClick={e => e.stopPropagation()}>
+                          <input
+                            autoFocus
+                            style={{ width: '100%', background: 'transparent', borderBottom: `2px solid ${borderColor}`, border: 'none', borderBottomStyle: 'solid', borderBottomWidth: 2, borderBottomColor: borderColor, padding: '2px 4px', fontSize: 13, fontFamily: 'Fraunces, serif', fontStyle: 'italic', color: t.accent, outline: 'none' }}
+                            value={page.title}
+                            onChange={e => renamePage(page.id, e.target.value)}
+                            onBlur={() => setEditingPageId(null)}
+                            onKeyDown={e => e.key === 'Enter' && setEditingPageId(null)}
+                          />
+                        </div>
+                      ) : (
+                        <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 13, color: t.accent, lineHeight: 1.3 }}>
+                          {page.title}
+                        </div>
+                      )}
+
+                      <div style={{ width: 24, height: 2, borderRadius: 2, background: t.accentBright, opacity: 0.4 }} />
                     </div>
 
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center"
-                         style={{ background: `color-mix(in srgb, ${borderColor} 8%, transparent)` }}>
-                      <div className="px-4 py-2 rounded-xl text-white text-xs font-black uppercase tracking-widest shadow-lg"
-                           style={{ background: borderColor }}>
-                        {lang === 'fr' ? 'Ouvrir' : 'فتح'}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, color: t.accent, opacity: 0.4 }}>
+                        {PAPER_COLOR_NAMES[paperBg] || 'Crème'} · {page.paperStyle === 'lines' ? '≡' : page.paperStyle === 'grid' ? '⊞' : page.paperStyle === 'dots' ? '⁝' : page.paperStyle === 'arabesque' ? '✦' : '□'}
+                      </div>
+                      <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, color: t.accent, opacity: 0.35 }}>
+                        {new Date(page.lastSaved).toLocaleDateString(fr ? 'fr-FR' : 'ar-SA')}
                       </div>
                     </div>
                   </div>
-
-                  {/* Action row */}
-                  <div className="flex gap-1.5">
-                    <button onClick={() => setActivePageId(page.id)}
-                      className="flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all hover:scale-105"
-                      style={{ background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 3px 10px color-mix(in srgb, var(--brand-primary) 25%, transparent)' }}>
-                      {lang === 'fr' ? 'Ouvrir' : 'فتح'}
-                    </button>
-                    <button onClick={e => { e.stopPropagation(); setEditingPageId(editingPageId === page.id ? null : page.id); }}
-                      className="px-2.5 py-2 rounded-xl transition-all hover:scale-105"
-                      style={{ background: 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)', color: 'var(--brand-primary)' }}
-                      title={lang === 'fr' ? 'Renommer' : 'تسمية'}>
-                      <Edit2 size={12} />
-                    </button>
-                    <button onClick={e => { e.stopPropagation(); setShowConfirmDelete(page.id); }}
-                      className="px-2.5 py-2 rounded-xl transition-all hover:scale-105"
-                      style={{ background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.65)' }}
-                      title={lang === 'fr' ? 'Supprimer' : 'حذف'}>
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
-
-        {/* ── Template Modal ── */}
-        <AnimatePresence>
-          {showTemplateModal && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 backdrop-blur-md z-[200] flex items-center justify-center p-6"
-              style={{ background: 'color-mix(in srgb, var(--brand-primary) 25%, transparent)' }}
-              onClick={() => setShowTemplateModal(false)}>
-              <motion.div initial={{ scale: 0.88, y: 24 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.88, y: 24 }}
-                transition={{ type: 'spring', bounce: 0.3 }}
-                className="glass-card p-8 max-w-lg w-full space-y-6 relative overflow-hidden"
-                onClick={e => e.stopPropagation()}>
-                <div className="card-accent-bar" />
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-2xl font-serif italic" style={{ color: 'var(--brand-primary)' }}>
-                      {lang === 'fr' ? 'Choisir un modèle' : 'اختر نموذجاً'}
-                    </h3>
-                    <p className="text-[10px] uppercase tracking-widest font-bold mt-0.5"
-                       style={{ color: 'var(--brand-text-muted)' }}>
-                      {lang === 'fr' ? 'Sélectionnez le type de page' : 'اختر نوع الصفحة'}
-                    </p>
-                  </div>
-                  <button onClick={() => setShowTemplateModal(false)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center"
-                    style={{ background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', color: 'var(--brand-text-muted)' }}>
-                    <X size={15} />
-                  </button>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {PAGE_TEMPLATES.map(tpl => (
-                    <motion.button
-                      key={tpl.type}
-                      whileHover={{ y: -4, scale: 1.02 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => createPage(tpl)}
-                      className="flex flex-col items-center gap-3 p-5 rounded-2xl border transition-all text-left"
-                      style={{
-                        background: tpl.paperColor,
-                        borderColor: 'var(--border-subtle)',
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--brand-primary)')}
-                      onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}
-                    >
-                      <span className="text-3xl">{tpl.icon}</span>
-                      <div>
-                        <p className="text-sm font-bold font-serif italic" style={{ color: tpl.paperColor === '#0f172a' ? '#fff' : 'var(--brand-primary)' }}>
-                          {lang === 'fr' ? tpl.labelFr : tpl.labelAr}
-                        </p>
-                        <p className="text-[8px] uppercase tracking-widest font-bold mt-0.5"
-                           style={{ color: tpl.paperColor === '#0f172a' ? 'rgba(255,255,255,0.4)' : 'var(--brand-text-muted)' }}>
-                          {tpl.paperStyle}
-                        </p>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ── Confirm delete modal ── */}
-        <AnimatePresence>
-          {showConfirmDelete && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 backdrop-blur-md z-[200] flex items-center justify-center p-6"
-              style={{ background: 'color-mix(in srgb, var(--brand-primary) 20%, transparent)' }}>
-              <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-                className="glass-card p-10 max-w-sm w-full text-center space-y-6">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
-                     style={{ background: 'rgba(239,68,68,0.1)' }}>
-                  <Trash2 size={30} style={{ color: '#ef4444' }} />
-                </div>
-                <h3 className="text-2xl font-serif italic" style={{ color: 'var(--brand-primary)' }}>
-                  {lang === 'fr' ? 'Supprimer la page ?' : 'حذف الصفحة؟'}
-                </h3>
-                <div className="flex gap-3">
-                  <button onClick={() => setShowConfirmDelete(null)}
-                    className="flex-1 py-3 rounded-2xl border font-bold text-xs uppercase tracking-widest"
-                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--brand-text-muted)' }}>
-                    {lang === 'fr' ? 'Annuler' : 'إلغاء'}
+                {/* Action row */}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={() => setActivePageId(page.id)}
+                    style={{ flex: 1, padding: '8px 0', borderRadius: 12, fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', background: t.accent, color: '#fff', border: 'none', cursor: 'pointer' }}
+                  >
+                    {fr ? 'Ouvrir' : 'فتح'}
                   </button>
                   <button
-                    onClick={() => {
-                      setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.filter(p => p.id !== showConfirmDelete) }));
-                      setShowConfirmDelete(null);
-                    }}
-                    className="flex-1 py-3 rounded-2xl text-white font-bold text-xs uppercase tracking-widest"
-                    style={{ background: '#ef4444' }}>
-                    {lang === 'fr' ? 'Supprimer' : 'حذف'}
+                    onClick={e => { e.stopPropagation(); setEditingPageId(editingPageId === page.id ? null : page.id); }}
+                    style={{ padding: '8px 10px', borderRadius: 12, background: `${t.accentBright}1f`, color: t.accent, border: 'none', cursor: 'pointer', fontSize: 12 }}
+                    title={fr ? 'Renommer' : 'تسمية'}
+                  >
+                    ✎
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); setShowConfirmDelete(page.id); }}
+                    style={{ padding: '8px 10px', borderRadius: 12, background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.65)', border: 'none', cursor: 'pointer', fontSize: 12 }}
+                    title={fr ? 'Supprimer' : 'حذف'}
+                  >
+                    🗑
                   </button>
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Template Modal */}
+        {showTemplateModal && (
+          <div
+            onClick={() => setShowTemplateModal(false)}
+            style={{ position: 'fixed', inset: 0, backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: `${t.accent}40` }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ background: t.bgSoft, border: `1px solid ${t.line}`, borderRadius: 24, padding: 32, maxWidth: 480, width: '100%', display: 'flex', flexDirection: 'column', gap: 24 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 22, color: t.accent }}>
+                    {fr ? 'Choisir un modèle' : 'اختر نموذجاً'}
+                  </div>
+                  <div style={{ fontSize: 10, letterSpacing: '0.3em', textTransform: 'uppercase', fontWeight: 700, color: t.inkMute, marginTop: 4 }}>
+                    {fr ? 'Sélectionnez le type de page' : 'اختر نوع الصفحة'}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowTemplateModal(false)}
+                  style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${t.accent}14`, color: t.inkMute, border: 'none', cursor: 'pointer', fontSize: 16 }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                {PAGE_TEMPLATES.map(tpl => (
+                  <button
+                    key={tpl.type}
+                    onClick={() => createPage(tpl)}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 20, borderRadius: 16, border: `1px solid ${t.line}`, background: tpl.paperColor, cursor: 'pointer', transition: 'border-color 0.15s', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = t.accent)}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = t.line)}
+                  >
+                    <span style={{ fontSize: 28 }}>{tpl.icon}</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Fraunces, serif', fontStyle: 'italic', color: t.accent }}>
+                        {fr ? tpl.labelFr : tpl.labelAr}
+                      </div>
+                      <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, color: t.inkMute, marginTop: 2 }}>
+                        {tpl.paperStyle}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Confirm delete modal */}
+        {showConfirmDelete && (
+          <div style={{ position: 'fixed', inset: 0, backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: `${t.accent}33` }}>
+            <div style={{ background: t.bgSoft, border: `1px solid ${t.line}`, borderRadius: 24, padding: 40, maxWidth: 360, width: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center' }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.1)', fontSize: 28 }}>
+                🗑
+              </div>
+              <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 22, color: t.accent }}>
+                {fr ? 'Supprimer la page ?' : 'حذف الصفحة؟'}
+              </div>
+              <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+                <button
+                  onClick={() => setShowConfirmDelete(null)}
+                  style={{ flex: 1, padding: 12, borderRadius: 16, border: `1px solid ${t.line}`, color: t.inkMute, background: 'transparent', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}
+                >
+                  {fr ? 'Annuler' : 'إلغاء'}
+                </button>
+                <button
+                  onClick={() => {
+                    setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.filter(p => p.id !== showConfirmDelete) }));
+                    setShowConfirmDelete(null);
+                  }}
+                  style={{ flex: 1, padding: 12, borderRadius: 16, background: '#ef4444', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}
+                >
+                  {fr ? 'Supprimer' : 'حذف'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1480,256 +1424,200 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   // ──────────────────────────────────
   // CANVAS / EDITOR VIEW
   // ──────────────────────────────────
-  return (
-    // FIX 1 : overflow-hidden supprimé + relative gardé pour le curseur custom
-    <div className="flex-1 flex flex-col relative h-full">
+  const btnStyle = (active: boolean): React.CSSProperties => active
+    ? { background: t.accent, color: '#fff', border: 'none', borderRadius: '50%', padding: 10, cursor: 'pointer', fontSize: 15, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }
+    : { background: 'transparent', color: t.accent, border: 'none', borderRadius: '50%', padding: 10, cursor: 'pointer', fontSize: 15, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' };
 
-      {/* ─── TOOLBAR FIXÉE ─────────────────────────────────────────────────────
-          FIX 2 : fixed au lieu de sticky — complètement hors du flow scrollable.
-          pointer-events-none sur le wrapper, pointer-events-auto sur les enfants
-          pour ne pas bloquer les clics sur le canvas derrière.
-      ──────────────────────────────────────────────────────────────────────── */}
-      <div className="fixed top-2 left-0 right-0 z-[100] px-4 flex flex-col gap-2 pointer-events-none">
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', height: '100%' }}>
+
+      {/* TOOLBAR FIXÉE */}
+      <div style={{ position: 'fixed', top: 8, left: 0, right: 0, zIndex: 100, padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none' }}>
 
         {/* Barre principale */}
-        <div
-          className="backdrop-blur-2xl rounded-[2rem] shadow-xl border p-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar flex-shrink-0 pointer-events-auto"
-          style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}
-        >
+        <div style={{
+          backdropFilter: 'blur(24px)', borderRadius: 32, boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+          border: `1px solid ${t.accent}1a`, padding: 8, display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', gap: 8, overflowX: 'auto', flexShrink: 0,
+          pointerEvents: 'auto', background: t.bg,
+        }}>
           {/* Left: back + title + help */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <motion.button
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <button
               onClick={() => { savePage(); setActivePageId(null); }}
-              whileHover={{ scale: 1.05, x: -2 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2.5 rounded-full transition-all hover:scale-105"
-              style={{ color: 'var(--brand-primary)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}
+              style={{ ...btnStyle(false), fontSize: 18 }}
             >
-              <ChevronLeft size={20} />
-            </motion.button>
+              ←
+            </button>
             <input
               value={activePage?.title}
               onChange={e => setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) }))}
-              className="font-serif italic text-base w-28 sm:w-40 bg-transparent border-none focus:ring-0 focus:outline-none"
-              style={{ color: 'var(--brand-primary)' }}
+              style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 15, width: 140, background: 'transparent', border: 'none', outline: 'none', color: t.accent }}
             />
-            {/* Help button */}
-            <motion.button
+            <button
               onClick={() => setShowHelp(true)}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.92 }}
-              title={lang === 'fr' ? 'Guide d\'utilisation' : 'دليل الاستخدام'}
-              className="p-2 rounded-full transition-all"
-              style={{ color: 'var(--brand-primary)', opacity: 0.6 }}
+              title={fr ? "Guide d'utilisation" : 'دليل الاستخدام'}
+              style={{ ...btnStyle(false), opacity: 0.6, fontSize: 14 }}
             >
-              <Info size={16} />
-            </motion.button>
+              ℹ
+            </button>
           </div>
 
-          {/* Center: tool buttons */}
-          <div className="flex items-center gap-1 rounded-full p-1" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
+          {/* Center: panel buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 20, padding: 4, background: `${t.accent}0d` }}>
             {[
-              { id: 'tools',  icon: Pencil,    title: lang === 'fr' ? 'Outils' : 'أدوات',     active: showToolsMenu,         action: () => { closeAllPanels(); setShowToolsMenu(v => !v); } },
-              { id: 'colors', icon: Palette,   title: lang === 'fr' ? 'Couleurs' : 'الألوان',  active: showCustomizationMenu, action: () => { closeAllPanels(); setShowCustomizationMenu(v => !v); } },
-              { id: 'shapes', icon: Star,      title: lang === 'fr' ? 'Formes' : 'الأشكال',    active: showShapePicker,       action: () => { closeAllPanels(); setShowShapePicker(v => !v); } },
-              { id: 'emojis', icon: Smile,     title: lang === 'fr' ? 'Emojis' : 'إيموجي',     active: showEmojiPicker,       action: () => { closeAllPanels(); setShowEmojiPicker(v => !v); } },
-              { id: 'paper',  icon: Settings2, title: lang === 'fr' ? 'Papier' : 'الورق',      active: showPaperSettings,     action: () => { closeAllPanels(); setShowPaperSettings(v => !v); } },
+              { id: 'tools',  emoji: '✏️', title: fr ? 'Outils' : 'أدوات',    active: showToolsMenu,         action: () => { closeAllPanels(); setShowToolsMenu(v => !v); } },
+              { id: 'colors', emoji: '🎨', title: fr ? 'Couleurs' : 'الألوان', active: showCustomizationMenu, action: () => { closeAllPanels(); setShowCustomizationMenu(v => !v); } },
+              { id: 'shapes', emoji: '⭐', title: fr ? 'Formes' : 'الأشكال',   active: showShapePicker,       action: () => { closeAllPanels(); setShowShapePicker(v => !v); } },
+              { id: 'emojis', emoji: '😊', title: fr ? 'Emojis' : 'إيموجي',    active: showEmojiPicker,       action: () => { closeAllPanels(); setShowEmojiPicker(v => !v); } },
+              { id: 'paper',  emoji: '⚙️', title: fr ? 'Papier' : 'الورق',     active: showPaperSettings,     action: () => { closeAllPanels(); setShowPaperSettings(v => !v); } },
             ].map(btn => (
-              <motion.button
-                key={btn.id}
-                onClick={btn.action}
-                title={btn.title}
-                whileHover={{ scale: 1.05, y: -1 }}
-                whileTap={{ scale: 0.95 }}
-                className="p-2.5 rounded-full transition-all duration-200"
-                style={btn.active ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 2px 12px color-mix(in srgb, var(--brand-primary) 30%, transparent)' } : { color: 'var(--brand-primary)' }}
-              >
-                <btn.icon size={16} />
-              </motion.button>
+              <button key={btn.id} onClick={btn.action} title={btn.title} style={btnStyle(btn.active)}>
+                {btn.emoji}
+              </button>
             ))}
           </div>
 
           {/* Right: select + stylus + zoom + undo/redo + save */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {/* Select tool */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
             <button
               onClick={() => { closeAllPanels(); setTool(tool === 'select' ? 'pen' : 'select'); }}
-              title={lang === 'fr' ? 'Sélection (S)' : 'تحديد (S)'}
-              className="p-2.5 rounded-full transition-all"
-              style={tool === 'select' ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 2px 10px color-mix(in srgb, var(--brand-primary) 30%, transparent)' } : { color: 'var(--brand-primary)' }}
+              title={fr ? 'Sélection (S)' : 'تحديد (S)'}
+              style={btnStyle(tool === 'select')}
             >
-              <MousePointer2 size={16} />
+              ↖
             </button>
-            {/* Stylus / palm-rejection toggle */}
             <button
               onClick={() => setStylusMode(v => !v)}
-              title={lang === 'fr' ? (stylusMode ? 'Mode Stylet actif' : 'Activer le mode Stylet') : (stylusMode ? 'وضع القلم' : 'تفعيل القلم')}
-              className="p-2.5 rounded-full transition-all text-xs font-bold hidden sm:flex items-center justify-center"
-              style={stylusMode ? { background: 'var(--brand-secondary)', color: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,0.15)', minWidth: 36 } : { color: 'var(--brand-primary)', minWidth: 36 }}
+              title={fr ? (stylusMode ? 'Mode Stylet actif' : 'Activer le mode Stylet') : (stylusMode ? 'وضع القلم' : 'تفعيل القلم')}
+              style={{ ...btnStyle(stylusMode), minWidth: 36, background: stylusMode ? t.accentBright : 'transparent' }}
             >
               {stylusMode ? '🖊' : '👆'}
             </button>
-            {/* Zoom controls */}
-            <div className="hidden sm:flex items-center rounded-full p-1 gap-0.5" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
-              <button onClick={() => { setZoom(z => Math.max(0.25, z / 1.2)); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} className="p-1.5 rounded-full" style={{ color: 'var(--brand-primary)' }} title="Zoom -"><ZoomOut size={14} /></button>
-              <button onClick={() => { setZoom(1); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} className="text-[9px] font-black px-1 min-w-[32px]" style={{ color: 'var(--brand-primary)' }}>{Math.round(zoom * 100)}%</button>
-              <button onClick={() => { setZoom(z => Math.min(4, z * 1.2)); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} className="p-1.5 rounded-full" style={{ color: 'var(--brand-primary)' }} title="Zoom +"><ZoomIn size={14} /></button>
+            {/* Zoom */}
+            <div style={{ display: 'flex', alignItems: 'center', borderRadius: 20, padding: 4, gap: 2, background: `${t.accent}0d` }}>
+              <button onClick={() => { setZoom(z => Math.max(0.25, z / 1.2)); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} style={{ ...btnStyle(false), fontSize: 14 }} title="Zoom -">−</button>
+              <button onClick={() => { setZoom(1); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} style={{ background: 'transparent', border: 'none', color: t.accent, fontSize: 9, fontWeight: 900, minWidth: 32, cursor: 'pointer', padding: '0 4px' }}>{Math.round(zoom * 100)}%</button>
+              <button onClick={() => { setZoom(z => Math.min(4, z * 1.2)); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} style={{ ...btnStyle(false), fontSize: 14 }} title="Zoom +">+</button>
             </div>
-            <div className="flex rounded-full p-1" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
-              <button onClick={undo} className="p-2.5 rounded-full transition-all hover:scale-110" style={{ color: 'var(--brand-primary)' }} title="Annuler"><Undo size={16} /></button>
-              <button onClick={redo} className="p-2.5 rounded-full transition-all hover:scale-110" style={{ color: 'var(--brand-primary)' }} title="Refaire"><Redo size={16} /></button>
+            {/* Undo/Redo */}
+            <div style={{ display: 'flex', borderRadius: 20, padding: 4, background: `${t.accent}0d` }}>
+              <button onClick={undo} style={btnStyle(false)} title="Annuler">↶</button>
+              <button onClick={redo} style={btnStyle(false)} title="Refaire">↷</button>
             </div>
-            <button onClick={() => setShowConfirmClear(true)} className="p-2.5 rounded-full transition-all" style={{ color: 'rgba(239,68,68,0.6)' }} title="Effacer"><Trash2 size={16} /></button>
-            <button onClick={exportPDF} className="p-2.5 rounded-full transition-all hidden sm:block" style={{ color: 'var(--brand-primary)' }} title="Exporter"><Download size={16} /></button>
-            <motion.button
+            <button onClick={() => setShowConfirmClear(true)} style={{ ...btnStyle(false), color: 'rgba(239,68,68,0.6)' }} title="Effacer">🗑</button>
+            <button onClick={exportPDF} style={btnStyle(false)} title="Exporter">↓</button>
+            <button
               onClick={savePage}
               disabled={isSaving}
-              whileHover={{ scale: 1.02, y: -1 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-white shadow-md transition-all active:scale-95"
-              style={{ background: isSaving ? '#22c55e' : 'var(--brand-primary)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 20, background: isSaving ? '#22c55e' : t.accent, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12, transition: 'background 0.2s' }}
             >
-              {isSaving ? <Check size={15} /> : <Save size={15} />}
-              <span className="text-xs hidden sm:inline">{isSaving ? (lang === 'fr' ? 'Sauvegardé' : 'تم') : (lang === 'fr' ? 'Sauvegarder' : 'حفظ')}</span>
-            </motion.button>
+              {isSaving ? '✓' : '💾'}
+              <span>{isSaving ? (fr ? 'Sauvegardé' : 'تم') : (fr ? 'Sauvegarder' : 'حفظ')}</span>
+            </button>
           </div>
         </div>
 
-        {/* Panels (tools / colors / shapes / paper) */}
-        <AnimatePresence>
-          {(showToolsMenu || showCustomizationMenu || showShapePicker || showEmojiPicker || showPaperSettings) && (
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="w-full max-w-2xl mx-auto pointer-events-auto overflow-y-auto custom-scrollbar"
-              style={{ maxHeight: 'calc(100vh - 90px)' }}
-            >
+        {/* Panels */}
+        {(showToolsMenu || showCustomizationMenu || showShapePicker || showEmojiPicker || showPaperSettings) && (
+          <div
+            style={{ width: '100%', maxWidth: 640, margin: '0 auto', pointerEvents: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 90px)' }}
+          >
               {showToolsMenu && (
-                <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Outil' : 'الأداة'}</p>
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                <div style={{ backdropFilter: 'blur(32px)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.16)', border: `1px solid ${t.accent}1a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: t.bg }}>
+                  <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6 }}>{fr ? 'Outil' : 'الأداة'}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
                     {[
-                      { id: 'pen',          icon: Pencil,      label: lang === 'fr' ? 'Stylo'      : 'قلم',     hint: '1' },
-                      { id: 'fountain-pen', icon: Brush,       label: lang === 'fr' ? 'Plume'      : 'ريشة',    hint: '2' },
-                      { id: 'highlighter',  icon: Highlighter, label: lang === 'fr' ? 'Surligneur' : 'تحديد',   hint: '3' },
-                      { id: 'chalk',        icon: Edit2,       label: lang === 'fr' ? 'Craie'      : 'طباشير',  hint: '4' },
-                      { id: 'ruler',        icon: Ruler,       label: lang === 'fr' ? 'Règle'      : 'مسطرة',   hint: '5' },
-                      { id: 'eraser',       icon: Eraser,      label: lang === 'fr' ? 'Gomme'      : 'ممحاة',   hint: '6' },
-                      { id: 'spray',        icon: Wind,        label: lang === 'fr' ? 'Aérosol'    : 'رذاذ',    hint: '7' },
-                      { id: 'marker',       icon: Pen,         label: lang === 'fr' ? 'Marqueur'   : 'ماركر',   hint: '8' },
-                      { id: 'neon',       icon: Zap,       label: lang === 'fr' ? 'Néon'       : 'نيون',        hint: '9' },
-                      { id: 'pencil',      icon: Pencil,      label: lang === 'fr' ? 'Crayon'       : 'رصاص',          hint: '0' },
-                      { id: 'watercolor',  icon: Palette,     label: lang === 'fr' ? 'Aquarelle'    : 'ألوان مائية',   hint: '-' },
-                      { id: 'calligraphy', icon: Pen,         label: lang === 'fr' ? 'Calligraphie' : 'خط عربي',       hint: '' },
-                      { id: 'dotted',      icon: Edit2,       label: lang === 'fr' ? 'Pointillé'   : 'منقّط',          hint: '' },
-                      { id: 'brush',       icon: Brush,       label: lang === 'fr' ? 'Pinceau'      : 'فرشاة',         hint: '' },
-                    ].map(t => (
+                      { id: 'pen',          emoji: '✏️', label: fr ? 'Stylo'       : 'قلم',            hint: '1' },
+                      { id: 'fountain-pen', emoji: '🪶', label: fr ? 'Plume'       : 'ريشة',           hint: '2' },
+                      { id: 'highlighter',  emoji: '🖊', label: fr ? 'Surligneur'  : 'تحديد',          hint: '3' },
+                      { id: 'chalk',        emoji: '🍂', label: fr ? 'Craie'       : 'طباشير',         hint: '4' },
+                      { id: 'ruler',        emoji: '📏', label: fr ? 'Règle'       : 'مسطرة',          hint: '5' },
+                      { id: 'eraser',       emoji: '🧽', label: fr ? 'Gomme'       : 'ممحاة',          hint: '6' },
+                      { id: 'spray',        emoji: '💨', label: fr ? 'Aérosol'     : 'رذاذ',           hint: '7' },
+                      { id: 'marker',       emoji: '🖍', label: fr ? 'Marqueur'    : 'ماركر',          hint: '8' },
+                      { id: 'neon',         emoji: '⚡', label: fr ? 'Néon'        : 'نيون',           hint: '9' },
+                      { id: 'pencil',       emoji: '✎',  label: fr ? 'Crayon'      : 'رصاص',           hint: '0' },
+                      { id: 'watercolor',   emoji: '💧', label: fr ? 'Aquarelle'   : 'ألوان مائية',    hint: '-' },
+                      { id: 'calligraphy',  emoji: '🖋', label: fr ? 'Calligraphie': 'خط عربي',        hint: ''  },
+                      { id: 'dotted',       emoji: '·',  label: fr ? 'Pointillé'   : 'منقّط',          hint: ''  },
+                      { id: 'brush',        emoji: '🎨', label: fr ? 'Pinceau'     : 'فرشاة',          hint: ''  },
+                    ].map(tb => (
                       <button
-                        key={t.id}
-                        onClick={() => { setTool(t.id as any); setShowToolsMenu(false); }}
-                        className="relative flex flex-col items-center gap-2 p-3 rounded-2xl transition-all font-bold text-[9px] uppercase tracking-wider"
-                        style={tool === t.id ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 4px 14px color-mix(in srgb, var(--brand-primary) 30%, transparent)' } : { background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', color: 'var(--brand-text-muted)' }}
+                        key={tb.id}
+                        onClick={() => { setTool(tb.id as any); setShowToolsMenu(false); }}
+                        style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 12, borderRadius: 16, border: 'none', cursor: 'pointer', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em',
+                          ...(tool === tb.id ? { background: t.accent, color: '#fff' } : { background: `${t.accent}0d`, color: t.inkMute }) }}
                       >
-                        {t.hint && <span className="absolute top-1.5 right-1.5 text-[7px] font-black opacity-30">{t.hint}</span>}
-                        <t.icon size={20} />
-                        <span>{t.label}</span>
+                        {tb.hint && <span style={{ position: 'absolute', top: 6, right: 6, fontSize: 7, fontWeight: 900, opacity: 0.3 }}>{tb.hint}</span>}
+                        <span style={{ fontSize: 20 }}>{tb.emoji}</span>
+                        <span>{tb.label}</span>
                       </button>
                     ))}
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Taille' : 'الحجم'}</p>
-                    <div className="flex flex-wrap gap-2">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6 }}>{fr ? 'Taille' : 'الحجم'}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {SIZE_PRESETS.map(p => (
                         <button
                           key={p.value}
                           onClick={() => { setWidth(p.value); setShowToolsMenu(false); }}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all font-bold text-[10px]"
-                          style={width === p.value ? { background: 'var(--brand-primary)', color: '#fff' } : { background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-text-muted)' }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 10,
+                            ...(width === p.value ? { background: t.accent, color: '#fff' } : { background: `${t.accent}12`, color: t.inkMute }) }}
                         >
-                          <div className="rounded-full bg-current" style={{ width: `${Math.min(p.value, 16)}px`, height: `${Math.min(p.value, 16)}px` }} />
+                          <div style={{ borderRadius: '50%', background: 'currentColor', width: Math.min(p.value, 16), height: Math.min(p.value, 16) }} />
                           {p.label}
                         </button>
                       ))}
                     </div>
-                    <div className="flex items-center gap-3">
-                      <input type="range" min="1" max="50" value={width} onChange={e => setWidth(parseInt(e.target.value))} className="flex-1 accent-primary" style={{ accentColor: 'var(--brand-primary)' }} />
-                      <span className="text-xs font-mono w-10 text-right" style={{ color: 'var(--brand-text-muted)' }}>{width}px</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <input type="range" min="1" max="50" value={width} onChange={e => setWidth(parseInt(e.target.value))} style={{ flex: 1, accentColor: t.accent }} />
+                      <span style={{ fontSize: 11, fontFamily: 'monospace', color: t.inkMute, minWidth: 36, textAlign: 'right' }}>{width}px</span>
                     </div>
                   </div>
                 </div>
               )}
 
               {showCustomizationMenu && (
-                <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl border-2 shadow-inner" style={{ background: color, borderColor: 'color-mix(in srgb, var(--brand-primary) 20%, transparent)' }} />
+                <div style={{ backdropFilter: 'blur(32px)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.16)', border: `1px solid ${t.accent}1a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: t.bg }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, border: `2px solid ${t.accent}33`, background: color, flexShrink: 0 }} />
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Couleur active' : 'اللون المحدد'}</p>
-                      <p className="text-xs font-mono" style={{ color: 'var(--brand-text-muted)' }}>{color}</p>
+                      <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6 }}>{fr ? 'Couleur active' : 'اللون المحدد'}</div>
+                      <div style={{ fontSize: 11, fontFamily: 'monospace', color: t.inkMute }}>{color}</div>
                     </div>
                   </div>
-
-                  <div className="flex flex-wrap gap-1.5">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {(Object.keys(COLOR_PALETTE) as (keyof typeof COLOR_PALETTE)[]).map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => setColorTab(cat)}
-                        className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all"
-                        style={colorTab === cat ? { background: 'var(--brand-primary)', color: '#fff' } : { background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-text-muted)' }}
-                      >
-                        {cat === 'classiques' ? (lang === 'fr' ? 'Classiques' : 'كلاسيك')
-                          : cat === 'pastels' ? (lang === 'fr' ? 'Pastels' : 'باستيل')
-                          : cat === 'vives' ? (lang === 'fr' ? 'Vives' : 'زاهية')
-                          : cat === 'sombres' ? (lang === 'fr' ? 'Sombres' : 'داكنة')
-                          : (lang === 'fr' ? 'Spéciaux' : 'خاصة')}
+                      <button key={cat} onClick={() => setColorTab(cat)} style={{ padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em',
+                        ...(colorTab === cat ? { background: t.accent, color: '#fff' } : { background: `${t.accent}12`, color: t.inkMute }) }}>
+                        {cat === 'classiques' ? (fr ? 'Classiques' : 'كلاسيك') : cat === 'pastels' ? (fr ? 'Pastels' : 'باستيل') : cat === 'vives' ? (fr ? 'Vives' : 'زاهية') : cat === 'sombres' ? (fr ? 'Sombres' : 'داكنة') : (fr ? 'Spéciaux' : 'خاصة')}
                       </button>
                     ))}
                   </div>
-
-                  <div className="grid grid-cols-6 sm:grid-cols-9 gap-2">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 8 }}>
                     {COLOR_PALETTE[colorTab].map(c => (
-                      <button
-                        key={c}
-                        onClick={() => { setColor(c); setShowCustomizationMenu(false); }}
-                        className="aspect-square rounded-xl border-2 transition-all hover:scale-110"
-                        style={{
+                      <button key={c} onClick={() => { setColor(c); setShowCustomizationMenu(false); }}
+                        style={{ aspectRatio: '1', borderRadius: 10, border: `2px solid ${color === c ? t.accent : 'transparent'}`, cursor: 'pointer',
                           background: c.startsWith('gradient:')
-                            ? { 'gradient:gold-red': 'linear-gradient(135deg,#D4AF37,#8B2635)', 'gradient:blue-cyan': 'linear-gradient(135deg,#1D3557,#A8DADC)', 'gradient:purple-pink': 'linear-gradient(135deg,#6D597A,#FF99C8)', 'gradient:green-teal': 'linear-gradient(135deg,#2D6A4F,#95D5B2)', 'gradient:sunset': 'linear-gradient(135deg,#F4A261,#E76F51)', 'gradient:ocean': 'linear-gradient(135deg,#03045E,#90E0EF)' }[c] || '#888'
+                            ? ({'gradient:gold-red':'linear-gradient(135deg,#D4AF37,#8B2635)','gradient:blue-cyan':'linear-gradient(135deg,#1D3557,#A8DADC)','gradient:purple-pink':'linear-gradient(135deg,#6D597A,#FF99C8)','gradient:green-teal':'linear-gradient(135deg,#2D6A4F,#95D5B2)','gradient:sunset':'linear-gradient(135deg,#F4A261,#E76F51)','gradient:ocean':'linear-gradient(135deg,#03045E,#90E0EF)'}[c] || '#888')
                             : c.startsWith('pattern:') ? '#f5f5f5' : c,
-                          borderColor: color === c ? 'var(--brand-primary)' : 'transparent',
-                          boxShadow: color === c ? '0 0 0 3px color-mix(in srgb, var(--brand-primary) 25%, transparent)' : 'none',
-                        }}
-                      >
-                        {c.startsWith('pattern:') && (
-                          <span className="text-[8px] font-bold" style={{ color: '#888' }}>
-                            {c === 'pattern:dots' ? '•••' : c === 'pattern:stripes' ? '///' : '+++'}
-                          </span>
-                        )}
+                          boxShadow: color === c ? `0 0 0 3px ${t.accent}40` : 'none',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: '#888',
+                        }}>
+                        {c.startsWith('pattern:') && (c === 'pattern:dots' ? '•••' : c === 'pattern:stripes' ? '///' : '+++')}
                       </button>
                     ))}
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowColorWheel(v => !v)}
-                      className="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all"
-                      style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 18%, transparent)', color: 'var(--brand-primary)', background: showColorWheel ? 'color-mix(in srgb, var(--brand-primary) 8%, transparent)' : 'transparent' }}
-                    >
-                      {lang === 'fr' ? '🎨 Roue' : '🎨 دوار'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button onClick={() => setShowColorWheel(v => !v)} style={{ padding: '6px 12px', borderRadius: 10, border: `1px solid ${t.accent}2e`, color: t.accent, fontSize: 9, fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer', background: showColorWheel ? `${t.accent}14` : 'transparent' }}>
+                      {fr ? '🎨 Roue' : '🎨 دوار'}
                     </button>
-                    <input
-                      type="text"
-                      value={color.startsWith('#') ? color : ''}
-                      onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setColor(e.target.value); }}
-                      className="flex-1 px-3 py-1.5 rounded-xl text-xs font-mono bg-transparent border focus:outline-none"
-                      style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)', color: 'var(--brand-text-muted)' }}
-                      placeholder="#8B2635"
-                    />
+                    <input type="text" value={color.startsWith('#') ? color : ''} onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setColor(e.target.value); }}
+                      style={{ flex: 1, padding: '6px 12px', borderRadius: 10, border: `1px solid ${t.accent}26`, background: 'transparent', color: t.inkMute, fontSize: 11, fontFamily: 'monospace', outline: 'none' }} placeholder="#8B2635" />
                   </div>
                   {showColorWheel && (
-                    <div className="flex justify-center pt-1">
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
                       <HexColorPicker color={color.startsWith('#') ? color : '#8B2635'} onChange={setColor} style={{ width: '100%', maxWidth: 220, height: 180 }} />
                     </div>
                   )}
@@ -1737,42 +1625,27 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               )}
 
               {showShapePicker && (
-                <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
-                  <div className="flex flex-wrap gap-1.5">
+                <div style={{ backdropFilter: 'blur(32px)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.16)', border: `1px solid ${t.accent}1a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: t.bg }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {SHAPE_CATEGORIES.map((cat, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setShapeCategory(i)}
-                        className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all"
-                        style={shapeCategory === i ? { background: 'var(--brand-primary)', color: '#fff' } : { background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-text-muted)' }}
-                      >
+                      <button key={i} onClick={() => setShapeCategory(i)} style={{ padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em',
+                        ...(shapeCategory === i ? { background: t.accent, color: '#fff' } : { background: `${t.accent}12`, color: t.inkMute }) }}>
                         {cat.label[lang as 'fr' | 'ar']}
                       </button>
                     ))}
                   </div>
-
-                  {/* Size slider */}
-                  <div className="flex items-center gap-3 px-1">
-                    <p className="text-[9px] font-black uppercase tracking-[0.3em] flex-shrink-0" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>
-                      {lang === 'fr' ? 'Taille' : 'الحجم'}
-                    </p>
-                    <input type="range" min="20" max="200" value={shapeSize}
-                      onChange={e => setShapeSize(parseInt(e.target.value))}
-                      className="flex-1" style={{ accentColor: 'var(--brand-primary)' }} />
-                    <span className="text-xs font-mono w-12 text-right flex-shrink-0" style={{ color: 'var(--brand-text-muted)' }}>{shapeSize}px</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6, flexShrink: 0 }}>{fr ? 'Taille' : 'الحجم'}</div>
+                    <input type="range" min="20" max="200" value={shapeSize} onChange={e => setShapeSize(parseInt(e.target.value))} style={{ flex: 1, accentColor: t.accent }} />
+                    <span style={{ fontSize: 11, fontFamily: 'monospace', color: t.inkMute, minWidth: 40, textAlign: 'right', flexShrink: 0 }}>{shapeSize}px</span>
                   </div>
-
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
                     {SHAPE_CATEGORIES[shapeCategory].shapes.map(shape => (
-                      <motion.button
+                      <button
                         key={shape.id}
                         onClick={() => { setActiveShapeTypeWithRef(shape.type); setShowShapePicker(false); }}
-                        whileHover={{ scale: 1.08, y: -2 }}
-                        whileTap={{ scale: 0.92 }}
-                        className="aspect-square flex flex-col items-center justify-center p-2 rounded-2xl border-2 transition-all hover:shadow-lg"
-                        style={activeShapeType === shape.type
-                          ? { background: 'var(--brand-primary)', borderColor: 'var(--brand-primary)', color: '#fff' }
-                          : { background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', borderColor: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)', color: 'var(--brand-primary)' }}
+                        style={{ aspectRatio: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 8, borderRadius: 16, border: `2px solid`, cursor: 'pointer', transition: 'all 0.15s',
+                          ...(activeShapeType === shape.type ? { background: t.accent, borderColor: t.accent, color: '#fff' } : { background: `${t.accent}0d`, borderColor: `${t.accent}1f`, color: t.accent }) }}
                       >
                         <svg width="28" height="28" viewBox="0 0 28 28" fill="currentColor">
                           {shape.type === 'circle'       && <circle cx="14" cy="14" r="11" fill="none" stroke="currentColor" strokeWidth="2" />}
@@ -1800,88 +1673,79 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                           {shape.type === 'double_arrow' && <><line x1="3" y1="14" x2="25" y2="14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/><polyline points="9,8 3,14 9,20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><polyline points="19,8 25,14 19,20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></>}
                           {shape.type === 'bracket'      && <><polyline points="10,3 4,3 4,25 10,25" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><polyline points="18,3 24,3 24,25 18,25" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></>}
                         </svg>
-                        <span className="text-[7px] font-bold mt-1 leading-tight text-center">{shape.label[lang as 'fr' | 'ar']}</span>
-                      </motion.button>
+                        <span style={{ fontSize: 7, fontWeight: 700, marginTop: 4, lineHeight: 1.2, textAlign: 'center' }}>{shape.label[lang as 'fr' | 'ar']}</span>
+                      </button>
                     ))}
                   </div>
                   {activeShapeType && (
-                    <div className="text-center text-xs font-bold animate-pulse" style={{ color: 'var(--brand-secondary)' }}>
-                      {lang === 'fr' ? 'Cliquez sur la page pour placer la forme' : 'انقر على الصفحة لوضع الشكل'}
+                    <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: t.accentBright }}>
+                      {fr ? 'Cliquez sur la page pour placer la forme' : 'انقر على الصفحة لوضع الشكل'}
                     </div>
                   )}
                 </div>
               )}
 
               {showEmojiPicker && (
-                <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>
-                    {lang === 'fr' ? 'Choisir un emoji — cliquez sur la page pour placer' : 'اختر رمزاً — انقر على الصفحة للوضع'}
-                  </p>
-                  <div className="grid grid-cols-8 sm:grid-cols-10 gap-2">
+                <div style={{ backdropFilter: 'blur(32px)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.16)', border: `1px solid ${t.accent}1a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: t.bg }}>
+                  <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6 }}>
+                    {fr ? 'Choisir un emoji — cliquez sur la page pour placer' : 'اختر رمزاً — انقر على الصفحة للوضع'}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 8 }}>
                     {EMOJI_LIST.map(em => (
-                      <button
-                        key={em}
-                        onClick={() => {
-                          activeEmojiRef.current = em; setActiveEmoji(em);
-                          setShowEmojiPicker(false);
-                        }}
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all hover:scale-125"
-                        style={{ background: activeEmoji === em ? 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' : 'transparent', boxShadow: activeEmoji === em ? '0 0 0 2px var(--brand-primary)' : 'none' }}
-                      >
+                      <button key={em} onClick={() => { activeEmojiRef.current = em; setActiveEmoji(em); setShowEmojiPicker(false); }}
+                        style={{ width: 40, height: 40, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, border: 'none', cursor: 'pointer', transition: 'transform 0.15s',
+                          background: activeEmoji === em ? `${t.accent}1a` : 'transparent',
+                          boxShadow: activeEmoji === em ? `0 0 0 2px ${t.accent}` : 'none' }}>
                         {em}
                       </button>
                     ))}
                   </div>
                   {activeEmoji && (
-                    <div className="text-center text-xs font-bold animate-pulse" style={{ color: 'var(--brand-secondary)' }}>
-                      {activeEmoji} {lang === 'fr' ? '— cliquez sur la page pour placer' : '— انقر على الصفحة للوضع'}
+                    <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: t.accentBright }}>
+                      {activeEmoji} {fr ? '— cliquez sur la page pour placer' : '— انقر على الصفحة للوضع'}
                     </div>
                   )}
                 </div>
               )}
 
               {showPaperSettings && (
-                <div className="backdrop-blur-3xl rounded-[2rem] shadow-2xl border p-5 space-y-4" style={{ background: 'var(--brand-surface)', borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
-                  <div className="space-y-2">
-                    <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Style de papier' : 'نوع الورق'}</p>
-                    <div className="flex flex-wrap gap-2">
+                <div style={{ backdropFilter: 'blur(32px)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.16)', border: `1px solid ${t.accent}1a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: t.bg }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6 }}>{fr ? 'Style de papier' : 'نوع الورق'}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {[
-                        { id: 'blank',        label: lang === 'fr' ? 'Blanc'          : 'أبيض'       },
-                        { id: 'lines',        label: lang === 'fr' ? 'Lignes'          : 'سطور'       },
-                        { id: 'grid',         label: lang === 'fr' ? 'Grille'          : 'شبكة'       },
-                        { id: 'dots',         label: lang === 'fr' ? 'Points'          : 'نقاط'       },
-                        { id: 'arabesque',    label: lang === 'fr' ? 'Arabesque'       : 'عربسك'      },
-                        { id: 'diamond',      label: lang === 'fr' ? 'Diamant'         : 'ماسة'       },
-                        { id: 'hexagonal',    label: lang === 'fr' ? "Nid d'abeille"   : 'خلية نحل'   },
-                        { id: 'music',        label: lang === 'fr' ? 'Portée'          : 'موسيقى'     },
-                        { id: 'floral',       label: lang === 'fr' ? '🌸 Floral'       : '🌸 زهور'    },
-                        { id: 'islamic_star', label: lang === 'fr' ? '✦ Islamique'    : '✦ إسلامي'  },
-                        { id: 'waves',        label: lang === 'fr' ? '〰 Vagues'      : '〰 أمواج'   },
-                        { id: 'leaves',       label: lang === 'fr' ? '🍃 Feuilles'    : '🍃 أوراق'   },
-                        { id: 'crosses',      label: lang === 'fr' ? '+ Croix'         : '+ صلبان'    },
-                        { id: 'triangles',    label: lang === 'fr' ? '△ Triangles'    : '△ مثلثات'  },
+                        { id: 'blank',        label: fr ? 'Blanc'        : 'أبيض'     },
+                        { id: 'lines',        label: fr ? 'Lignes'       : 'سطور'     },
+                        { id: 'grid',         label: fr ? 'Grille'       : 'شبكة'     },
+                        { id: 'dots',         label: fr ? 'Points'       : 'نقاط'     },
+                        { id: 'arabesque',    label: fr ? 'Arabesque'    : 'عربسك'    },
+                        { id: 'diamond',      label: fr ? 'Diamant'      : 'ماسة'     },
+                        { id: 'hexagonal',    label: fr ? "Nid d'abeille": 'خلية نحل' },
+                        { id: 'music',        label: fr ? 'Portée'       : 'موسيقى'   },
+                        { id: 'floral',       label: fr ? '🌸 Floral'    : '🌸 زهور'  },
+                        { id: 'islamic_star', label: fr ? '✦ Islamique'  : '✦ إسلامي'},
+                        { id: 'waves',        label: fr ? '〰 Vagues'    : '〰 أمواج' },
+                        { id: 'leaves',       label: fr ? '🍃 Feuilles'  : '🍃 أوراق' },
+                        { id: 'crosses',      label: fr ? '+ Croix'      : '+ صلبان'  },
+                        { id: 'triangles',    label: fr ? '△ Triangles'  : '△ مثلثات'},
                       ].map(s => (
-                        <button
-                          key={s.id}
-                          onClick={() => { setPaperStyle(s.id as any); setShowPaperSettings(false); }}
-                          className="px-4 py-2 rounded-2xl font-bold text-[10px] uppercase tracking-wider transition-all border"
-                          style={paperStyle === s.id ? { background: 'var(--brand-primary)', color: '#fff', borderColor: 'var(--brand-primary)' } : { background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)', color: 'var(--brand-text-muted)', borderColor: 'transparent' }}
-                        >
+                        <button key={s.id} onClick={() => { setPaperStyle(s.id as any); setShowPaperSettings(false); }}
+                          style={{ padding: '8px 16px', borderRadius: 16, border: `1px solid`, cursor: 'pointer', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em',
+                            ...(paperStyle === s.id ? { background: t.accent, color: '#fff', borderColor: t.accent } : { background: `${t.accent}0d`, color: t.inkMute, borderColor: 'transparent' }) }}>
                           {s.label}
                         </button>
                       ))}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.6 }}>{lang === 'fr' ? 'Couleur de papier' : 'لون الورق'}</p>
-                    <div className="flex flex-wrap gap-2">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6 }}>{fr ? 'Couleur de papier' : 'لون الورق'}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {PAPER_COLORS.map(pc => (
-                        <button
-                          key={pc.value}
-                          onClick={() => { setPaperColor(pc.value); setShowPaperSettings(false); }}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all"
-                          style={{ background: pc.value, borderColor: paperColor === pc.value ? 'var(--brand-primary)' : 'rgba(139,38,53,0.15)', color: 'var(--brand-primary)', boxShadow: paperColor === pc.value ? '0 0 0 2px var(--brand-primary)' : 'none' }}
-                        >
+                        <button key={pc.value} onClick={() => { setPaperColor(pc.value); setShowPaperSettings(false); }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 20, border: `1px solid`, cursor: 'pointer', fontSize: 10, fontWeight: 700, background: pc.value,
+                            borderColor: paperColor === pc.value ? t.accent : 'rgba(139,38,53,0.15)',
+                            color: t.accent,
+                            boxShadow: paperColor === pc.value ? `0 0 0 2px ${t.accent}` : 'none' }}>
                           {pc.label}
                         </button>
                       ))}
@@ -1889,66 +1753,50 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                   </div>
                 </div>
               )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+          </div>
+        )}
 
       </div>
-      {/* ─── FIN TOOLBAR FIXÉE ──────────────────────────────────────────────── */}
+      {/* FIN TOOLBAR FIXÉE */}
 
-      {/* ─── SMART SCROLL HANDLE ────────────────────────────────────────────────
-          • Thumb proportionnel viewport/contenu  • Vitesse ×1.8 via trackRef réel
-          • Zone approche 32px — aucune interférence dessin  • Auto-hide 1.2 s
-      ──────────────────────────────────────────────────────────────────────── */}
+      {/* SMART SCROLL HANDLE */}
 
       {/* Zone d'approche invisible */}
       <div
-        className="fixed z-[70] pointer-events-auto"
-        style={{ right: 0, top: 88, bottom: 100, width: 32 }}
+        style={{ position: 'fixed', zIndex: 70, pointerEvents: 'auto', right: 0, top: 88, bottom: 100, width: 32 }}
         onPointerEnter={showScrollHandle}
         onPointerLeave={hideScrollHandle}
       />
 
       {/* Handle visible */}
-      <motion.div
+      <div
         ref={scrollTrackRef}
-        className="fixed z-[71] pointer-events-none"
-        style={{ right: 4, top: 88, bottom: 100 }}
-        animate={{ opacity: scrollHover || scrollActive ? 1 : 0 }}
-        transition={{ duration: 0.2 }}
+        style={{ position: 'fixed', zIndex: 71, pointerEvents: 'none', right: 4, top: 88, bottom: 100, opacity: scrollHover || scrollActive ? 1 : 0, transition: 'opacity 0.2s' }}
       >
         {/* Piste */}
-        <motion.div
-          className="absolute right-0 top-0 bottom-0 rounded-full pointer-events-auto"
-          animate={{ width: scrollActive ? 20 : scrollHover ? 13 : 4 }}
-          transition={{ type: 'spring', damping: 22, stiffness: 340 }}
-          style={{ background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)' }}
+        <div
+          style={{ position: 'absolute', right: 0, top: 0, bottom: 0, borderRadius: 10, pointerEvents: 'auto', background: `${t.accent}12`,
+            width: scrollActive ? 20 : scrollHover ? 13 : 4, transition: 'width 0.15s ease' }}
           onPointerDown={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             handleManualScroll(Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)));
           }}
         >
-          <div className="absolute top-0 left-0 right-0 rounded-full"
-            style={{ height: `${scrollProgress * 100}%`, background: 'color-mix(in srgb, var(--brand-primary) 14%, transparent)', transition: 'height 0.08s linear' }} />
-        </motion.div>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, borderRadius: 10, height: `${scrollProgress * 100}%`, background: `${t.accent}24`, transition: 'height 0.08s linear' }} />
+        </div>
 
-        {/* Thumb — proportionnel, drag ×1.8 */}
-        <motion.div
-          className="absolute right-0 rounded-full pointer-events-auto select-none"
+        {/* Thumb */}
+        <div
           style={{
-            top: `${thumbTopPct}%`,
-            height: `${thumbPct}%`,
-            minHeight: 36,
-            touchAction: 'none',
-            background: 'var(--brand-primary)',
-            cursor: scrollActive ? 'grabbing' : 'grab',
+            position: 'absolute', right: 0, borderRadius: 10, pointerEvents: 'auto', userSelect: 'none',
+            top: `${thumbTopPct}%`, height: `${thumbPct}%`, minHeight: 36, touchAction: 'none',
+            background: t.accent, cursor: scrollActive ? 'grabbing' : 'grab',
+            width: scrollActive ? 20 : scrollHover ? 13 : 4,
+            opacity: scrollActive ? 1 : scrollHover ? 0.82 : 0.55,
+            boxShadow: scrollActive ? `0 2px 12px ${t.accent}59` : 'none',
+            transition: 'width 0.15s ease, opacity 0.15s ease',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
           }}
-          animate={{
-            width:     scrollActive ? 20 : scrollHover ? 13 : 4,
-            opacity:   scrollActive ? 1  : scrollHover ? 0.82 : 0.55,
-            boxShadow: scrollActive ? '0 2px 12px color-mix(in srgb, var(--brand-primary) 35%, transparent)' : 'none',
-          }}
-          transition={{ type: 'spring', damping: 22, stiffness: 340 }}
           onPointerEnter={showScrollHandle}
           onPointerDown={(e) => {
             e.stopPropagation();
@@ -1964,114 +1812,74 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             if (!drag) return;
             const s = scrollContainerRef.current;
             if (!s) return;
-            // Hauteur réelle de la piste (pas clientHeight du scroll container)
             const trackH = scrollTrackRef.current?.clientHeight ?? (window.innerHeight - 188);
             const usableH = Math.max(trackH * (1 - thumbPct / 100), 1);
             const dy = e.clientY - drag.startY;
-            // ×1.8 : scroll notablement plus rapide sans perdre le contrôle
             s.scrollTop = drag.startScrollTop + (dy * 1.8 / usableH) * (s.scrollHeight - s.clientHeight);
           }}
-          onPointerUp={() => {
-            scrollDragRef.current = null;
-            setScrollActive(false);
-            hideTimerRef.current = setTimeout(() => setScrollHover(false), 1500);
-          }}
-          onPointerCancel={() => {
-            scrollDragRef.current = null;
-            setScrollActive(false);
-            setScrollHover(false);
-          }}
+          onPointerUp={() => { scrollDragRef.current = null; setScrollActive(false); hideTimerRef.current = setTimeout(() => setScrollHover(false), 1500); }}
+          onPointerCancel={() => { scrollDragRef.current = null; setScrollActive(false); setScrollHover(false); }}
         >
-          <AnimatePresence>
-            {scrollHover && (
-              <motion.div className="absolute inset-0 flex flex-col items-center justify-center gap-[4px]"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="rounded-full" style={{ width: 7, height: 1.5, background: 'rgba(255,255,255,0.8)', flexShrink: 0 }} />
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </motion.div>
+          {scrollHover && [0, 1, 2].map(i => (
+            <div key={i} style={{ width: 7, height: 1.5, background: 'rgba(255,255,255,0.8)', borderRadius: 2, flexShrink: 0 }} />
+          ))}
+        </div>
+      </div>
 
-      {/* Back-to-top — masqué quand handle actif */}
-      <AnimatePresence>
-        {scrollProgress > 0.06 && !scrollActive && !scrollHover && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ type: 'spring', damping: 22, stiffness: 320 }}
-            onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="fixed bottom-28 right-3 z-[69] w-9 h-9 rounded-full flex items-center justify-center pointer-events-auto shadow-md"
-            style={{ background: 'var(--brand-surface)', border: '1px solid color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}
-          >
-            <svg className="absolute inset-0 -rotate-90" width="36" height="36" viewBox="0 0 36 36">
-              <circle cx="18" cy="18" r="14" fill="none" stroke="color-mix(in srgb, var(--brand-primary) 7%, transparent)" strokeWidth="2" />
-              <circle cx="18" cy="18" r="14" fill="none" stroke="var(--brand-primary)" strokeWidth="2" strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 14}`}
-                strokeDashoffset={`${2 * Math.PI * 14 * (1 - scrollProgress)}`}
-                style={{ opacity: 0.65, transition: 'stroke-dashoffset 0.15s ease' }} />
-            </svg>
-            <span className="text-[8px] font-black select-none" style={{ color: 'var(--brand-primary)' }}>↑</span>
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* Back-to-top */}
+      {scrollProgress > 0.06 && !scrollActive && !scrollHover && (
+        <button
+          onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+          style={{ position: 'fixed', bottom: 112, right: 12, zIndex: 69, width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto', background: t.bg, border: `1px solid ${t.accent}1a`, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', cursor: 'pointer' }}
+        >
+          <svg style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }} width="36" height="36" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="14" fill="none" stroke={`${t.accent}12`} strokeWidth="2" />
+            <circle cx="18" cy="18" r="14" fill="none" stroke={t.accent} strokeWidth="2" strokeLinecap="round"
+              strokeDasharray={`${2 * Math.PI * 14}`}
+              strokeDashoffset={`${2 * Math.PI * 14 * (1 - scrollProgress)}`}
+              style={{ opacity: 0.65, transition: 'stroke-dashoffset 0.15s ease' }} />
+          </svg>
+          <span style={{ fontSize: 8, fontWeight: 900, color: t.accent, userSelect: 'none', position: 'relative' }}>↑</span>
+        </button>
+      )}
 
-      {/* ─── ZONE SCROLLABLE (canvas) ───────────────────────────────────────── */}
-      {/* FIX 3 : pt-20 pour compenser la hauteur de la toolbar fixed (~72px + gap) */}
+      {/* ZONE SCROLLABLE (canvas) — pt-20 compense la toolbar fixed */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 rounded-[2rem] shadow-2xl overflow-y-auto relative border group cursor-none custom-scrollbar pt-20"
+        style={{ flex: 1, borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflowY: 'auto', position: 'relative', border: `1px solid ${t.accent}14`, scrollBehavior: 'smooth', cursor: 'none', paddingTop: 80 }}
         onScroll={e => {
           const s = e.currentTarget;
           setScrollProgress(s.scrollTop / (s.scrollHeight - s.clientHeight || 1));
-          // Afficher le handle lors du scroll, masquer après inactivité
           setScrollHover(true);
           if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
           hideTimerRef.current = setTimeout(() => setScrollHover(false), 1500);
         }}
-        style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', scrollBehavior: 'smooth' }}
       >
+        {/* Toast */}
         {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="fixed left-1/2 top-5 z-[60] -translate-x-1/2 rounded-3xl px-5 py-3 shadow-2xl text-sm font-bold"
-            style={{ background: 'rgba(15, 23, 42, 0.94)', color: '#fff' }}
-          >
+          <div style={{ position: 'fixed', left: '50%', top: 20, zIndex: 60, transform: 'translateX(-50%)', borderRadius: 24, padding: '12px 20px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', fontSize: 13, fontWeight: 700, background: 'rgba(15,23,42,0.94)', color: '#fff', pointerEvents: 'none' }}>
             {toastMessage}
-          </motion.div>
+          </div>
         )}
-        {/* Zoom indicator */}
-        <AnimatePresence>
-          {showZoomIndicator && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[70] rounded-2xl px-4 py-2 shadow-xl text-sm font-bold pointer-events-none"
-              style={{ background: 'rgba(15,23,42,0.88)', color: '#fff' }}
-            >
-              {Math.round(zoom * 100)}%
-            </motion.div>
-          )}
-        </AnimatePresence>
 
-        {/* Binding */}
-        <div
-          className={cn('absolute top-0 w-10 z-20 pointer-events-none', lang === 'ar' ? 'right-0' : 'left-0')}
-          style={{ height: `${pageHeight}px`, background: 'linear-gradient(to right, rgba(0,0,0,0.06), transparent)' }}
-        >
-          <div className="h-full flex flex-col justify-around py-8 px-2">
+        {/* Zoom indicator */}
+        {showZoomIndicator && (
+          <div style={{ position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 70, borderRadius: 16, padding: '8px 16px', boxShadow: '0 4px 16px rgba(0,0,0,0.2)', fontSize: 13, fontWeight: 700, background: 'rgba(15,23,42,0.88)', color: '#fff', pointerEvents: 'none' }}>
+            {Math.round(zoom * 100)}%
+          </div>
+        )}
+
+        {/* Binding spiral */}
+        <div style={{ position: 'absolute', top: 0, [lang === 'ar' ? 'right' : 'left']: 0, width: 40, zIndex: 20, pointerEvents: 'none', height: `${pageHeight}px`, background: 'linear-gradient(to right, rgba(0,0,0,0.06), transparent)' }}>
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-around', padding: '32px 8px' }}>
             {[...Array(Math.ceil(pageHeight / 120))].map((_, i) => (
-              <div key={i} className="w-full h-2 rounded-full shadow-inner" style={{ background: 'rgba(0,0,0,0.05)' }} />
+              <div key={i} style={{ width: '100%', height: 8, borderRadius: 4, background: 'rgba(0,0,0,0.05)' }} />
             ))}
           </div>
         </div>
 
-        {/* Canvas + selection overlay wrapper — zoom applied here */}
-        <div className="relative w-full" style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}>
+        {/* Canvas + selection overlay — zoom applied here */}
+        <div style={{ position: 'relative', width: '100%', transform: `scale(${zoom})`, transformOrigin: 'top center' }}>
           <canvas
             ref={canvasRef}
             width={1000}
@@ -2080,10 +1888,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             onPointerMove={draw}
             onPointerUp={stopDrawing}
             onPointerCancel={stopDrawing}
-            className="w-full touch-none block"
-            style={{ cursor: tool === 'select' ? 'default' : 'none' }}
+            style={{ width: '100%', touchAction: 'none', display: 'block', cursor: tool === 'select' ? 'default' : 'none' }}
           />
-          {/* Selection handles overlay — visible only in select mode */}
+          {/* Selection handles overlay */}
           {tool === 'select' && (() => {
             const selShape = selectedShapeId ? shapes.find(s => s.id === selectedShapeId) : null;
             if (!selShape) return null;
@@ -2092,7 +1899,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             const cy = selShape.y * sc;
             const hw = (selShape.width / 2) * sc;
             const hh = (selShape.height / 2) * sc;
-            const H = 44; // 44px touch target (Apple HIG)
+            const H = 44;
             const cornerHandles = [
               { id: 'nw' as const, left: cx - hw, top: cy - hh, cursor: 'nw-resize' },
               { id: 'ne' as const, left: cx + hw, top: cy - hh, cursor: 'ne-resize' },
@@ -2100,81 +1907,46 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               { id: 'se' as const, left: cx + hw, top: cy + hh, cursor: 'se-resize' },
             ];
             return (
-              <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 5 }}>
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}>
                 {/* Dashed selection border */}
-                <div style={{
-                  position: 'absolute',
-                  left: cx - hw - 3, top: cy - hh - 3,
-                  width: hw * 2 + 6, height: hh * 2 + 6,
-                  border: '1.5px dashed var(--brand-primary)',
-                  borderRadius: 4, opacity: 0.85,
-                }} />
+                <div style={{ position: 'absolute', left: cx - hw - 3, top: cy - hh - 3, width: hw * 2 + 6, height: hh * 2 + 6, border: `1.5px dashed ${t.accent}`, borderRadius: 4, opacity: 0.85 }} />
                 {/* Corner resize handles */}
                 {cornerHandles.map(h => (
-                  <div
-                    key={h.id}
-                    className="absolute pointer-events-auto flex items-center justify-center"
-                    style={{ left: h.left - H/2, top: h.top - H/2, width: H, height: H, cursor: h.cursor }}
+                  <div key={h.id} style={{ position: 'absolute', left: h.left - H/2, top: h.top - H/2, width: H, height: H, cursor: h.cursor, pointerEvents: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     onPointerDown={(ev) => {
-                      ev.stopPropagation();
-                      ev.currentTarget.setPointerCapture(ev.pointerId);
-                      setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
-                      setRedoStack([]);
-                      selectionDragRef.current = {
-                        startX: ev.clientX, startY: ev.clientY,
-                        shapeStartX: selShape.x, shapeStartY: selShape.y,
-                        shapeStartW: selShape.width, shapeStartH: selShape.height,
-                        shapeId: selShape.id, handle: h.id,
-                        shapeStartRotation: selShape.rotation || 0,
-                      };
+                      ev.stopPropagation(); ev.currentTarget.setPointerCapture(ev.pointerId);
+                      setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]); setRedoStack([]);
+                      selectionDragRef.current = { startX: ev.clientX, startY: ev.clientY, shapeStartX: selShape.x, shapeStartY: selShape.y, shapeStartW: selShape.width, shapeStartH: selShape.height, shapeId: selShape.id, handle: h.id, shapeStartRotation: selShape.rotation || 0 };
                     }}
                     onPointerMove={(ev) => {
                       const drag = selectionDragRef.current;
                       if (!drag || drag.handle === 'move' || drag.handle === 'rotate') return;
-                      const canvas = canvasRef.current;
-                      if (!canvas) return;
+                      const canvas = canvasRef.current; if (!canvas) return;
                       const rect = canvas.getBoundingClientRect();
-                      const sx = canvas.width / rect.width;
-                      const sy = canvas.height / rect.height;
-                      const dx = (ev.clientX - drag.startX) * sx;
-                      const dy = (ev.clientY - drag.startY) * sy;
-                      const nw = drag.handle.includes('e') ? Math.max(20, drag.shapeStartW + dx * 2)
-                               : drag.handle.includes('w') ? Math.max(20, drag.shapeStartW - dx * 2)
-                               : drag.shapeStartW;
-                      const nh = drag.handle.includes('s') ? Math.max(20, drag.shapeStartH + dy * 2)
-                               : drag.handle.includes('n') ? Math.max(20, drag.shapeStartH - dy * 2)
-                               : drag.shapeStartH;
+                      const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
+                      const dx = (ev.clientX - drag.startX) * sx, dy = (ev.clientY - drag.startY) * sy;
+                      const nw = drag.handle.includes('e') ? Math.max(20, drag.shapeStartW + dx * 2) : drag.handle.includes('w') ? Math.max(20, drag.shapeStartW - dx * 2) : drag.shapeStartW;
+                      const nh = drag.handle.includes('s') ? Math.max(20, drag.shapeStartH + dy * 2) : drag.handle.includes('n') ? Math.max(20, drag.shapeStartH - dy * 2) : drag.shapeStartH;
                       setShapes(prev => prev.map(s => s.id === drag.shapeId ? { ...s, width: nw, height: nh } : s));
                     }}
                     onPointerUp={() => { selectionDragRef.current = null; }}
                   >
-                    <div style={{ width: 10, height: 10, background: 'white', border: '2px solid var(--brand-primary)', borderRadius: 2, boxShadow: '0 1px 6px rgba(0,0,0,0.25)' }} />
+                    <div style={{ width: 10, height: 10, background: 'white', border: `2px solid ${t.accent}`, borderRadius: 2, boxShadow: '0 1px 6px rgba(0,0,0,0.25)' }} />
                   </div>
                 ))}
-                {/* Rotation handle line */}
-                <div style={{ position: 'absolute', left: cx - 1, top: cy - hh - 22, width: 1.5, height: 22, background: 'var(--brand-primary)', opacity: 0.5 }} />
-                {/* Rotation handle button */}
-                <div
-                  className="absolute pointer-events-auto flex items-center justify-center"
-                  style={{ left: cx - H/2, top: cy - hh - H - 22, width: H, height: H, cursor: 'grab' }}
+                {/* Rotation line */}
+                <div style={{ position: 'absolute', left: cx - 1, top: cy - hh - 22, width: 1.5, height: 22, background: t.accent, opacity: 0.5 }} />
+                {/* Rotation handle */}
+                <div style={{ position: 'absolute', left: cx - H/2, top: cy - hh - H - 22, width: H, height: H, cursor: 'grab', pointerEvents: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   onPointerDown={(ev) => {
-                    ev.stopPropagation();
-                    ev.currentTarget.setPointerCapture(ev.pointerId);
-                    setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
-                    setRedoStack([]);
-                    selectionDragRef.current = {
-                      startX: ev.clientX, startY: ev.clientY,
-                      shapeStartX: selShape.x, shapeStartY: selShape.y,
-                      shapeStartW: selShape.width, shapeStartH: selShape.height,
-                      shapeId: selShape.id, handle: 'rotate',
-                      shapeStartRotation: selShape.rotation || 0,
-                    };
+                    ev.stopPropagation(); ev.currentTarget.setPointerCapture(ev.pointerId);
+                    setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]); setRedoStack([]);
+                    selectionDragRef.current = { startX: ev.clientX, startY: ev.clientY, shapeStartX: selShape.x, shapeStartY: selShape.y, shapeStartW: selShape.width, shapeStartH: selShape.height, shapeId: selShape.id, handle: 'rotate', shapeStartRotation: selShape.rotation || 0 };
                   }}
                   onPointerMove={(ev) => {
                     const drag = selectionDragRef.current;
                     if (!drag || drag.handle !== 'rotate') return;
-                    const canvas = canvasRef.current;
-                    if (!canvas) return;
+                    const canvas = canvasRef.current; if (!canvas) return;
                     const rect = canvas.getBoundingClientRect();
                     const shapeCX = rect.left + selShape.x / (canvas.width / rect.width);
                     const shapeCY = rect.top + selShape.y / (canvas.height / rect.height);
@@ -2183,351 +1955,282 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                   }}
                   onPointerUp={() => { selectionDragRef.current = null; }}
                 >
-                  <div style={{ width: 12, height: 12, background: 'var(--brand-primary)', borderRadius: '50%', border: '2px solid white', boxShadow: '0 1px 6px rgba(0,0,0,0.3)' }} />
+                  <div style={{ width: 12, height: 12, background: t.accent, borderRadius: '50%', border: '2px solid white', boxShadow: '0 1px 6px rgba(0,0,0,0.3)' }} />
                 </div>
-                {/* Floating action bar (touch-friendly: delete + duplicate, always visible) */}
-                <div
-                  className="absolute pointer-events-auto flex items-center gap-1 rounded-full px-2 py-1 shadow-xl"
-                  style={{
-                    left: cx,
-                    top: cy + hh + 14,
-                    transform: 'translateX(-50%)',
-                    background: 'var(--brand-surface)',
-                    border: '1px solid color-mix(in srgb, var(--brand-primary) 15%, transparent)',
-                  }}
-                >
-                  {/* Delete */}
-                  <button
-                    onPointerDown={(ev) => ev.stopPropagation()}
-                    onClick={() => {
-                      setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
-                      setRedoStack([]);
-                      setShapes(prev => prev.filter(s => s.id !== selShape.id));
-                      setSelectedShapeId(null);
-                    }}
-                    className="flex items-center justify-center rounded-full font-bold"
-                    style={{ width: 44, height: 44, color: '#ef4444' }}
-                    title={lang === 'fr' ? 'Supprimer' : 'حذف'}
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                  {/* Duplicate */}
-                  <button
-                    onPointerDown={(ev) => ev.stopPropagation()}
-                    onClick={() => {
-                      const dup: Shape = { ...selShape, id: Date.now().toString(), x: selShape.x + 30, y: selShape.y + 30 };
-                      setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]);
-                      setRedoStack([]);
-                      setShapes(prev => [...prev, dup]);
-                      setSelectedShapeId(dup.id);
-                    }}
-                    className="flex items-center justify-center rounded-full font-bold"
-                    style={{ width: 44, height: 44, color: 'var(--brand-primary)' }}
-                    title={lang === 'fr' ? 'Dupliquer' : 'نسخ'}
-                  >
-                    ⧉
-                  </button>
+                {/* Floating action bar */}
+                <div style={{ position: 'absolute', left: cx, top: cy + hh + 14, transform: 'translateX(-50%)', pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 4, borderRadius: 20, padding: '4px 8px', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', background: t.bg, border: `1px solid ${t.accent}26` }}>
+                  <button onPointerDown={ev => ev.stopPropagation()} onClick={() => { setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]); setRedoStack([]); setShapes(prev => prev.filter(s => s.id !== selShape.id)); setSelectedShapeId(null); }}
+                    style={{ width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontSize: 18 }}
+                    title={fr ? 'Supprimer' : 'حذف'}>🗑</button>
+                  <button onPointerDown={ev => ev.stopPropagation()} onClick={() => { const dup: Shape = { ...selShape, id: Date.now().toString(), x: selShape.x + 30, y: selShape.y + 30 }; setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]); setRedoStack([]); setShapes(prev => [...prev, dup]); setSelectedShapeId(dup.id); }}
+                    style={{ width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: 'none', background: 'transparent', color: t.accent, cursor: 'pointer', fontSize: 16 }}
+                    title={fr ? 'Dupliquer' : 'نسخ'}>⧉</button>
                 </div>
               </div>
             );
           })()}
         </div>
 
-        <div className="flex justify-center py-10" style={{ background: paperColor }}>
-          <button onClick={() => setPageHeight(prev => prev + 2000)} className="flex items-center gap-2 px-5 py-2.5 rounded-full font-bold uppercase tracking-wider text-xs border transition-all hover:scale-105" style={{ color: 'var(--brand-primary)', borderColor: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)', background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
-            <Plus size={15} />
-            {lang === 'fr' ? "Ajouter de l'espace" : 'إضافة مساحة'}
+        {/* Add space button */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0', background: paperColor }}>
+          <button onClick={() => setPageHeight(prev => prev + 2000)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 20, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', border: `1px solid ${t.accent}26`, color: t.accent, background: `${t.accent}0d`, cursor: 'pointer' }}>
+            + {fr ? "Ajouter de l'espace" : 'إضافة مساحة'}
           </button>
         </div>
 
-        {/* Custom cursor — hidden in select mode */}
-        <motion.div
-          className="fixed pointer-events-none z-[60] -translate-x-1/2 -translate-y-1/2 hidden group-hover:flex items-center justify-center"
-          style={{ left: cursorXSpring, top: cursorYSpring, display: tool === 'select' ? 'none' : '' }}
-        >
-          <motion.div
-            layout initial={false}
-            animate={{
+        {/* Custom cursor */}
+        {tool !== 'select' && (
+          <div style={{ position: 'fixed', left: cursorPos.x, top: cursorPos.y, zIndex: 60, pointerEvents: 'none', transform: 'translate(-50%, -50%)', transition: 'left 0.03s linear, top 0.03s linear' }}>
+            <div style={{
               width: activeShapeType ? 60 : (tool === 'highlighter' ? width * 6 : width + 16) * canvasScale,
               height: activeShapeType ? 60 : (tool === 'highlighter' ? width * 5 : width + 16) * canvasScale,
-              borderRadius: tool === 'highlighter' ? '4px' : '50%',
-              backgroundColor: activeShapeType ? 'transparent' : (tool === 'eraser' ? 'rgba(255,255,255,0.4)' : color),
+              borderRadius: tool === 'highlighter' ? 4 : '50%',
+              background: activeShapeType ? 'transparent' : (tool === 'eraser' ? 'rgba(255,255,255,0.4)' : color),
               opacity: tool === 'highlighter' ? 0.35 : 0.85,
-              border: activeShapeType ? '2px dashed var(--brand-secondary)' : '1px solid rgba(255,255,255,0.8)',
-              scale: isDrawing ? 0.8 : 1,
-            }}
-            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="relative flex items-center justify-center shadow-lg"
-          >
-            {activeShapeType ? (
-              <div className="w-full h-full opacity-60 animate-pulse flex items-center justify-center">
-                {activeShapeType === 'circle' && <div className="w-6 h-6 rounded-full border-2 border-current" style={{ color: 'var(--brand-secondary)' }} />}
-                {activeShapeType === 'square' && <div className="w-6 h-6 border-2 border-current" style={{ color: 'var(--brand-secondary)' }} />}
-                {activeShapeType === 'triangle' && <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[10px] border-l-transparent border-r-transparent border-b-current" style={{ color: 'var(--brand-secondary)' }} />}
-                {activeShapeType === 'line' && <div className="w-6 h-0.5 bg-current" style={{ backgroundColor: 'var(--brand-secondary)' }} />}
-                {activeShapeType === 'arrow' && <div className="flex items-center" style={{ color: 'var(--brand-secondary)' }}><div className="w-4 h-0.5 bg-current"></div><div className="w-0 h-0 border-l-[4px] border-l-current border-t-[2px] border-t-transparent border-b-[2px] border-b-transparent"></div></div>}
-              </div>
-            ) : (
-              <span className="text-white/50">
-                {tool === 'pen' && <Pencil size={Math.max(10, 12 * canvasScale)} />}
-                {tool === 'fountain-pen' && <Brush size={Math.max(10, 12 * canvasScale)} />}
-                {tool === 'highlighter' && <Highlighter size={Math.max(10, 12 * canvasScale)} />}
-                {tool === 'chalk' && <Edit2 size={Math.max(10, 12 * canvasScale)} />}
-                {tool === 'eraser' && <Eraser size={Math.max(10, 12 * canvasScale)} />}
-                {tool === 'ruler' && <Ruler size={Math.max(10, 12 * canvasScale)} />}
-              </span>
-            )}
-          </motion.div>
-        </motion.div>
+              border: activeShapeType ? `2px dashed ${t.accentBright}` : '1px solid rgba(255,255,255,0.8)',
+              transform: isDrawing ? 'scale(0.8)' : 'scale(1)',
+              transition: 'width 0.15s, height 0.15s, transform 0.1s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            }}>
+              {activeShapeType && (
+                <span style={{ fontSize: 14, opacity: 0.6, color: t.accentBright }}>
+                  {activeShapeType === 'circle' ? '○' : activeShapeType === 'square' ? '□' : activeShapeType === 'triangle' ? '△' : activeShapeType === 'line' ? '—' : activeShapeType === 'arrow' ? '→' : '✦'}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ─── Help / Guide modal ──────────────────────────────────────────── */}
-      <AnimatePresence>
-        {showHelp && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[300] flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}
-            onClick={() => setShowHelp(false)}
+      {showHelp && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setShowHelp(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: 672, maxHeight: '88vh', display: 'flex', flexDirection: 'column', borderRadius: 32, boxShadow: '0 25px 50px rgba(0,0,0,0.25)', overflow: 'hidden', background: t.card, border: `1px solid ${t.accent}1e` }}
           >
-            <motion.div
-              initial={{ scale: 0.92, y: 24, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.92, y: 24, opacity: 0 }}
-              transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-              onClick={e => e.stopPropagation()}
-              className="w-full max-w-2xl max-h-[88vh] flex flex-col rounded-[2rem] shadow-2xl overflow-hidden"
-              style={{ background: 'var(--brand-surface)', border: '1px solid color-mix(in srgb, var(--brand-primary) 12%, transparent)' }}
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between px-7 py-5 border-b flex-shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)' }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-2xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
-                    <Info size={18} style={{ color: 'var(--brand-primary)' }} />
-                  </div>
-                  <div>
-                    <h2 className="font-serif italic text-lg leading-tight" style={{ color: 'var(--brand-primary)' }}>
-                      {lang === 'fr' ? 'Guide du Diftar' : 'دليل الدفتر'}
-                    </h2>
-                    <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'var(--brand-secondary)', opacity: 0.55 }}>
-                      {lang === 'fr' ? 'Toutes les fonctions expliquées' : 'شرح جميع الوظائف'}
-                    </p>
-                  </div>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 28px', borderBottom: `1px solid ${t.accent}14`, flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${t.accent}1a`, fontSize: 18, color: t.accent }}>ℹ</div>
+                <div>
+                  <h2 style={{ fontFamily: 'serif', fontStyle: 'italic', fontSize: 18, lineHeight: 1.2, color: t.accent, margin: 0 }}>
+                    {lang === 'fr' ? 'Guide du Diftar' : 'دليل الدفتر'}
+                  </h2>
+                  <p style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: t.accentBright, opacity: 0.55, margin: 0 }}>
+                    {lang === 'fr' ? 'Toutes les fonctions expliquées' : 'شرح جميع الوظائف'}
+                  </p>
                 </div>
-                <button onClick={() => setShowHelp(false)} className="p-2.5 rounded-full hover:scale-110 transition-all" style={{ color: 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
-                  <X size={18} />
-                </button>
               </div>
+              <button onClick={() => setShowHelp(false)} style={{ padding: 10, borderRadius: '50%', border: 'none', cursor: 'pointer', color: t.inkMute, background: `${t.accent}0d`, fontSize: 16, lineHeight: 1 }}>✕</button>
+            </div>
 
-              {/* Scrollable body */}
-              <div className="overflow-y-auto px-7 py-6 space-y-7 custom-scrollbar">
+            {/* Scrollable body */}
+            <div style={{ overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 28 }}>
 
-                {/* Section: Outils de dessin */}
-                <section>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Pencil size={14} style={{ color: 'var(--brand-secondary)' }} />
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-                      {lang === 'fr' ? 'Outils de dessin' : 'أدوات الرسم'}
-                    </h3>
+              {/* Section: Outils de dessin */}
+              <section>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 14, color: t.accentBright }}>✎</span>
+                  <h3 style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: t.accentBright, opacity: 0.7, margin: 0 }}>
+                    {lang === 'fr' ? 'Outils de dessin' : 'أدوات الرسم'}
+                  </h3>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {[
-                      { icon: '✏️', name: lang === 'fr' ? 'Stylo'         : 'قلم',          key: '1', desc: lang === 'fr' ? 'Trait fluide avec lissage parfait'        : 'خط سلس بتمهيد مثالي' },
-                      { icon: '🪶', name: lang === 'fr' ? 'Plume'         : 'ريشة',         key: '2', desc: lang === 'fr' ? 'Trait incliné style calligraphie latine'   : 'خط مائل بأسلوب الخط اللاتيني' },
-                      { icon: '🖊', name: lang === 'fr' ? 'Surligneur'    : 'تحديد',        key: '3', desc: lang === 'fr' ? 'Couleur transparente pour annoter'          : 'لون شفاف للتعليق' },
-                      { icon: '🍂', name: lang === 'fr' ? 'Craie'         : 'طباشير',       key: '4', desc: lang === 'fr' ? 'Texture poudreuse avec grain'               : 'ملمس ناعم كالطباشير' },
-                      { icon: '📏', name: lang === 'fr' ? 'Règle'         : 'مسطرة',        key: '5', desc: lang === 'fr' ? 'Ligne droite parfaite H ou V'               : 'خط أفقي أو عمودي مثالي' },
-                      { icon: '🧽', name: lang === 'fr' ? 'Gomme'         : 'ممحاة',        key: '6', desc: lang === 'fr' ? 'Efface les traits et supprime les formes'   : 'يمحو الخطوط ويحذف الأشكال' },
-                      { icon: '💨', name: lang === 'fr' ? 'Aérosol'       : 'رذاذ',         key: '7', desc: lang === 'fr' ? 'Effet spray avec densité variable'           : 'تأثير رذاذ بكثافة متغيرة' },
-                      { icon: '🖍', name: lang === 'fr' ? 'Marqueur'      : 'ماركر',        key: '8', desc: lang === 'fr' ? 'Couleur vive semi-transparente'              : 'لون نابض شبه شفاف' },
-                      { icon: '⚡', name: lang === 'fr' ? 'Néon'          : 'نيون',         key: '9', desc: lang === 'fr' ? 'Trait lumineux avec halo coloré'            : 'خط مضيء مع هالة ملونة' },
-                      { icon: '✏️', name: lang === 'fr' ? 'Crayon'        : 'رصاص',         key: '0', desc: lang === 'fr' ? 'Trait granuleux texturé'                     : 'خط حبيبي مع ملمس' },
-                      { icon: '💧', name: lang === 'fr' ? 'Aquarelle'     : 'ألوان مائية',  key: '-', desc: lang === 'fr' ? 'Lavis doux aux bords flous'                  : 'طلاء ناعم بحواف ضبابية' },
-                      { icon: '🖋', name: lang === 'fr' ? 'Calligraphie'  : 'خط عربي',      key: '',  desc: lang === 'fr' ? 'Trait pen avec rotation 45°'                 : 'قلم بزاوية 45°' },
-                      { icon: '・', name: lang === 'fr' ? 'Pointillé'     : 'منقّط',        key: '',  desc: lang === 'fr' ? 'Suite de points réguliers'                   : 'سلسلة نقاط منتظمة' },
-                      { icon: '🎨', name: lang === 'fr' ? 'Pinceau'       : 'فرشاة',        key: '',  desc: lang === 'fr' ? 'Trait large avec dégradé de bords'           : 'خط عريض بتدرج الحواف' },
-                    ].map(t => (
-                      <div key={t.name} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' }}>
-                        <span className="text-xl flex-shrink-0 mt-0.5">{t.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-black" style={{ color: 'var(--brand-primary)' }}>{t.name}</span>
-                            {t.key && (
-                              <kbd className="text-[8px] font-black px-1.5 py-0.5 rounded-md font-mono" style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', color: 'var(--brand-primary)' }}>{t.key}</kbd>
-                            )}
-                          </div>
-                          <p className="text-[10px] mt-0.5 leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>{t.desc}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
+                  {[
+                    { icon: '✏️', name: lang === 'fr' ? 'Stylo'         : 'قلم',          key: '1', desc: lang === 'fr' ? 'Trait fluide avec lissage parfait'        : 'خط سلس بتمهيد مثالي' },
+                    { icon: '🪶', name: lang === 'fr' ? 'Plume'         : 'ريشة',         key: '2', desc: lang === 'fr' ? 'Trait incliné style calligraphie latine'   : 'خط مائل بأسلوب الخط اللاتيني' },
+                    { icon: '🖊', name: lang === 'fr' ? 'Surligneur'    : 'تحديد',        key: '3', desc: lang === 'fr' ? 'Couleur transparente pour annoter'          : 'لون شفاف للتعليق' },
+                    { icon: '🍂', name: lang === 'fr' ? 'Craie'         : 'طباشير',       key: '4', desc: lang === 'fr' ? 'Texture poudreuse avec grain'               : 'ملمس ناعم كالطباشير' },
+                    { icon: '📏', name: lang === 'fr' ? 'Règle'         : 'مسطرة',        key: '5', desc: lang === 'fr' ? 'Ligne droite parfaite H ou V'               : 'خط أفقي أو عمودي مثالي' },
+                    { icon: '🧽', name: lang === 'fr' ? 'Gomme'         : 'ممحاة',        key: '6', desc: lang === 'fr' ? 'Efface les traits et supprime les formes'   : 'يمحو الخطوط ويحذف الأشكال' },
+                    { icon: '💨', name: lang === 'fr' ? 'Aérosol'       : 'رذاذ',         key: '7', desc: lang === 'fr' ? 'Effet spray avec densité variable'           : 'تأثير رذاذ بكثافة متغيرة' },
+                    { icon: '🖍', name: lang === 'fr' ? 'Marqueur'      : 'ماركر',        key: '8', desc: lang === 'fr' ? 'Couleur vive semi-transparente'              : 'لون نابض شبه شفاف' },
+                    { icon: '⚡', name: lang === 'fr' ? 'Néon'          : 'نيون',         key: '9', desc: lang === 'fr' ? 'Trait lumineux avec halo coloré'            : 'خط مضيء مع هالة ملونة' },
+                    { icon: '✏️', name: lang === 'fr' ? 'Crayon'        : 'رصاص',         key: '0', desc: lang === 'fr' ? 'Trait granuleux texturé'                     : 'خط حبيبي مع ملمس' },
+                    { icon: '💧', name: lang === 'fr' ? 'Aquarelle'     : 'ألوان مائية',  key: '-', desc: lang === 'fr' ? 'Lavis doux aux bords flous'                  : 'طلاء ناعم بحواف ضبابية' },
+                    { icon: '🖋', name: lang === 'fr' ? 'Calligraphie'  : 'خط عربي',      key: '',  desc: lang === 'fr' ? 'Trait pen avec rotation 45°'                 : 'قلم بزاوية 45°' },
+                    { icon: '・', name: lang === 'fr' ? 'Pointillé'     : 'منقّط',        key: '',  desc: lang === 'fr' ? 'Suite de points réguliers'                   : 'سلسلة نقاط منتظمة' },
+                    { icon: '🎨', name: lang === 'fr' ? 'Pinceau'       : 'فرشاة',        key: '',  desc: lang === 'fr' ? 'Trait large avec dégradé de bords'           : 'خط عريض بتدرج الحواف' },
+                  ].map(tool => (
+                    <div key={tool.name} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 16, background: `${t.accent}0a` }}>
+                      <span style={{ fontSize: 20, flexShrink: 0, marginTop: 2 }}>{tool.icon}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 12, fontWeight: 900, color: t.accent }}>{tool.name}</span>
+                          {tool.key && (
+                            <kbd style={{ fontSize: 8, fontWeight: 900, padding: '2px 6px', borderRadius: 6, fontFamily: 'monospace', background: `${t.accent}1a`, color: t.accent }}>{tool.key}</kbd>
+                          )}
                         </div>
+                        <p style={{ fontSize: 10, marginTop: 2, lineHeight: 1.5, color: t.inkMute }}>{tool.desc}</p>
                       </div>
-                    ))}
-                  </div>
-                </section>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
-                {/* Section: Sélection */}
-                <section>
-                  <div className="flex items-center gap-2 mb-3">
-                    <MousePointer2 size={14} style={{ color: 'var(--brand-secondary)' }} />
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-                      {lang === 'fr' ? 'Outil Sélection' : 'أداة التحديد'}
-                    </h3>
-                  </div>
-                  <div className="space-y-2">
-                    {[
-                      { icon: <MousePointer2 size={16}/>, text: lang === 'fr' ? 'Appuyez sur le bouton ↖ dans la barre ou la touche S pour activer la sélection' : 'اضغط زر ↖ في الشريط أو مفتاح S لتفعيل التحديد' },
-                      { icon: '👆', text: lang === 'fr' ? 'Touchez ou cliquez une forme pour la sélectionner (bordure pointillée)' : 'المس أو انقر على شكل لتحديده (إطار منقط)' },
-                      { icon: <Move size={16}/>, text: lang === 'fr' ? 'Glissez la forme pour la déplacer librement sur la page' : 'اسحب الشكل لتحريكه بحرية على الصفحة' },
-                      { icon: '◼', text: lang === 'fr' ? '4 poignées aux coins — glissez pour redimensionner' : '4 مقابض في الزوايا — اسحب لتغيير الحجم' },
-                      { icon: <RotateCcw size={16}/>, text: lang === 'fr' ? 'Poignée ronde en haut — glissez pour pivoter' : 'مقبض دائري في الأعلى — اسحب للتدوير' },
-                      { icon: <Trash2 size={16}/>, text: lang === 'fr' ? 'Bouton 🗑 sous la sélection ou touche Suppr pour effacer' : 'زر 🗑 تحت التحديد أو مفتاح Delete للحذف' },
-                      { icon: <Copy size={16}/>, text: lang === 'fr' ? 'Bouton ⧉ pour dupliquer la forme en conservant couleur et taille' : 'زر ⧉ لتكرار الشكل مع الحفاظ على لونه وحجمه' },
-                    ].map((row, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' }}>
-                        <span className="flex-shrink-0 mt-0.5 w-5 flex items-center justify-center" style={{ color: 'var(--brand-primary)' }}>
-                          {typeof row.icon === 'string' ? <span className="text-base">{row.icon}</span> : row.icon}
-                        </span>
-                        <p className="text-[11px] leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>{row.text}</p>
+              {/* Section: Sélection */}
+              <section>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 14, color: t.accentBright }}>↖</span>
+                  <h3 style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: t.accentBright, opacity: 0.7, margin: 0 }}>
+                    {lang === 'fr' ? 'Outil Sélection' : 'أداة التحديد'}
+                  </h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { icon: '↖', text: lang === 'fr' ? 'Appuyez sur le bouton ↖ dans la barre ou la touche S pour activer la sélection' : 'اضغط زر ↖ في الشريط أو مفتاح S لتفعيل التحديد' },
+                    { icon: '👆', text: lang === 'fr' ? 'Touchez ou cliquez une forme pour la sélectionner (bordure pointillée)' : 'المس أو انقر على شكل لتحديده (إطار منقط)' },
+                    { icon: '⇕', text: lang === 'fr' ? 'Glissez la forme pour la déplacer librement sur la page' : 'اسحب الشكل لتحريكه بحرية على الصفحة' },
+                    { icon: '◼', text: lang === 'fr' ? '4 poignées aux coins — glissez pour redimensionner' : '4 مقابض في الزوايا — اسحب لتغيير الحجم' },
+                    { icon: '↶', text: lang === 'fr' ? 'Poignée ronde en haut — glissez pour pivoter' : 'مقبض دائري في الأعلى — اسحب للتدوير' },
+                    { icon: '🗑', text: lang === 'fr' ? 'Bouton 🗑 sous la sélection ou touche Suppr pour effacer' : 'زر 🗑 تحت التحديد أو مفتاح Delete للحذف' },
+                    { icon: '⧉', text: lang === 'fr' ? 'Bouton ⧉ pour dupliquer la forme en conservant couleur et taille' : 'زر ⧉ لتكرار الشكل مع الحفاظ على لونه وحجمه' },
+                  ].map((row, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 16, background: `${t.accent}0a` }}>
+                      <span style={{ flexShrink: 0, marginTop: 2, width: 20, textAlign: 'center', fontSize: 15, color: t.accent }}>{row.icon}</span>
+                      <p style={{ fontSize: 11, lineHeight: 1.6, color: t.inkMute, margin: 0 }}>{row.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Section: Zoom */}
+              <section>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 14, color: t.accentBright }}>⊕</span>
+                  <h3 style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: t.accentBright, opacity: 0.7, margin: 0 }}>
+                    {lang === 'fr' ? 'Zoom' : 'التكبير'}
+                  </h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { icon: '🤏', text: lang === 'fr' ? 'Pincez 2 doigts sur le canvas pour zoomer/dézoomer (tablette)' : 'اقرص بإصبعين على اللوحة للتكبير أو التصغير (لوحي)' },
+                    { icon: '🖱', text: lang === 'fr' ? 'Ctrl + molette de souris pour zoomer (ordinateur)' : 'Ctrl + عجلة الماوس للتكبير (حاسوب)' },
+                    { icon: '±',  text: lang === 'fr' ? 'Boutons − / % / + dans la barre en haut à droite' : 'أزرار − / % / + في الشريط أعلى اليمين' },
+                    { icon: '💯', text: lang === 'fr' ? 'Cliquez sur le % pour revenir à 100%' : 'انقر على % للعودة إلى 100%' },
+                  ].map((row, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 16, background: `${t.accent}0a` }}>
+                      <span style={{ fontSize: 15, flexShrink: 0, width: 20, textAlign: 'center', marginTop: 2 }}>{row.icon}</span>
+                      <p style={{ fontSize: 11, lineHeight: 1.6, color: t.inkMute, margin: 0 }}>{row.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Section: Stylus / Palm rejection */}
+              <section>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 14 }}>🖊</span>
+                  <h3 style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: t.accentBright, opacity: 0.7, margin: 0 }}>
+                    {lang === 'fr' ? 'Mode Stylet & Rejet de paume' : 'وضع القلم ورفض راحة اليد'}
+                  </h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { icon: '🖊', text: lang === 'fr' ? 'Bouton 🖊 dans la barre → mode Stylet activé : seul l\'Apple Pencil / S-Pen dessine, le contact de la paume est ignoré' : 'زر 🖊 في الشريط → وضع القلم: يرسم القلم فقط، راحة اليد لا تؤثر' },
+                    { icon: '👆', text: lang === 'fr' ? 'Bouton 👆 → mode Doigt : le doigt et le stylet dessinent tous les deux' : 'زر 👆 → وضع الإصبع: الإصبع والقلم كلاهما يرسمان' },
+                  ].map((row, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 16, background: `${t.accent}0a` }}>
+                      <span style={{ fontSize: 15, flexShrink: 0, width: 20, textAlign: 'center', marginTop: 2 }}>{row.icon}</span>
+                      <p style={{ fontSize: 11, lineHeight: 1.6, color: t.inkMute, margin: 0 }}>{row.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Section: Raccourcis clavier */}
+              <section>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 14 }}>⌨️</span>
+                  <h3 style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: t.accentBright, opacity: 0.7, margin: 0 }}>
+                    {lang === 'fr' ? 'Raccourcis clavier' : 'اختصارات لوحة المفاتيح'}
+                  </h3>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
+                  {[
+                    { keys: ['Ctrl','Z'],      desc: lang === 'fr' ? 'Annuler'           : 'تراجع' },
+                    { keys: ['Ctrl','Y'],      desc: lang === 'fr' ? 'Rétablir'          : 'إعادة' },
+                    { keys: ['Ctrl','S'],      desc: lang === 'fr' ? 'Sauvegarder'       : 'حفظ' },
+                    { keys: ['S'],             desc: lang === 'fr' ? 'Outil Sélection'   : 'أداة التحديد' },
+                    { keys: ['Suppr'],         desc: lang === 'fr' ? 'Supprimer forme'   : 'حذف الشكل' },
+                    { keys: ['Échap'],         desc: lang === 'fr' ? 'Fermer panneau'    : 'إغلاق اللوحة' },
+                    { keys: ['1',' → ','9'],   desc: lang === 'fr' ? 'Changer d\'outil'  : 'تغيير الأداة' },
+                    { keys: ['Ctrl','⟵'],      desc: lang === 'fr' ? 'Zoom −'            : 'تصغير' },
+                    { keys: ['Ctrl','⟶'],      desc: lang === 'fr' ? 'Zoom +'            : 'تكبير' },
+                  ].map((row, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 10, borderRadius: 12, background: `${t.accent}0a` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        {row.keys.map((k, ki) => (
+                          <kbd key={ki} style={{ fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 6, fontFamily: 'monospace', background: `${t.accent}1e`, color: t.accent, whiteSpace: 'nowrap' }}>{k}</kbd>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </section>
+                      <p style={{ fontSize: 10, color: t.inkMute, margin: 0 }}>{row.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
-                {/* Section: Zoom */}
-                <section>
-                  <div className="flex items-center gap-2 mb-3">
-                    <ZoomIn size={14} style={{ color: 'var(--brand-secondary)' }} />
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-                      {lang === 'fr' ? 'Zoom' : 'التكبير'}
-                    </h3>
-                  </div>
-                  <div className="space-y-2">
-                    {[
-                      { icon: '🤏', text: lang === 'fr' ? 'Pincez 2 doigts sur le canvas pour zoomer/dézoomer (tablette)' : 'اقرص بإصبعين على اللوحة للتكبير أو التصغير (لوحي)' },
-                      { icon: '🖱', text: lang === 'fr' ? 'Ctrl + molette de souris pour zoomer (ordinateur)' : 'Ctrl + عجلة الماوس للتكبير (حاسوب)' },
-                      { icon: '±',  text: lang === 'fr' ? 'Boutons − / % / + dans la barre en haut à droite' : 'أزرار − / % / + في الشريط أعلى اليمين' },
-                      { icon: '💯', text: lang === 'fr' ? 'Cliquez sur le % pour revenir à 100%' : 'انقر على % للعودة إلى 100%' },
-                    ].map((row, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' }}>
-                        <span className="text-base flex-shrink-0 w-5 text-center mt-0.5">{row.icon}</span>
-                        <p className="text-[11px] leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>{row.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
+              {/* Section: Papier & navigation */}
+              <section>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 14, color: t.accentBright }}>⚙</span>
+                  <h3 style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: t.accentBright, opacity: 0.7, margin: 0 }}>
+                    {lang === 'fr' ? 'Papier & navigation' : 'الورق والتنقل'}
+                  </h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { icon: '📋', text: lang === 'fr' ? 'Menu Papier (⚙) → choisir le style (lignes, grille, points, arabesque…) et la couleur du fond' : 'قائمة الورق (⚙) → اختيار النمط (خطوط، شبكة، نقاط…) ولون الخلفية' },
+                    { icon: '🎨', text: lang === 'fr' ? 'Menu Couleurs (🎨) → palette classique, pastels, vives, sombres, dégradés et motifs' : 'قائمة الألوان (🎨) → لوحة كلاسيكية، باستيل، زاهية، داكنة، تدرجات ونقوش' },
+                    { icon: '⭐', text: lang === 'fr' ? 'Menu Formes (⭐) → 22 formes géométriques et décoratives, redimensionnables avant placement' : 'قائمة الأشكال (⭐) → 22 شكلاً هندسياً وزخرفياً، قابلة للتغيير قبل الوضع' },
+                    { icon: '↕️', text: lang === 'fr' ? 'La page s\'agrandit automatiquement en bas — ou cliquez "+ Espace" pour en ajouter plus' : 'تتمدد الصفحة تلقائياً للأسفل — أو انقر "+ مساحة" لإضافة المزيد' },
+                    { icon: '📤', text: lang === 'fr' ? 'Bouton Exporter → PDF multi-page haute résolution' : 'زر تصدير → PDF متعدد الصفحات بدقة عالية' },
+                  ].map((row, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 16, background: `${t.accent}0a` }}>
+                      <span style={{ fontSize: 15, flexShrink: 0, width: 20, textAlign: 'center', marginTop: 2 }}>{row.icon}</span>
+                      <p style={{ fontSize: 11, lineHeight: 1.6, color: t.inkMute, margin: 0 }}>{row.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
-                {/* Section: Stylus / Palm rejection */}
-                <section>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-sm">🖊</span>
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-                      {lang === 'fr' ? 'Mode Stylet & Rejet de paume' : 'وضع القلم ورفض راحة اليد'}
-                    </h3>
-                  </div>
-                  <div className="space-y-2">
-                    {[
-                      { icon: '🖊', text: lang === 'fr' ? 'Bouton 🖊 dans la barre → mode Stylet activé : seul l\'Apple Pencil / S-Pen dessine, le contact de la paume est ignoré' : 'زر 🖊 في الشريط → وضع القلم: يرسم القلم فقط، راحة اليد لا تؤثر' },
-                      { icon: '👆', text: lang === 'fr' ? 'Bouton 👆 → mode Doigt : le doigt et le stylet dessinent tous les deux' : 'زر 👆 → وضع الإصبع: الإصبع والقلم كلاهما يرسمان' },
-                    ].map((row, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' }}>
-                        <span className="text-base flex-shrink-0 w-5 text-center mt-0.5">{row.icon}</span>
-                        <p className="text-[11px] leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>{row.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
+            </div>
 
-                {/* Section: Raccourcis clavier */}
-                <section>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-sm">⌨️</span>
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-                      {lang === 'fr' ? 'Raccourcis clavier' : 'اختصارات لوحة المفاتيح'}
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {[
-                      { keys: ['Ctrl','Z'],      desc: lang === 'fr' ? 'Annuler'           : 'تراجع' },
-                      { keys: ['Ctrl','Y'],      desc: lang === 'fr' ? 'Rétablir'          : 'إعادة' },
-                      { keys: ['Ctrl','S'],      desc: lang === 'fr' ? 'Sauvegarder'       : 'حفظ' },
-                      { keys: ['S'],             desc: lang === 'fr' ? 'Outil Sélection'   : 'أداة التحديد' },
-                      { keys: ['Suppr'],         desc: lang === 'fr' ? 'Supprimer forme'   : 'حذف الشكل' },
-                      { keys: ['Échap'],         desc: lang === 'fr' ? 'Fermer panneau'    : 'إغلاق اللوحة' },
-                      { keys: ['1',' → ','9'],   desc: lang === 'fr' ? 'Changer d\'outil'  : 'تغيير الأداة' },
-                      { keys: ['Ctrl','⟵'],      desc: lang === 'fr' ? 'Zoom −'            : 'تصغير' },
-                      { keys: ['Ctrl','⟶'],      desc: lang === 'fr' ? 'Zoom +'            : 'تكبير' },
-                    ].map((row, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' }}>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {row.keys.map((k, ki) => (
-                            <kbd key={ki} className="text-[9px] font-black px-1.5 py-0.5 rounded-md font-mono" style={{ background: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)', color: 'var(--brand-primary)', whiteSpace: 'nowrap' }}>{k}</kbd>
-                          ))}
-                        </div>
-                        <p className="text-[10px]" style={{ color: 'var(--brand-text-muted)' }}>{row.desc}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                {/* Section: Papier & navigation */}
-                <section>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Settings2 size={14} style={{ color: 'var(--brand-secondary)' }} />
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-                      {lang === 'fr' ? 'Papier & navigation' : 'الورق والتنقل'}
-                    </h3>
-                  </div>
-                  <div className="space-y-2">
-                    {[
-                      { icon: '📋', text: lang === 'fr' ? 'Menu Papier (⚙) → choisir le style (lignes, grille, points, arabesque…) et la couleur du fond' : 'قائمة الورق (⚙) → اختيار النمط (خطوط، شبكة، نقاط…) ولون الخلفية' },
-                      { icon: '🎨', text: lang === 'fr' ? 'Menu Couleurs (🎨) → palette classique, pastels, vives, sombres, dégradés et motifs' : 'قائمة الألوان (🎨) → لوحة كلاسيكية، باستيل، زاهية، داكنة، تدرجات ونقوش' },
-                      { icon: '⭐', text: lang === 'fr' ? 'Menu Formes (⭐) → 22 formes géométriques et décoratives, redimensionnables avant placement' : 'قائمة الأشكال (⭐) → 22 شكلاً هندسياً وزخرفياً، قابلة للتغيير قبل الوضع' },
-                      { icon: '↕️', text: lang === 'fr' ? 'La page s\'agrandit automatiquement en bas — ou cliquez "+ Espace" pour en ajouter plus' : 'تتمدد الصفحة تلقائياً للأسفل — أو انقر "+ مساحة" لإضافة المزيد' },
-                      { icon: '📤', text: lang === 'fr' ? 'Bouton Exporter → PDF multi-page haute résolution' : 'زر تصدير → PDF متعدد الصفحات بدقة عالية' },
-                    ].map((row, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' }}>
-                        <span className="text-base flex-shrink-0 w-5 text-center mt-0.5">{row.icon}</span>
-                        <p className="text-[11px] leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>{row.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-              </div>
-
-              {/* Footer */}
-              <div className="px-7 py-4 flex-shrink-0 border-t flex items-center justify-between" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)' }}>
-                <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'var(--brand-text-muted)', opacity: 0.5 }}>
-                  {lang === 'fr' ? '💡 Astuce : le guide est aussi accessible hors connexion' : '💡 نصيحة: يمكن الوصول إلى الدليل بدون إنترنت'}
-                </p>
-                <button
-                  onClick={() => setShowHelp(false)}
-                  className="px-5 py-2 rounded-full font-black text-xs uppercase tracking-wider text-white"
-                  style={{ background: 'var(--brand-primary)' }}
-                >
-                  {lang === 'fr' ? 'Compris !' : 'فهمت!'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {/* Footer */}
+            <div style={{ padding: '16px 28px', flexShrink: 0, borderTop: `1px solid ${t.accent}14`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: t.inkMute, opacity: 0.5, margin: 0 }}>
+                {lang === 'fr' ? '💡 Astuce : le guide est aussi accessible hors connexion' : '💡 نصيحة: يمكن الوصول إلى الدليل بدون إنترنت'}
+              </p>
+              <button
+                onClick={() => setShowHelp(false)}
+                style={{ padding: '8px 20px', borderRadius: 999, border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#fff', background: t.accent }}
+              >
+                {lang === 'fr' ? 'Compris !' : 'فهمت!'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirm clear */}
-      <AnimatePresence>
-        {showConfirmClear && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 backdrop-blur-md z-[200] flex items-center justify-center p-6" style={{ background: 'color-mix(in srgb, var(--brand-primary) 20%, transparent)' }}>
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white p-10 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-6">
-              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto"><Wind size={32} className="text-red-500" /></div>
-              <h3 className="text-2xl font-serif italic" style={{ color: 'var(--brand-primary)' }}>{lang === 'fr' ? 'Effacer la page ?' : 'مسح الصفحة؟'}</h3>
-              <div className="flex gap-3">
-                <button onClick={() => setShowConfirmClear(false)} className="flex-1 py-3 rounded-2xl border font-bold text-xs uppercase" style={{ borderColor: 'var(--brand-primary)', color: 'var(--brand-primary)', opacity: 0.4 }}>{lang === 'fr' ? 'Annuler' : 'إلغاء'}</button>
-                <button onClick={() => { setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]); setCurrentStrokes([]); setShapes([]); setShowConfirmClear(false); }} className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-xs uppercase">{lang === 'fr' ? 'Effacer' : 'مسح'}</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {showConfirmClear && (
+        <div style={{ position: 'fixed', inset: 0, backdropFilter: 'blur(8px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: `${t.accent}33` }}>
+          <div style={{ background: t.card, padding: 40, borderRadius: 32, boxShadow: '0 25px 50px rgba(0,0,0,0.2)', maxWidth: 360, width: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', fontSize: 32 }}>💨</div>
+            <h3 style={{ fontSize: 24, fontFamily: 'serif', fontStyle: 'italic', color: t.accent, margin: 0 }}>{lang === 'fr' ? 'Effacer la page ?' : 'مسح الصفحة؟'}</h3>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setShowConfirmClear(false)} style={{ flex: 1, padding: '12px 0', borderRadius: 16, border: `1px solid ${t.accent}`, background: 'transparent', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', cursor: 'pointer', color: t.accent, opacity: 0.5 }}>{lang === 'fr' ? 'Annuler' : 'إلغاء'}</button>
+              <button onClick={() => { setUndoStack(prev => [...prev, { strokes: currentStrokes, shapes }]); setCurrentStrokes([]); setShapes([]); setShowConfirmClear(false); }} style={{ flex: 1, padding: '12px 0', borderRadius: 16, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', cursor: 'pointer' }}>{lang === 'fr' ? 'Effacer' : 'مسح'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
