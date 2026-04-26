@@ -3,8 +3,7 @@ import { Surah, UserData } from '../types';
 import { useT } from '../lib/theme';
 import { Icon, Icons } from './ui';
 
-type StatusFilter = 'all' | Surah['status'];
-
+type StatusFilter = 'all' | Surah['status'] | 'juz_amma' | 'tabarak';
 
 export const MemorizationSection = ({
   userData, setUserData, lang
@@ -18,7 +17,7 @@ export const MemorizationSection = ({
     memorized:    { color: '#5fb088',  labelFr: 'Mémorisé',     labelAr: 'تم الحفظ' },
   };
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch]       = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [juzFilter, setJuzFilter] = useState<number | null>(null);
   const fr = lang === 'fr';
@@ -30,184 +29,190 @@ export const MemorizationSection = ({
     }));
   };
 
-  const memorizedCount = userData.surahs.filter(s => s.status === 'memorized').length;
-  const inProgressCount = userData.surahs.filter(s => s.status === 'in_progress').length;
-  const reviewCount = userData.surahs.filter(s => s.status === 'review').length;
+  const advanceStatus = (surah: Surah) => {
+    const order: Surah['status'][] = ['not_started', 'in_progress', 'review', 'memorized'];
+    const idx = order.indexOf(surah.status);
+    updateStatus(surah.id, order[(idx + 1) % order.length]);
+  };
+
+  const memorizedCount   = userData.surahs.filter(s => s.status === 'memorized').length;
+  const inProgressCount  = userData.surahs.filter(s => s.status === 'in_progress').length;
+  const reviewCount      = userData.surahs.filter(s => s.status === 'review').length;
+  const totalVersets     = userData.surahs.filter(s => s.status === 'memorized').reduce((acc, s) => acc + s.verses, 0);
 
   const filtered = useMemo(() => {
     return userData.surahs.filter(s => {
       const matchesSearch = !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.arabicName.includes(search);
-      const matchesStatus = statusFilter === 'all' || s.status === statusFilter;
+      const matchesStatus =
+        statusFilter === 'all'       ? true :
+        statusFilter === 'juz_amma'  ? s.juz === 30 :
+        statusFilter === 'tabarak'   ? s.juz === 29 :
+        s.status === statusFilter;
       const matchesJuz = juzFilter === null || s.juz === juzFilter;
       return matchesSearch && matchesStatus && matchesJuz;
     });
   }, [userData.surahs, search, statusFilter, juzFilter]);
 
-  const filterTabs: { id: StatusFilter; labelFr: string; labelAr: string; count: number }[] = [
-    { id: 'all',         labelFr: 'Toutes',   labelAr: 'الكل',   count: 114 },
-    { id: 'memorized',   labelFr: 'Mémo.',    labelAr: 'محفوظ',  count: memorizedCount },
-    { id: 'in_progress', labelFr: 'En cours', labelAr: 'يُحفظ',  count: inProgressCount },
-    { id: 'review',      labelFr: 'Révision', labelAr: 'مراجعة', count: reviewCount },
-    { id: 'not_started', labelFr: 'Non déb.', labelAr: 'لم يبدأ',count: 114 - memorizedCount - inProgressCount - reviewCount },
+  const card: React.CSSProperties = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 10 };
+
+  const filterTabs: { id: StatusFilter; labelFr: string; labelAr: string }[] = [
+    { id: 'all',         labelFr: 'Toutes',     labelAr: 'الكل'    },
+    { id: 'memorized',   labelFr: 'Mémorisées', labelAr: 'محفوظ'   },
+    { id: 'in_progress', labelFr: 'En cours',   labelAr: 'يُحفظ'   },
+    { id: 'review',      labelFr: 'Révision',   labelAr: 'مراجعة'  },
+    { id: 'juz_amma',    labelFr: 'Juz Amma',   labelAr: 'جزء عم'  },
+    { id: 'tabarak',     labelFr: 'Tabarak',     labelAr: 'تبارك'  },
   ];
 
-  const progressPct = Math.round((memorizedCount / 114) * 100);
-  const inputStyle = { width: '100%', padding: '11px 14px', background: t.card, border: `1px solid ${t.line}`, borderRadius: 8, color: t.ink, fontSize: 13, outline: 'none', boxSizing: 'border-box' as const };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      {/* Header */}
-      <div>
-        <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, color: t.ink }}>
-          {fr ? 'Mémorisation' : 'الحِفْظ'}
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 10 }}>
+        <div>
+          <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, margin: 0, color: t.ink, letterSpacing: '-0.02em' }}>
+            {fr ? 'Mémorisation' : 'الحِفْظ'}
+          </h1>
+          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: 4 }}>
+            {fr ? `114 sourates · ${memorizedCount} mémorisées` : `١١٤ سورة · ${memorizedCount} محفوظة`}
+          </div>
         </div>
-        <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.3em', textTransform: 'uppercase', marginTop: 4 }}>
-          تَتَبُّعُ التَّقَدُّمِ فِي كُلِّ سُورَة
+        <div style={{ display: 'flex', gap: 8 }}>
+          <select
+            value={juzFilter ?? ''}
+            onChange={e => setJuzFilter(e.target.value === '' ? null : parseInt(e.target.value))}
+            style={{ padding: '7px 12px', background: t.card, border: `1px solid ${t.line}`, borderRadius: 8, color: t.inkDim, fontSize: 11, cursor: 'pointer', outline: 'none' }}
+          >
+            <option value="">{fr ? 'Tous les Juz' : 'كل الأجزاء'}</option>
+            {[...Array(30)].map((_, i) => (
+              <option key={i + 1} value={i + 1}>{fr ? `Juz ${i + 1}` : `الجزء ${i + 1}`}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div style={{ background: t.card, border: `1px solid ${t.line}`, borderRadius: 14, padding: '18px 22px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <div>
-            <span style={{ fontFamily: 'Fraunces, serif', fontSize: 22, color: t.ink }}>{memorizedCount}</span>
-            <span style={{ fontSize: 12, color: t.inkMute }}> / 114</span>
-            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>
-              {fr ? 'Sourates mémorisées' : 'سورة محفوظة'}
+      {/* ── 4 stat tiles ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+        {[
+          { label: fr ? 'Mémorisées' : 'محفوظة',   value: memorizedCount,  sub: '/114' },
+          { label: fr ? 'En cours'   : 'قيد الحفظ', value: inProgressCount, sub: fr ? 'sourates' : 'سور' },
+          { label: fr ? 'En révision': 'مراجعة',    value: reviewCount,     sub: fr ? 'à consolider' : 'للمراجعة' },
+          { label: fr ? 'Versets'    : 'آيات',      value: totalVersets,    sub: fr ? 'acquis au total' : 'محفوظة' },
+        ].map((s, i) => (
+          <div key={i} style={{ ...card, padding: '14px 18px' }}>
+            <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{s.label}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6 }}>
+              <span style={{ fontFamily: 'Fraunces, serif', fontSize: 26, color: t.ink, fontWeight: 300 }}>{s.value}</span>
+              <span style={{ fontSize: 11, color: t.inkDim }}>{s.sub}</span>
             </div>
           </div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 28, color: t.accent }}>{progressPct}%</div>
-        </div>
-        <div style={{ height: 4, background: t.cardElev, borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${progressPct}%`, background: t.accent, borderRadius: 2 }}/>
-        </div>
-        <div style={{ display: 'flex', gap: 16, marginTop: 8, flexWrap: 'wrap' }}>
-          {inProgressCount > 0 && (
-            <span style={{ fontSize: 9, color: t.accent, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.accent, display: 'inline-block' }}/>
-              {inProgressCount} {fr ? 'en cours' : 'قيد الحفظ'}
-            </span>
-          )}
-          {reviewCount > 0 && (
-            <span style={{ fontSize: 9, color: '#a78bdb', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a78bdb', display: 'inline-block' }}/>
-              {reviewCount} {fr ? 'en révision' : 'مراجعة'}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Search + Juz filter */}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-            <Icon d={Icons.search} size={14} color={t.inkMute}/>
-          </div>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder={fr ? 'Rechercher une sourate…' : 'ابحث عن سورة…'}
-            style={{ ...inputStyle, paddingLeft: 36 }}
-          />
-        </div>
-        <select
-          value={juzFilter ?? ''}
-          onChange={e => setJuzFilter(e.target.value === '' ? null : parseInt(e.target.value))}
-          style={{ ...inputStyle, width: 'auto', cursor: 'pointer', minWidth: 130 }}
-        >
-          <option value="">{fr ? 'Tous les Juz' : 'كل الأجزاء'}</option>
-          {[...Array(30)].map((_, i) => (
-            <option key={i + 1} value={i + 1}>{fr ? `Juz ${i + 1}` : `الجزء ${i + 1}`}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Status filter tabs */}
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-        {filterTabs.map(tab => (
-          <button key={tab.id} onClick={() => setStatusFilter(tab.id)}
-            style={{
-              flexShrink: 0, padding: '7px 14px', borderRadius: 20, fontSize: 10, fontWeight: 600,
-              letterSpacing: '0.1em', textTransform: 'uppercase',
-              background: statusFilter === tab.id ? t.accent : t.card,
-              color: statusFilter === tab.id ? '#1a0f00' : t.inkDim,
-              border: `1px solid ${statusFilter === tab.id ? t.accent : t.line}`,
-            }}>
-            {fr ? tab.labelFr : tab.labelAr} ({tab.count})
-          </button>
         ))}
       </div>
 
-      {/* Grid */}
+      {/* ── Filter bar ── */}
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '8px 14px', background: t.bgSoft ?? t.cardElev, border: `1px solid ${t.line}`, borderRadius: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', flexShrink: 0 }}>
+          {fr ? 'Filtre' : 'تصفية'}
+        </span>
+        {filterTabs.map(tab => (
+          <button key={tab.id} onClick={() => setStatusFilter(tab.id)}
+            style={{
+              padding: '4px 12px', borderRadius: 999, fontSize: 11.5,
+              fontWeight: statusFilter === tab.id ? 500 : 400,
+              color: statusFilter === tab.id ? t.ink : t.inkDim,
+              background: statusFilter === tab.id ? `${t.accent}18` : 'transparent',
+              border: statusFilter === tab.id ? `1px solid ${t.accent}33` : '1px solid transparent',
+              cursor: 'pointer', flexShrink: 0,
+            }}>
+            {fr ? tab.labelFr : tab.labelAr}
+          </button>
+        ))}
+        <div style={{ flex: 1, minWidth: 120 }}>
+          <div style={{ position: 'relative' }}>
+            <Icon d={Icons.search} size={12} color={t.inkMute} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}/>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={fr ? 'Rechercher…' : 'بحث…'}
+              style={{ width: '100%', padding: '5px 8px 5px 26px', background: 'transparent', border: `1px solid ${t.line}`, borderRadius: 7, color: t.ink, fontSize: 11, outline: 'none', boxSizing: 'border-box' as const }}
+            />
+          </div>
+        </div>
+        <span style={{ fontSize: 11, color: t.inkMute, flexShrink: 0 }}>
+          {filtered.length} {fr ? 'sourates' : 'سورة'}
+        </span>
+      </div>
+
+      {/* ── Compact grid ── */}
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 0' }}>
-          <Icon d={Icons.book} size={48} color={t.inkMute}/>
+          <Icon d={Icons.book} size={40} color={t.inkMute}/>
           <div style={{ fontSize: 13, color: t.inkMute, marginTop: 12 }}>
             {fr ? 'Aucune sourate trouvée.' : 'لا توجد سورة.'}
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 8 }}>
           {filtered.map((surah: Surah) => {
-            const cfg = STATUS_CONFIG[surah.status];
+            const isMemo = surah.status === 'memorized';
+            const isProg = surah.status === 'in_progress';
+            const isRev  = surah.status === 'review';
+            const borderColor = isProg ? t.accent : isRev ? '#a78bdb' : isMemo ? `${t.accent}44` : t.line;
             return (
-              <div key={surah.id} style={{
-                background: t.card, border: `1px solid ${t.line}`, borderRadius: 12,
-                padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14,
-                position: 'relative', overflow: 'hidden',
-              }}>
-                <div style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, borderRadius: '0 2px 2px 0', background: cfg.color, opacity: surah.status === 'not_started' ? 0.25 : 0.85 }}/>
-
-                <div style={{
-                  width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  background: surah.status === 'memorized' ? cfg.color : t.cardElev,
-                  color: surah.status === 'memorized' ? '#fff' : t.ink,
-                  fontFamily: 'Fraunces, serif', fontSize: 15, fontWeight: 500,
-                }}>
-                  {surah.id}
+              <div
+                key={surah.id}
+                onClick={() => advanceStatus(surah)}
+                title={fr ? STATUS_CONFIG[surah.status].labelFr : STATUS_CONFIG[surah.status].labelAr}
+                style={{
+                  padding: '12px 10px', borderRadius: 9, cursor: 'pointer',
+                  background: isMemo ? `${t.accent}12` : t.card,
+                  border: `1px solid ${borderColor}`,
+                  position: 'relative', minHeight: 88,
+                  transition: 'opacity 0.15s',
+                }}
+              >
+                {/* Top row: ID + status icon */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontFamily: 'Fraunces, serif', fontSize: 10, color: t.inkMute }}>
+                    {String(surah.id).padStart(3, '0')}
+                  </span>
+                  {isMemo && <Icon d={Icons.check}  size={11} color={t.accent}/>}
+                  {isProg  && <span style={{ width: 5, height: 5, borderRadius: '50%', background: t.accent, display: 'inline-block' }}/>}
+                  {isRev   && <Icon d={Icons.rotate} size={10} color="#a78bdb"/>}
                 </div>
 
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-                    <div style={{ fontSize: 13, color: t.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {surah.name}
-                    </div>
-                    {userData.settings?.showArabicNames && (
-                      <span style={{ fontFamily: 'Amiri Quran, serif', fontSize: 16, color: t.accentBright, flexShrink: 0 }}>
-                        {surah.arabicName}
-                      </span>
-                    )}
-                  </div>
+                {/* Arabic name */}
+                <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 17, color: isMemo ? t.accentBright : t.ink, direction: 'rtl', lineHeight: 1.2 }}>
+                  {surah.arabicName}
+                </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <div style={{ display: 'flex', gap: 2 }}>
-                      {[1,2,3,4,5].map(star => (
-                        <span key={star} style={{ fontSize: 9, color: star <= surah.difficulty ? t.accent : t.cardElev }}>★</span>
-                      ))}
-                    </div>
-
-                    <select
-                      value={surah.status}
-                      onChange={e => updateStatus(surah.id, e.target.value as Surah['status'])}
-                      style={{
-                        fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                        borderRadius: 6, padding: '4px 8px', outline: 'none', cursor: 'pointer',
-                        background: `${cfg.color}22`, color: cfg.color, border: `1px solid ${cfg.color}44`,
-                      }}
-                    >
-                      <option value="not_started">{fr ? 'Non commencé' : 'لم تبدأ'}</option>
-                      <option value="in_progress">{fr ? 'En cours' : 'قيد الحفظ'}</option>
-                      <option value="review">{fr ? 'En révision' : 'مراجعة'}</option>
-                      <option value="memorized">{fr ? 'Mémorisé' : 'تم الحفظ'}</option>
-                    </select>
-                  </div>
+                {/* French name */}
+                <div style={{ fontSize: 10, color: t.inkDim, marginTop: 4, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {surah.name}
                 </div>
               </div>
             );
           })}
         </div>
       )}
+
+      {/* Legend */}
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', paddingTop: 4 }}>
+        {[
+          { color: `${t.accent}44`,  label: fr ? 'Mémorisé'     : 'محفوظ',    border: `${t.accent}44` },
+          { color: t.accent,         label: fr ? 'En cours'      : 'قيد الحفظ', border: t.accent },
+          { color: '#a78bdb',        label: fr ? 'En révision'   : 'مراجعة',   border: '#a78bdb' },
+          { color: t.line,           label: fr ? 'Non commencé'  : 'لم يبدأ',   border: t.line },
+        ].map(item => (
+          <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: 'transparent', border: `1.5px solid ${item.border}` }}/>
+            <span style={{ fontSize: 10, color: t.inkMute }}>{item.label}</span>
+          </div>
+        ))}
+        <span style={{ fontSize: 10, color: t.inkMute, marginLeft: 'auto', fontStyle: 'italic' }}>
+          {fr ? 'Cliquez pour avancer' : 'انقر للتقدم'}
+        </span>
+      </div>
     </div>
   );
 };
