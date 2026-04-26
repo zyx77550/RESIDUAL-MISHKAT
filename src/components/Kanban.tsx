@@ -2,11 +2,11 @@ import React from 'react';
 import { Surah, UserData } from '../types';
 import { useT } from '../lib/theme';
 
-const COLUMN_CONFIG = [
-  { id: 'not_started' as const, labelFr: 'Non commencé',    labelAr: 'لم يبدأ',    color: '#64748b' },
-  { id: 'in_progress' as const, labelFr: 'En apprentissage',labelAr: 'قيد الحفظ',  color: '#f59e0b' },
-  { id: 'review'      as const, labelFr: 'En révision',     labelAr: 'مراجعة',     color: '#60a5fa' },
-  { id: 'memorized'   as const, labelFr: 'Maîtrisé',        labelAr: 'تم الحفظ',   color: '#4ade80' },
+const COLUMN_CONFIG_BASE = [
+  { id: 'not_started' as const, labelFr: 'Non commencé',    labelAr: 'لم يبدأ',    color: null as null | string },
+  { id: 'in_progress' as const, labelFr: 'En apprentissage',labelAr: 'قيد الحفظ',  color: null as null | string },
+  { id: 'review'      as const, labelFr: 'En révision',     labelAr: 'مراجعة',     color: '#a78bdb' },
+  { id: 'memorized'   as const, labelFr: 'Maîtrisé',        labelAr: 'تم الحفظ',   color: '#5fb088' },
 ];
 
 export const KanbanSection = ({
@@ -14,6 +14,11 @@ export const KanbanSection = ({
 }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const t = useT();
   const fr = lang === 'fr';
+
+  const COLUMN_CONFIG = COLUMN_CONFIG_BASE.map(col => ({
+    ...col,
+    color: col.color ?? (col.id === 'not_started' ? t.inkMute : t.accent),
+  }));
 
   const updateStatus = (id: number, status: Surah['status']) => {
     setUserData((prev: UserData) => ({

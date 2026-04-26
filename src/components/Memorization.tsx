@@ -5,17 +5,19 @@ import { Icon, Icons } from './ui';
 
 type StatusFilter = 'all' | Surah['status'];
 
-const STATUS_CONFIG = {
-  not_started: { color: '#64748b', labelFr: 'Non commencé', labelAr: 'لم تبدأ' },
-  in_progress:  { color: '#f59e0b', labelFr: 'En cours',     labelAr: 'قيد الحفظ' },
-  review:       { color: '#60a5fa', labelFr: 'En révision',  labelAr: 'مراجعة'   },
-  memorized:    { color: '#4ade80', labelFr: 'Mémorisé',     labelAr: 'تم الحفظ' },
-};
 
 export const MemorizationSection = ({
   userData, setUserData, lang
 }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const t = useT();
+
+  const STATUS_CONFIG = {
+    not_started: { color: t.inkMute,  labelFr: 'Non commencé', labelAr: 'لم تبدأ' },
+    in_progress:  { color: t.accent,   labelFr: 'En cours',     labelAr: 'قيد الحفظ' },
+    review:       { color: '#a78bdb',  labelFr: 'En révision',  labelAr: 'مراجعة'   },
+    memorized:    { color: '#5fb088',  labelFr: 'Mémorisé',     labelAr: 'تم الحفظ' },
+  };
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [juzFilter, setJuzFilter] = useState<number | null>(null);
@@ -82,14 +84,14 @@ export const MemorizationSection = ({
         </div>
         <div style={{ display: 'flex', gap: 16, marginTop: 8, flexWrap: 'wrap' }}>
           {inProgressCount > 0 && (
-            <span style={{ fontSize: 9, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }}/>
+            <span style={{ fontSize: 9, color: t.accent, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.accent, display: 'inline-block' }}/>
               {inProgressCount} {fr ? 'en cours' : 'قيد الحفظ'}
             </span>
           )}
           {reviewCount > 0 && (
-            <span style={{ fontSize: 9, color: '#60a5fa', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#60a5fa', display: 'inline-block' }}/>
+            <span style={{ fontSize: 9, color: '#a78bdb', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a78bdb', display: 'inline-block' }}/>
               {reviewCount} {fr ? 'en révision' : 'مراجعة'}
             </span>
           )}
