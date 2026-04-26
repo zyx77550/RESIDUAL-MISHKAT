@@ -1,25 +1,25 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Star, Search, Filter, ChevronDown, CheckCircle, Circle, Clock, RotateCcw } from 'lucide-react';
 import { Surah, UserData } from '../types';
-import { cn } from '../lib/utils';
+import { useT } from '../lib/theme';
+import { Icon, Icons } from './ui';
 
 type StatusFilter = 'all' | Surah['status'];
 
 const STATUS_CONFIG = {
-  not_started: { color: '#94a3b8', labelFr: 'Non commencé', labelAr: 'لم تبدأ' },
-  in_progress:  { color: '#F4A261', labelFr: 'En cours',     labelAr: 'قيد الحفظ' },
-  review:       { color: '#A8DADC', labelFr: 'En révision',  labelAr: 'مراجعة'   },
-  memorized:    { color: '#B7E4C7', labelFr: 'Mémorisé',     labelAr: 'تم الحفظ' },
+  not_started: { color: '#64748b', labelFr: 'Non commencé', labelAr: 'لم تبدأ' },
+  in_progress:  { color: '#f59e0b', labelFr: 'En cours',     labelAr: 'قيد الحفظ' },
+  review:       { color: '#60a5fa', labelFr: 'En révision',  labelAr: 'مراجعة'   },
+  memorized:    { color: '#4ade80', labelFr: 'Mémorisé',     labelAr: 'تم الحفظ' },
 };
 
 export const MemorizationSection = ({
   userData, setUserData, lang
 }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
-
+  const t = useT();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [juzFilter, setJuzFilter] = useState<number | null>(null);
+  const fr = lang === 'fr';
 
   const updateStatus = (id: number, status: Surah['status']) => {
     setUserData((prev: UserData) => ({
@@ -41,203 +41,170 @@ export const MemorizationSection = ({
     });
   }, [userData.surahs, search, statusFilter, juzFilter]);
 
-  const filterTabs: { id: StatusFilter; labelFr: string; labelAr: string; count: number; color: string }[] = [
-    { id: 'all',         labelFr: 'Toutes', labelAr: 'الكل',      count: 114,           color: 'var(--brand-primary)' },
-    { id: 'memorized',   labelFr: 'Mémo.',  labelAr: 'محفوظ',     count: memorizedCount, color: '#4CAF50' },
-    { id: 'in_progress', labelFr: 'Cours',  labelAr: 'يُحفظ',     count: inProgressCount, color: '#F4A261' },
-    { id: 'review',      labelFr: 'Révision',labelAr: 'مراجعة',   count: reviewCount,    color: '#A8DADC' },
-    { id: 'not_started', labelFr: 'Non déb.',labelAr: 'لم يبدأ',  count: 114 - memorizedCount - inProgressCount - reviewCount, color: '#94a3b8' },
+  const filterTabs: { id: StatusFilter; labelFr: string; labelAr: string; count: number }[] = [
+    { id: 'all',         labelFr: 'Toutes',   labelAr: 'الكل',   count: 114 },
+    { id: 'memorized',   labelFr: 'Mémo.',    labelAr: 'محفوظ',  count: memorizedCount },
+    { id: 'in_progress', labelFr: 'En cours', labelAr: 'يُحفظ',  count: inProgressCount },
+    { id: 'review',      labelFr: 'Révision', labelAr: 'مراجعة', count: reviewCount },
+    { id: 'not_started', labelFr: 'Non déb.', labelAr: 'لم يبدأ',count: 114 - memorizedCount - inProgressCount - reviewCount },
   ];
 
   const progressPct = Math.round((memorizedCount / 114) * 100);
+  const inputStyle = { width: '100%', padding: '11px 14px', background: t.card, border: `1px solid ${t.line}`, borderRadius: 8, color: t.ink, fontSize: 13, outline: 'none', boxSizing: 'border-box' as const };
 
   return (
-    <div className="space-y-6 pb-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Header */}
-      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-1">
-        <h2 className="text-4xl sm:text-5xl text-primary leading-tight">
-          {lang === 'fr' ? 'Mémorisation' : 'الحِفْظ'}
-        </h2>
-        <p className="text-secondary font-bold tracking-[0.4em] uppercase text-[10px] opacity-60">
+      <div>
+        <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, color: t.ink }}>
+          {fr ? 'Mémorisation' : 'الحِفْظ'}
+        </div>
+        <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.3em', textTransform: 'uppercase', marginTop: 4 }}>
           تَتَبُّعُ التَّقَدُّمِ فِي كُلِّ سُورَة
-        </p>
-      </motion.div>
+        </div>
+      </div>
 
       {/* Progress bar */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="glass-card p-5 relative overflow-hidden">
-        <div className="card-accent-bar" />
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                 style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
-              <BookOpen size={17} style={{ color: 'var(--brand-primary)' }} />
-            </div>
-            <div>
-              <p className="font-black text-lg leading-none" style={{ color: 'var(--brand-primary)' }}>
-                {memorizedCount} <span className="text-sm font-normal opacity-50">/ 114</span>
-              </p>
-              <p className="text-[9px] uppercase tracking-widest font-bold mt-0.5"
-                 style={{ color: 'var(--brand-text-muted)' }}>
-                {lang === 'fr' ? 'Sourates mémorisées' : 'سورة محفوظة'}
-              </p>
+      <div style={{ background: t.card, border: `1px solid ${t.line}`, borderRadius: 14, padding: '18px 22px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <div>
+            <span style={{ fontFamily: 'Fraunces, serif', fontSize: 22, color: t.ink }}>{memorizedCount}</span>
+            <span style={{ fontSize: 12, color: t.inkMute }}> / 114</span>
+            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>
+              {fr ? 'Sourates mémorisées' : 'سورة محفوظة'}
             </div>
           </div>
-          <span className="text-3xl font-black text-gradient">{progressPct}%</span>
+          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 28, color: t.accent }}>{progressPct}%</div>
         </div>
-        <div className="progress-bar">
-          <motion.div className="progress-bar-fill"
-            initial={{ width: 0 }}
-            animate={{ width: `${progressPct}%` }}
-            transition={{ duration: 1.8, ease: 'easeOut' }} />
+        <div style={{ height: 4, background: t.cardElev, borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${progressPct}%`, background: t.accent, borderRadius: 2 }}/>
         </div>
-        {/* Mini stats */}
-        <div className="flex gap-4 mt-3 flex-wrap">
-          {[
-            { count: inProgressCount, label: lang === 'fr' ? 'en cours' : 'قيد الحفظ', color: '#F4A261' },
-            { count: reviewCount,     label: lang === 'fr' ? 'en révision' : 'مراجعة',  color: '#A8DADC' },
-          ].filter(x => x.count > 0).map((x, i) => (
-            <span key={i} className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest"
-                  style={{ color: x.color }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: x.color }} />
-              {x.count} {x.label}
+        <div style={{ display: 'flex', gap: 16, marginTop: 8, flexWrap: 'wrap' }}>
+          {inProgressCount > 0 && (
+            <span style={{ fontSize: 9, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }}/>
+              {inProgressCount} {fr ? 'en cours' : 'قيد الحفظ'}
             </span>
-          ))}
+          )}
+          {reviewCount > 0 && (
+            <span style={{ fontSize: 9, color: '#60a5fa', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#60a5fa', display: 'inline-block' }}/>
+              {reviewCount} {fr ? 'en révision' : 'مراجعة'}
+            </span>
+          )}
         </div>
-      </motion.div>
+      </div>
 
       {/* Search + Juz filter */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-        className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ color: 'var(--brand-text-muted)' }} />
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <Icon d={Icons.search} size={14} color={t.inkMute}/>
+          </div>
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={lang === 'fr' ? 'Rechercher une sourate…' : 'ابحث عن سورة…'}
-            className="mishkat-input pl-11"
+            placeholder={fr ? 'Rechercher une sourate…' : 'ابحث عن سورة…'}
+            style={{ ...inputStyle, paddingLeft: 36 }}
           />
         </div>
-        <div className="relative">
-          <select
-            value={juzFilter ?? ''}
-            onChange={e => setJuzFilter(e.target.value === '' ? null : parseInt(e.target.value))}
-            className="mishkat-input pr-8 appearance-none cursor-pointer min-w-[130px]"
-            style={{ background: 'var(--custom-input-bg)' }}
-          >
-            <option value="">{lang === 'fr' ? 'Tous les Juz' : 'كل الأجزاء'}</option>
-            {[...Array(30)].map((_, i) => (
-              <option key={i + 1} value={i + 1}>{lang === 'fr' ? `Juz ${i + 1}` : `الجزء ${i + 1}`}</option>
-            ))}
-          </select>
-          <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                       style={{ color: 'var(--brand-text-muted)' }} />
-        </div>
-      </motion.div>
+        <select
+          value={juzFilter ?? ''}
+          onChange={e => setJuzFilter(e.target.value === '' ? null : parseInt(e.target.value))}
+          style={{ ...inputStyle, width: 'auto', cursor: 'pointer', minWidth: 130 }}
+        >
+          <option value="">{fr ? 'Tous les Juz' : 'كل الأجزاء'}</option>
+          {[...Array(30)].map((_, i) => (
+            <option key={i + 1} value={i + 1}>{fr ? `Juz ${i + 1}` : `الجزء ${i + 1}`}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Status filter tabs */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-        className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
         {filterTabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setStatusFilter(tab.id)}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all"
-            style={statusFilter === tab.id
-              ? { background: 'var(--brand-primary)', color: '#fff', boxShadow: '0 4px 14px color-mix(in srgb, var(--brand-primary) 30%, transparent)' }
-              : { background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)', color: 'var(--brand-text-muted)' }
-            }
-          >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusFilter === tab.id ? '#fff' : tab.color }} />
-            {lang === 'fr' ? tab.labelFr : tab.labelAr}
-            <span className="ml-0.5 opacity-70">({tab.count})</span>
+          <button key={tab.id} onClick={() => setStatusFilter(tab.id)}
+            style={{
+              flexShrink: 0, padding: '7px 14px', borderRadius: 20, fontSize: 10, fontWeight: 600,
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+              background: statusFilter === tab.id ? t.accent : t.card,
+              color: statusFilter === tab.id ? '#1a0f00' : t.inkDim,
+              border: `1px solid ${statusFilter === tab.id ? t.accent : t.line}`,
+            }}>
+            {fr ? tab.labelFr : tab.labelAr} ({tab.count})
           </button>
         ))}
-      </motion.div>
+      </div>
 
       {/* Grid */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <BookOpen size={52} className="mx-auto mb-3 opacity-20" style={{ color: 'var(--brand-primary)' }} />
-          <p className="text-sm" style={{ color: 'var(--brand-text-muted)' }}>
-            {lang === 'fr' ? 'Aucune sourate trouvée.' : 'لا توجد سورة.'}
-          </p>
+        <div style={{ textAlign: 'center', padding: '60px 0' }}>
+          <Icon d={Icons.book} size={48} color={t.inkMute}/>
+          <div style={{ fontSize: 13, color: t.inkMute, marginTop: 12 }}>
+            {fr ? 'Aucune sourate trouvée.' : 'لا توجد سورة.'}
+          </div>
         </div>
       ) : (
-        <AnimatePresence mode="popLayout">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((surah: Surah, idx: number) => {
-              const cfg = STATUS_CONFIG[surah.status];
-              return (
-                <motion.div
-                  key={surah.id}
-                  layout
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: Math.min(idx * 0.008, 0.4) }}
-                  className="glass-card p-5 flex items-center gap-4 group relative overflow-hidden"
-                >
-                  {/* Status color strip */}
-                  <div className="absolute left-0 top-4 bottom-4 w-[3px] rounded-full transition-all duration-300"
-                       style={{ background: cfg.color, opacity: surah.status === 'not_started' ? 0.25 : 0.85 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+          {filtered.map((surah: Surah) => {
+            const cfg = STATUS_CONFIG[surah.status];
+            return (
+              <div key={surah.id} style={{
+                background: t.card, border: `1px solid ${t.line}`, borderRadius: 12,
+                padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14,
+                position: 'relative', overflow: 'hidden',
+              }}>
+                <div style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, borderRadius: '0 2px 2px 0', background: cfg.color, opacity: surah.status === 'not_started' ? 0.25 : 0.85 }}/>
 
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                       style={{ background: `radial-gradient(circle at 20% 50%, color-mix(in srgb, ${cfg.color} 4%, transparent), transparent 70%)` }} />
+                <div style={{
+                  width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  background: surah.status === 'memorized' ? cfg.color : t.cardElev,
+                  color: surah.status === 'memorized' ? '#fff' : t.ink,
+                  fontFamily: 'Fraunces, serif', fontSize: 15, fontWeight: 500,
+                }}>
+                  {surah.id}
+                </div>
 
-                  {/* Number */}
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-base shrink-0 transition-all duration-500 group-hover:scale-105 relative z-10"
-                       style={{ background: surah.status === 'memorized' ? cfg.color : 'color-mix(in srgb, var(--brand-primary) 6%, transparent)', color: surah.status === 'memorized' ? '#fff' : 'var(--brand-primary)' }}>
-                    <span className="font-black text-sm">{surah.id}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+                    <div style={{ fontSize: 13, color: t.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {surah.name}
+                    </div>
+                    {userData.settings?.showArabicNames && (
+                      <span style={{ fontFamily: 'Amiri Quran, serif', fontSize: 16, color: t.accentBright, flexShrink: 0 }}>
+                        {surah.arabicName}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0 relative z-10">
-                    <div className="flex justify-between items-start gap-2 mb-1.5">
-                      <h4 className="font-bold text-sm truncate" style={{ color: 'var(--brand-primary)' }}>
-                        {surah.name}
-                      </h4>
-                      {userData.settings?.showArabicNames && (
-                        <span className="text-base font-arabic flex-shrink-0" style={{ color: 'var(--brand-secondary)' }}>
-                          {surah.arabicName}
-                        </span>
-                      )}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 2 }}>
+                      {[1,2,3,4,5].map(star => (
+                        <span key={star} style={{ fontSize: 9, color: star <= surah.difficulty ? t.accent : t.cardElev }}>★</span>
+                      ))}
                     </div>
 
-                    <div className="flex items-center justify-between gap-2">
-                      {/* Difficulty stars */}
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3, 4, 5].map(star => (
-                          <Star key={star} size={9}
-                                className={star <= surah.difficulty ? 'fill-current' : ''}
-                                style={{ color: star <= surah.difficulty ? 'var(--brand-secondary)' : 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' }} />
-                        ))}
-                      </div>
-
-                      {/* Status selector */}
-                      <select
-                        value={surah.status}
-                        onChange={e => updateStatus(surah.id, e.target.value as Surah['status'])}
-                        className="text-[9px] font-black uppercase tracking-widest rounded-lg px-2 py-1 border-none outline-none cursor-pointer transition-all"
-                        style={{
-                          background: `color-mix(in srgb, ${cfg.color} 14%, transparent)`,
-                          color: cfg.color === '#94a3b8' ? 'var(--brand-text-muted)' : cfg.color,
-                        }}
-                      >
-                        <option value="not_started">{lang === 'fr' ? 'Non commencé' : 'لم تبدأ'}</option>
-                        <option value="in_progress">{lang === 'fr' ? 'En cours' : 'قيد الحفظ'}</option>
-                        <option value="review">{lang === 'fr' ? 'En révision' : 'مراجعة'}</option>
-                        <option value="memorized">{lang === 'fr' ? 'Mémorisé' : 'تم الحفظ'}</option>
-                      </select>
-                    </div>
+                    <select
+                      value={surah.status}
+                      onChange={e => updateStatus(surah.id, e.target.value as Surah['status'])}
+                      style={{
+                        fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                        borderRadius: 6, padding: '4px 8px', outline: 'none', cursor: 'pointer',
+                        background: `${cfg.color}22`, color: cfg.color, border: `1px solid ${cfg.color}44`,
+                      }}
+                    >
+                      <option value="not_started">{fr ? 'Non commencé' : 'لم تبدأ'}</option>
+                      <option value="in_progress">{fr ? 'En cours' : 'قيد الحفظ'}</option>
+                      <option value="review">{fr ? 'En révision' : 'مراجعة'}</option>
+                      <option value="memorized">{fr ? 'Mémorisé' : 'تم الحفظ'}</option>
+                    </select>
                   </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </AnimatePresence>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

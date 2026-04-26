@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Circle, Plus, Trash2, Target, TrendingUp, Award, Sparkles } from 'lucide-react';
 import { UserData, Goal } from '../types';
-import { cn } from '../lib/utils';
+import { useT } from '../lib/theme';
+import { Icon, Icons } from './ui';
 
 interface GoalsSectionProps {
   userData: UserData;
@@ -11,7 +10,9 @@ interface GoalsSectionProps {
 }
 
 export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps) => {
+  const t = useT();
   const [newGoal, setNewGoal] = useState('');
+  const fr = lang === 'fr';
 
   const addGoal = () => {
     const text = newGoal.trim();
@@ -40,149 +41,81 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
   const completedCount = userData.goals.filter(g => g.completed).length;
   const totalCount = userData.goals.length;
   const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
   const pending = userData.goals.filter(g => !g.completed);
   const completed = userData.goals.filter(g => g.completed);
 
+  const card = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 14 };
+
   return (
-    <div className="space-y-7 pb-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Header */}
-      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h2 className="text-4xl sm:text-5xl text-primary leading-tight">
-            {lang === 'fr' ? 'Objectifs' : 'الأهداف'}
-          </h2>
-          <p className="text-secondary font-bold tracking-[0.4em] uppercase text-[10px] opacity-60 mt-1">
-            {lang === 'fr' ? 'Intentions & réussites' : 'النوايا والإنجازات'}
-          </p>
+          <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, color: t.ink }}>
+            {fr ? 'Objectifs' : 'الأهداف'}
+          </div>
+          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.3em', textTransform: 'uppercase', marginTop: 4 }}>
+            {fr ? 'Intentions & réussites' : 'النوايا والإنجازات'}
+          </div>
         </div>
 
         {totalCount > 0 && (
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-            className="glass-card px-5 py-4 flex items-center gap-4 flex-shrink-0">
-            <div className="relative w-14 h-14 flex-shrink-0">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="8" fill="transparent"
-                        style={{ color: 'color-mix(in srgb, var(--brand-primary) 12%, transparent)' }} />
-                <motion.circle cx="50" cy="50" r="42" stroke="url(#goalGrad)" strokeWidth="8" fill="transparent"
-                  strokeDasharray="263.9"
-                  strokeDashoffset={263.9 * (1 - progress / 100)}
-                  initial={{ strokeDashoffset: 263.9 }}
-                  animate={{ strokeDashoffset: 263.9 * (1 - progress / 100) }}
-                  transition={{ duration: 1.5, ease: 'easeOut' }}
-                  strokeLinecap="round" />
-                <defs>
-                  <linearGradient id="goalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="var(--brand-primary)" />
-                    <stop offset="100%" stopColor="var(--brand-secondary)" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <TrendingUp size={14} style={{ color: 'var(--brand-primary)' }} />
+          <div style={{ ...card, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ fontFamily: 'Fraunces, serif', fontSize: 28, color: t.accent, lineHeight: 1 }}>{completedCount}</div>
+            <div>
+              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                / {totalCount} {fr ? 'complétés' : 'مكتمل'}
+              </div>
+              <div style={{ marginTop: 6, height: 3, width: 80, borderRadius: 2, background: t.cardElev, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${progress}%`, background: t.accent, borderRadius: 2 }}/>
               </div>
             </div>
-            <div>
-              <p className="text-2xl font-black text-gradient leading-none">{completedCount}</p>
-              <p className="text-[9px] uppercase tracking-widest font-bold mt-0.5"
-                 style={{ color: 'var(--brand-text-muted)' }}>
-                {lang === 'fr' ? `/ ${totalCount} complétés` : `/ ${totalCount} مكتمل`}
-              </p>
-            </div>
-          </motion.div>
+          </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Add goal */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="flex gap-3">
+      <div style={{ display: 'flex', gap: 10 }}>
         <input
           value={newGoal}
           onChange={e => setNewGoal(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && addGoal()}
-          placeholder={lang === 'fr' ? 'Ajouter un objectif ou une intention…' : 'أضف هدفاً أو نية…'}
-          className="mishkat-input flex-1"
+          placeholder={fr ? 'Ajouter un objectif ou une intention…' : 'أضف هدفاً أو نية…'}
+          style={{ flex: 1, padding: '11px 14px', background: t.card, border: `1px solid ${t.line}`, borderRadius: 8, color: t.ink, fontSize: 13, outline: 'none' }}
         />
-        <motion.button
-          onClick={addGoal}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="premium-button px-5 flex items-center gap-2 flex-shrink-0"
-          disabled={!newGoal.trim()}
-        >
-          <Plus size={18} />
-          <span className="hidden sm:inline text-sm">{lang === 'fr' ? 'Ajouter' : 'إضافة'}</span>
-        </motion.button>
-      </motion.div>
-
-      {/* Progress bar (if has goals) */}
-      {totalCount > 0 && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}
-          className="glass-card px-5 py-4 relative overflow-hidden">
-          <div className="card-accent-bar" />
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-[10px] uppercase tracking-widest font-black"
-               style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? 'Progression globale' : 'التقدم العام'}
-            </p>
-            <p className="text-base font-black text-gradient">{progress}%</p>
-          </div>
-          <div className="progress-bar">
-            <motion.div className="progress-bar-fill"
-              initial={{ width: 0 }} animate={{ width: `${progress}%` }}
-              transition={{ duration: 1.5, ease: 'easeOut' }} />
-          </div>
-        </motion.div>
-      )}
+        <button onClick={addGoal} disabled={!newGoal.trim()}
+          style={{
+            padding: '11px 18px', borderRadius: 8, background: newGoal.trim() ? t.accent : t.cardElev,
+            color: newGoal.trim() ? '#1a0f00' : t.inkMute, cursor: newGoal.trim() ? 'pointer' : 'default',
+            display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13, flexShrink: 0,
+          }}>
+          <Icon d={Icons.plus} size={14} color={newGoal.trim() ? '#1a0f00' : t.inkMute}/>
+          <span>{fr ? 'Ajouter' : 'إضافة'}</span>
+        </button>
+      </div>
 
       {/* Pending goals */}
       {pending.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase tracking-widest font-black mb-3 px-1"
-             style={{ color: 'var(--brand-text-muted)' }}>
-            {lang === 'fr' ? 'En cours' : 'قيد التنفيذ'} ({pending.length})
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <AnimatePresence mode="popLayout">
-              {pending.map((goal, idx) => (
-                <motion.div
-                  layout key={goal.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.92, x: -20 }}
-                  transition={{ delay: idx * 0.04 }}
-                  whileHover={{ y: -3 }}
-                  className="glass-card p-5 flex items-center gap-4 cursor-pointer group"
-                  style={{ borderLeft: '3px solid var(--brand-secondary)' }}
-                  onClick={() => toggleGoal(goal.id)}
-                >
-                  <motion.button
-                    whileTap={{ scale: 0.85 }}
-                    onClick={e => { e.stopPropagation(); toggleGoal(goal.id); }}
-                    className="flex-shrink-0 transition-all"
-                  >
-                    <Circle size={24} style={{ color: 'var(--brand-text-muted)' }} strokeWidth={1.5} />
-                  </motion.button>
-
-                  <span className="flex-1 text-sm font-medium leading-snug"
-                        style={{ color: 'var(--brand-text-main)' }}>
-                    {goal.text}
-                  </span>
-
-                  <motion.button
-                    whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                    onClick={e => { e.stopPropagation(); deleteGoal(goal.id); }}
-                    className="flex-shrink-0 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                    style={{ color: 'rgba(239,68,68,0.5)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <Trash2 size={16} />
-                  </motion.button>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+          <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10 }}>
+            {fr ? 'En cours' : 'قيد التنفيذ'} ({pending.length})
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+            {pending.map(goal => (
+              <div key={goal.id} onClick={() => toggleGoal(goal.id)}
+                style={{
+                  ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+                  cursor: 'pointer', borderLeft: `3px solid ${t.accent}`,
+                }}>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', border: `1.5px solid ${t.inkMute}`, flexShrink: 0 }}/>
+                <span style={{ flex: 1, fontSize: 13, color: t.ink, lineHeight: 1.4 }}>{goal.text}</span>
+                <button onClick={e => { e.stopPropagation(); deleteGoal(goal.id); }}
+                  style={{ padding: 6, borderRadius: 6, background: 'transparent', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon d={Icons.trash} size={13} color="rgba(239,68,68,0.5)"/>
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -190,82 +123,59 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
       {/* Completed goals */}
       {completed.length > 0 && (
         <div>
-          <div className="flex items-center gap-3 mb-3 px-1">
-            <p className="text-[10px] uppercase tracking-widest font-black"
-               style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? 'Complétés' : 'مكتملة'} ({completed.length})
-            </p>
-            <Award size={13} style={{ color: 'var(--brand-secondary)' }} />
+          <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+            {fr ? 'Complétés' : 'مكتملة'} ({completed.length})
+            <Icon d={Icons.badge} size={11} color={t.accentBright}/>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <AnimatePresence mode="popLayout">
-              {completed.map((goal, idx) => (
-                <motion.div
-                  layout key={goal.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.92 }}
-                  transition={{ delay: idx * 0.04 }}
-                  whileHover={{ y: -2 }}
-                  className="glass-card p-5 flex items-center gap-4 cursor-pointer group opacity-70 hover:opacity-90 transition-opacity"
-                  onClick={() => toggleGoal(goal.id)}
-                >
-                  <CheckCircle2 size={24} style={{ color: 'var(--brand-secondary)' }} strokeWidth={2} className="flex-shrink-0" />
-
-                  <span className="flex-1 text-sm line-through leading-snug"
-                        style={{ color: 'var(--brand-text-muted)' }}>
-                    {goal.text}
-                  </span>
-
-                  <motion.button
-                    whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                    onClick={e => { e.stopPropagation(); deleteGoal(goal.id); }}
-                    className="flex-shrink-0 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                    style={{ color: 'rgba(239,68,68,0.4)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <Trash2 size={16} />
-                  </motion.button>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+            {completed.map(goal => (
+              <div key={goal.id} onClick={() => toggleGoal(goal.id)}
+                style={{
+                  ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+                  cursor: 'pointer', opacity: 0.65,
+                }}>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', background: t.accent, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon d={Icons.check} size={10} color="#1a0f00"/>
+                </div>
+                <span style={{ flex: 1, fontSize: 13, color: t.inkMute, textDecoration: 'line-through', lineHeight: 1.4 }}>{goal.text}</span>
+                <button onClick={e => { e.stopPropagation(); deleteGoal(goal.id); }}
+                  style={{ padding: 6, borderRadius: 6, background: 'transparent', color: 'rgba(239,68,68,0.4)', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon d={Icons.trash} size={13} color="rgba(239,68,68,0.4)"/>
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {/* Celebration */}
       {completedCount > 0 && completedCount === totalCount && totalCount > 0 && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-6 flex items-center gap-4 relative overflow-hidden"
-          style={{ background: 'color-mix(in srgb, var(--brand-secondary) 8%, var(--brand-surface))' }}>
-          <div className="card-accent-bar" />
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-               style={{ background: 'var(--brand-secondary)' }}>
-            <Sparkles size={22} className="text-white" />
+        <div style={{ ...card, padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 16, background: `${t.accentSoft}20` }}>
+          <div style={{ width: 44, height: 44, borderRadius: 10, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon d={Icons.sparkle} size={18} color="#1a0f00"/>
           </div>
           <div>
-            <p className="font-bold text-base" style={{ color: 'var(--brand-primary)' }}>
-              {lang === 'fr' ? '🎉 Tous les objectifs accomplis !' : '🎉 كل الأهداف مكتملة!'}
-            </p>
-            <p className="text-sm mt-0.5" style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? 'Continuez pour débloquer des badges.' : 'استمر لفتح المزيد من الشارات.'}
-            </p>
+            <div style={{ fontSize: 14, color: t.ink, fontWeight: 600 }}>
+              {fr ? 'Tous les objectifs accomplis !' : 'كل الأهداف مكتملة!'}
+            </div>
+            <div style={{ fontSize: 12, color: t.inkDim, marginTop: 3 }}>
+              {fr ? 'Continuez pour débloquer des badges.' : 'استمر لفتح المزيد من الشارات.'}
+            </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Empty state */}
       {totalCount === 0 && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
-          <Target size={64} className="mx-auto mb-4 opacity-20" style={{ color: 'var(--brand-primary)' }} />
-          <p className="text-base font-medium" style={{ color: 'var(--brand-text-muted)' }}>
-            {lang === 'fr' ? 'Aucun objectif pour l\'instant.' : 'لا توجد أهداف بعد.'}
-          </p>
-          <p className="text-sm mt-1" style={{ color: 'var(--brand-text-muted)', opacity: 0.6 }}>
-            {lang === 'fr' ? 'Commencez par en créer un ci-dessus !' : 'ابدأ بإنشاء هدف أعلاه!'}
-          </p>
-        </motion.div>
+        <div style={{ textAlign: 'center', padding: '60px 0' }}>
+          <Icon d={Icons.target} size={48} color={t.inkMute}/>
+          <div style={{ fontSize: 14, color: t.inkMute, marginTop: 12 }}>
+            {fr ? "Aucun objectif pour l'instant." : 'لا توجد أهداف بعد.'}
+          </div>
+          <div style={{ fontSize: 12, color: t.inkMute, opacity: 0.6, marginTop: 4 }}>
+            {fr ? 'Commencez par en créer un ci-dessus !' : 'ابدأ بإنشاء هدف أعلاه!'}
+          </div>
+        </div>
       )}
     </div>
   );

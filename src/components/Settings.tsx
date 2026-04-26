@@ -1,20 +1,16 @@
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Settings as SettingsIcon, User, Bell, Clock, Type, Palette, Languages,
-  Trash2, Check, Moon, Sun, Coffee, ChevronRight, Flame, Download, Upload,
-  Info, Eye, Zap, BookOpen, Volume2, ZoomIn, RefreshCw, Globe, Accessibility,
-  Leaf, Waves, Star, Droplets, Heart, Sprout, Cloud, Sparkles
-} from 'lucide-react';
-import { cn } from '../lib/utils';
 import { UserData, UserSettings } from '../types';
+import { useT } from '../lib/theme';
+import { Icon, Icons } from './ui';
 
 export const SettingsSection = ({
   userData, setUserData, lang
 }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
+  const t = useT();
   const settings = userData.settings;
   const [saved, setSaved] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
+  const fr = lang === 'fr';
 
   const updateSettings = (newSettings: Partial<UserSettings>) => {
     setUserData((prev: UserData) => ({
@@ -54,179 +50,159 @@ export const SettingsSection = ({
   };
 
   const themes = [
-    { id: 'light',   icon: Sun,      labelFr: 'Clair',     labelAr: 'فاتح',    bg: '#F5F0E8', accent: '#8B2635' },
-    { id: 'dark',    icon: Moon,     labelFr: 'Sombre',    labelAr: 'داكن',    bg: '#0C0806', accent: '#F4845F' },
-    { id: 'sepia',   icon: Coffee,   labelFr: 'Sépia',     labelAr: 'سيبيا',   bg: '#F0E8CC', accent: '#6B4226' },
-    { id: 'emerald', icon: Leaf,     labelFr: 'Émeraude',  labelAr: 'زمردي',   bg: '#E8F5E9', accent: '#2E7D32' },
-    { id: 'azur',    icon: Waves,    labelFr: 'Azur',      labelAr: 'أزرق',    bg: '#E3F2FD', accent: '#1565C0' },
-    { id: 'safran',  icon: Star,     labelFr: 'Safran',    labelAr: 'زعفران',  bg: '#FFF8E1', accent: '#BF360C' },
-    { id: 'lilas',   icon: Droplets, labelFr: 'Lilas',     labelAr: 'بنفسجي',  bg: '#F3E5F5', accent: '#6A1B9A' },
-    { id: 'ocean',   icon: Moon,     labelFr: 'Océan',     labelAr: 'المحيط',  bg: '#0D1B2A', accent: '#4DD0E1' },
-    { id: 'rose',    icon: Heart,    labelFr: 'Rose',      labelAr: 'وردي',    bg: '#FCE4EC', accent: '#AD1457' },
-    { id: 'menthe',  icon: Sprout,   labelFr: 'Menthe',    labelAr: 'نعناعي',  bg: '#E0F2F1', accent: '#00796B' },
-    { id: 'ardoise', icon: Cloud,    labelFr: 'Ardoise',   labelAr: 'رمادي',   bg: '#ECEFF1', accent: '#455A64' },
-    { id: 'aurore',  icon: Sparkles, labelFr: 'Aurore',    labelAr: 'ذهبي',    bg: '#FFFDE7', accent: '#C17D11' },
-    { id: 'prune',   icon: Star,     labelFr: 'Prune',     labelAr: 'بنفسجي داكن', bg: '#1A0030', accent: '#CE93D8' },
-    { id: 'corail',  icon: Flame,    labelFr: 'Corail',    labelAr: 'مرجاني',  bg: '#FBE9E7', accent: '#D84315' },
-  ];
-
-  const fontSizes = [
-    { id: 'small',  labelFr: 'Petit',  labelAr: 'صغير',  sample: 'text-xs'   },
-    { id: 'medium', labelFr: 'Moyen',  labelAr: 'متوسط', sample: 'text-sm'   },
-    { id: 'large',  labelFr: 'Grand',  labelAr: 'كبير',  sample: 'text-base' },
+    { id: 'gold',    labelFr: 'Or',      labelAr: 'ذهبي',    bg: '#0c0a08', accent: '#d4a64a' },
+    { id: 'sakura',  labelFr: 'Sakura',  labelAr: 'ساكورا',  bg: '#100a0d', accent: '#d96b7a' },
+    { id: 'azur',    labelFr: 'Azur',    labelAr: 'أزرق',    bg: '#080d14', accent: '#5b9bd5' },
+    { id: 'emerald', labelFr: 'Émeraude',labelAr: 'زمردي',   bg: '#08100d', accent: '#5fb088' },
   ];
 
   const memorizedCount = userData.surahs.filter(s => s.status === 'memorized').length;
   const completedGoals = userData.goals.filter(g => g.completed).length;
 
-  const sl = (i: number) => ({
-    initial: { opacity: 0, y: 16 },
-    animate: { opacity: 1, y: 0 },
-    transition: { delay: i * 0.07, ease: 'easeOut' as const },
-  });
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '11px 14px', background: t.card, border: `1px solid ${t.line}`,
+    borderRadius: 8, color: t.ink, fontSize: 13, outline: 'none', boxSizing: 'border-box',
+  };
+
+  const card: React.CSSProperties = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 14, padding: '20px 22px' };
 
   const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
-    <button
-      onClick={() => onChange(!value)}
-      className="w-12 h-6 rounded-full transition-all relative flex-shrink-0"
-      style={{ background: value ? 'var(--brand-secondary)' : 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}
-    >
-      <motion.div
-        animate={{ x: value ? 26 : 2 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-        className="absolute top-1 left-0 w-4 h-4 bg-white rounded-full shadow-sm"
-      />
+    <button onClick={() => onChange(!value)}
+      style={{
+        width: 44, height: 24, borderRadius: 12, position: 'relative', flexShrink: 0, cursor: 'pointer',
+        background: value ? t.accent : t.cardElev, border: `1px solid ${value ? t.accent : t.line}`,
+        transition: 'background 0.2s',
+      }}>
+      <div style={{
+        position: 'absolute', top: 3, left: value ? 22 : 3, width: 16, height: 16, borderRadius: '50%',
+        background: value ? '#1a0f00' : t.inkMute, transition: 'left 0.2s',
+      }}/>
     </button>
   );
 
   const ToggleRow = ({ label, sub, value, onChange }: { label: string; sub?: string; value: boolean; onChange: (v: boolean) => void }) => (
-    <div className="flex items-center justify-between p-4 rounded-2xl"
-         style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderRadius: 10, background: t.cardElev }}>
       <div>
-        <p className="text-sm font-bold" style={{ color: 'var(--brand-primary)' }}>{label}</p>
-        {sub && <p className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color: 'var(--brand-text-muted)' }}>{sub}</p>}
+        <div style={{ fontSize: 13, color: t.ink, fontWeight: 500 }}>{label}</div>
+        {sub && <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 2 }}>{sub}</div>}
       </div>
-      <Toggle value={value} onChange={onChange} />
+      <Toggle value={value} onChange={onChange}/>
     </div>
   );
 
+  const SegButton = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
+    <button onClick={onClick}
+      style={{
+        flex: 1, padding: '9px', borderRadius: 8, cursor: 'pointer',
+        background: active ? t.accent : 'transparent',
+        color: active ? '#1a0f00' : t.inkMute,
+        fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase',
+      }}>
+      {children}
+    </button>
+  );
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-8">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 860, paddingBottom: 32 }}>
 
       {/* Header */}
-      <motion.div {...sl(0)} className="space-y-1">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-4xl sm:text-5xl text-primary leading-tight">
-              {lang === 'fr' ? 'Paramètres' : 'الإعدادات'}
-            </h2>
-            <p className="text-secondary font-bold tracking-[0.4em] uppercase text-[10px] opacity-60 mt-1">
-              {lang === 'fr' ? 'Personnalisez votre expérience' : 'خصص تجربتك'}
-            </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, color: t.ink }}>
+            {fr ? 'Paramètres' : 'الإعدادات'}
           </div>
-          <AnimatePresence>
-            {saved && (
-              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl"
-                style={{ background: 'color-mix(in srgb, var(--brand-secondary) 15%, transparent)', color: 'var(--brand-secondary)' }}>
-                <Check size={14} />
-                <span className="text-xs font-black uppercase tracking-wide">
-                  {lang === 'fr' ? 'Sauvegardé' : 'تم الحفظ'}
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.3em', textTransform: 'uppercase', marginTop: 4 }}>
+            {fr ? 'Personnalisez votre expérience' : 'خصص تجربتك'}
+          </div>
         </div>
-      </motion.div>
+        {saved && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, background: `${t.accentSoft}30`, color: t.accentBright, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+            <Icon d={Icons.check} size={12} color={t.accentBright}/>
+            {fr ? 'Sauvegardé' : 'تم الحفظ'}
+          </div>
+        )}
+      </div>
 
       {/* Stats */}
-      <motion.div {...sl(1)} className="glass-card p-6 relative overflow-hidden">
-        <div className="card-accent-bar" />
-        <p className="text-[9px] uppercase tracking-widest font-black mb-4" style={{ color: 'var(--brand-text-muted)' }}>
-          {lang === 'fr' ? 'Votre progression' : 'تقدمك'}
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div style={card}>
+        <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
+          {fr ? 'Votre progression' : 'تقدمك'}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 16 }}>
           {[
-            { value: memorizedCount,          label: lang === 'fr' ? 'Sourates'     : 'السور',     color: '#A8DADC' },
-            { value: completedGoals,           label: lang === 'fr' ? 'Objectifs'    : 'الأهداف',   color: '#B7E4C7' },
-            { value: userData.badges.length,   label: lang === 'fr' ? 'Badges'       : 'الشارات',   color: '#D4AF37' },
-            { value: userData.loginStreak || 1,label: lang === 'fr' ? 'Jours de suite': 'الأيام',   color: '#F4845F' },
+            { value: memorizedCount,          label: fr ? 'Sourates'      : 'السور'    },
+            { value: completedGoals,           label: fr ? 'Objectifs'     : 'الأهداف'  },
+            { value: userData.badges.length,   label: fr ? 'Badges'        : 'الشارات'  },
+            { value: userData.loginStreak || 1,label: fr ? 'Jours de suite': 'الأيام'   },
           ].map((s, i) => (
-            <div key={i} className="text-center">
-              <p className="text-3xl font-black text-gradient leading-none">{s.value}</p>
-              <p className="text-[9px] uppercase tracking-wider font-bold mt-1" style={{ color: 'var(--brand-text-muted)' }}>{s.label}</p>
+            <div key={i} style={{ textAlign: 'center' }}>
+              <div style={{ fontFamily: 'Fraunces, serif', fontSize: 28, color: t.accent, lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>{s.label}</div>
             </div>
           ))}
         </div>
-      </motion.div>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
 
         {/* Profile */}
-        <motion.section {...sl(2)} className="glass-card p-7 space-y-5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)' }}>
-              <User size={17} style={{ color: 'var(--brand-secondary)' }} />
-            </div>
-            <h3 className="text-xl" style={{ color: 'var(--brand-primary)' }}>{lang === 'fr' ? 'Profil' : 'الملف الشخصي'}</h3>
+        <div style={card}>
+          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 16 }}>
+            {fr ? 'Profil' : 'الملف الشخصي'}
           </div>
-          <div className="space-y-2">
-            <label className="text-[9px] uppercase tracking-widest font-black px-1" style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? "Nom d'utilisateur" : 'اسم المستخدم'}
-            </label>
-            <input type="text" value={settings.username} onChange={e => updateSettings({ username: e.target.value })}
-              className="mishkat-input" placeholder={lang === 'fr' ? 'Votre nom…' : 'اسمك…'} />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[9px] uppercase tracking-widest font-black px-1" style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? 'Ville (horaires de prière)' : 'المدينة (مواقيت الصلاة)'}
-            </label>
-            <input type="text" value={settings.city ?? ''} onChange={e => updateSettings({ city: e.target.value })}
-              className="mishkat-input" placeholder={lang === 'fr' ? 'Ex: Paris, Alger…' : 'مثال: الجزائر، باريس…'} />
-          </div>
-          {(userData.loginStreak || 1) > 1 && (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                 style={{ background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)', border: '1px solid var(--border-subtle)' }}>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--brand-primary)' }}>
-                <Flame size={15} className="text-white" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>
+                {fr ? "Nom d'utilisateur" : 'اسم المستخدم'}
               </div>
-              <div>
-                <p className="text-sm font-black text-gradient">{userData.loginStreak} {lang === 'fr' ? 'jours de suite' : 'يوم متواصل'}</p>
-                <p className="text-[9px] font-bold" style={{ color: 'var(--brand-text-muted)' }}>{lang === 'fr' ? 'Continuez !' : 'أحسنت!'}</p>
-              </div>
+              <input type="text" value={settings.username} onChange={e => updateSettings({ username: e.target.value })}
+                placeholder={fr ? 'Votre nom…' : 'اسمك…'} style={inputStyle}/>
             </div>
-          )}
-        </motion.section>
+            <div>
+              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>
+                {fr ? 'Ville (horaires de prière)' : 'المدينة (مواقيت الصلاة)'}
+              </div>
+              <input type="text" value={settings.city ?? ''} onChange={e => updateSettings({ city: e.target.value })}
+                placeholder={fr ? 'Ex: Paris, Alger…' : 'مثال: الجزائر، باريس…'} style={inputStyle}/>
+            </div>
+            {(userData.loginStreak || 1) > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: t.cardElev, border: `1px solid ${t.line}` }}>
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon d={Icons.flame} size={13} color="#1a0f00"/>
+                </div>
+                <div>
+                  <div style={{ fontFamily: 'Fraunces, serif', fontSize: 16, color: t.accent }}>{userData.loginStreak} {fr ? 'jours de suite' : 'يوم متواصل'}</div>
+                  <div style={{ fontSize: 9.5, color: t.inkMute }}>{fr ? 'Continuez !' : 'أحسنت!'}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
-        {/* Appearance + Themes */}
-        <motion.section {...sl(3)} className="glass-card p-7 space-y-5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)' }}>
-              <Palette size={17} style={{ color: 'var(--brand-secondary)' }} />
-            </div>
-            <h3 className="text-xl" style={{ color: 'var(--brand-primary)' }}>{lang === 'fr' ? 'Apparence' : 'المظهر'}</h3>
+        {/* Appearance */}
+        <div style={card}>
+          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 16 }}>
+            {fr ? 'Apparence' : 'المظهر'}
           </div>
 
-          {/* Theme grid */}
-          <div className="space-y-3">
-            <label className="text-[9px] uppercase tracking-widest font-black px-1" style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? 'Thème' : 'السمة'}
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {themes.map(t => {
-                const isActive = settings.theme === t.id;
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>
+              {fr ? 'Thème' : 'السمة'}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+              {themes.map(theme => {
+                const isActive = settings.theme === theme.id;
                 return (
-                  <button key={t.id} onClick={() => updateSettings({ theme: t.id as any })}
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-2xl border transition-all"
+                  <button key={theme.id} onClick={() => updateSettings({ theme: theme.id as any })}
                     style={{
-                      background: isActive ? 'var(--brand-primary)' : 'color-mix(in srgb, var(--brand-primary) 4%, transparent)',
-                      borderColor: isActive ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                      boxShadow: isActive ? '0 4px 16px color-mix(in srgb, var(--brand-primary) 25%, transparent)' : 'none',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                      padding: '12px 8px', borderRadius: 12, cursor: 'pointer',
+                      background: isActive ? `${t.accent}20` : t.cardElev,
+                      border: `1.5px solid ${isActive ? t.accent : t.line}`,
                     }}>
-                    <div className="w-6 h-6 rounded-lg border-2 shadow-sm" style={{ background: t.bg, borderColor: t.accent }} />
-                    <span className="text-[8px] font-black uppercase tracking-wider leading-tight text-center"
-                          style={{ color: isActive ? '#fff' : 'var(--brand-text-muted)' }}>
-                      {lang === 'fr' ? t.labelFr : t.labelAr}
+                    <div style={{ width: 28, height: 28, borderRadius: 8, background: theme.bg, border: `2px solid ${theme.accent}` }}/>
+                    <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: isActive ? t.accent : t.inkMute }}>
+                      {fr ? theme.labelFr : theme.labelAr}
                     </span>
                   </button>
                 );
@@ -234,313 +210,162 @@ export const SettingsSection = ({
             </div>
           </div>
 
-          {/* Font size */}
-          <div className="space-y-3">
-            <label className="text-[9px] uppercase tracking-widest font-black px-1" style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? 'Taille du texte' : 'حجم الخط'}
-            </label>
-            <div className="flex gap-2 p-1.5 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
-              {fontSizes.map(f => (
-                <button key={f.id} onClick={() => updateSettings({ fontSize: f.id as any })}
-                  className={cn('flex-1 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all', f.sample)}
-                  style={{
-                    background: settings.fontSize === f.id ? 'var(--brand-surface)' : 'transparent',
-                    color: settings.fontSize === f.id ? 'var(--brand-primary)' : 'var(--brand-text-muted)',
-                    boxShadow: settings.fontSize === f.id ? 'var(--shadow-soft)' : 'none',
-                  }}>
-                  {lang === 'fr' ? f.labelFr : f.labelAr}
-                </button>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+              {fr ? 'Taille du texte' : 'حجم الخط'}
+            </div>
+            <div style={{ display: 'flex', gap: 4, padding: 4, background: t.cardElev, borderRadius: 10 }}>
+              {[
+                { id: 'small', labelFr: 'Petit', labelAr: 'صغير' },
+                { id: 'medium', labelFr: 'Moyen', labelAr: 'متوسط' },
+                { id: 'large', labelFr: 'Grand', labelAr: 'كبير' },
+              ].map(f => (
+                <SegButton key={f.id} active={settings.fontSize === f.id} onClick={() => updateSettings({ fontSize: f.id as any })}>
+                  {fr ? f.labelFr : f.labelAr}
+                </SegButton>
               ))}
             </div>
           </div>
 
-          {/* UI Zoom */}
-          <div className="space-y-3">
-            <label className="text-[9px] uppercase tracking-widest font-black px-1" style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? 'Zoom interface' : 'تكبير الواجهة'}
-            </label>
-            <div className="flex gap-2 p-1.5 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
+          <div>
+            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+              {fr ? 'Zoom interface' : 'تكبير الواجهة'}
+            </div>
+            <div style={{ display: 'flex', gap: 4, padding: 4, background: t.cardElev, borderRadius: 10 }}>
               {([80, 100, 120] as const).map(z => (
-                <button key={z} onClick={() => updateSettings({ uiZoom: z })}
-                  className="flex-1 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all"
-                  style={{
-                    background: (settings.uiZoom ?? 100) === z ? 'var(--brand-surface)' : 'transparent',
-                    color: (settings.uiZoom ?? 100) === z ? 'var(--brand-primary)' : 'var(--brand-text-muted)',
-                    boxShadow: (settings.uiZoom ?? 100) === z ? 'var(--shadow-soft)' : 'none',
-                  }}>
+                <SegButton key={z} active={(settings.uiZoom ?? 100) === z} onClick={() => updateSettings({ uiZoom: z })}>
                   {z}%
-                </button>
+                </SegButton>
               ))}
             </div>
           </div>
-        </motion.section>
+        </div>
 
         {/* Accessibility */}
-        <motion.section {...sl(4)} className="glass-card p-7 space-y-4 md:col-span-2">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)' }}>
-              <Accessibility size={17} style={{ color: 'var(--brand-secondary)' }} />
+        <div style={{ ...card, gridColumn: '1 / -1' }}>
+          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 16 }}>
+            {fr ? 'Accessibilité' : 'إمكانية الوصول'}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, marginBottom: 14 }}>
+            <ToggleRow label={fr ? 'Réduire les animations' : 'تقليل الحركات'} sub={fr ? 'Désactive les transitions' : 'إيقاف الانتقالات'} value={settings.reduceAnimations ?? false} onChange={v => updateSettings({ reduceAnimations: v })}/>
+            <ToggleRow label={fr ? 'Police dyslexie' : 'خط عسر القراءة'} sub="OpenDyslexic" value={settings.dyslexiaFont ?? false} onChange={v => updateSettings({ dyslexiaFont: v })}/>
+            <ToggleRow label={fr ? 'Contraste élevé' : 'تباين عالٍ'} sub={fr ? 'Améliore la lisibilité' : 'يحسن قابلية القراءة'} value={settings.highContrast ?? false} onChange={v => updateSettings({ highContrast: v })}/>
+            <ToggleRow label={fr ? 'Sons de navigation' : 'أصوات التنقل'} sub={fr ? 'Feedback sonore' : 'ردود فعل صوتية'} value={settings.soundEffects ?? false} onChange={v => updateSettings({ soundEffects: v })}/>
+            <ToggleRow label={fr ? 'Noms arabes des sourates' : 'الأسماء العربية للسور'} sub={fr ? 'Afficher dans la grille' : 'إظهار في الشبكة'} value={settings.showArabicNames} onChange={v => updateSettings({ showArabicNames: v })}/>
+            <ToggleRow label={fr ? 'Numéros de sourates' : 'أرقام السور'} sub={fr ? 'Afficher les numéros' : 'إظهار الأرقام'} value={settings.showSurahNumbers ?? true} onChange={v => updateSettings({ showSurahNumbers: v })}/>
+            <ToggleRow label={fr ? 'Confirmer avant suppression' : 'تأكيد الحذف'} sub={fr ? 'Toujours demander' : 'اسأل دائماً'} value={settings.confirmDelete ?? true} onChange={v => updateSettings({ confirmDelete: v })}/>
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+              {fr ? 'Espacement des lignes' : 'تباعد الأسطر'}
             </div>
-            <h3 className="text-xl" style={{ color: 'var(--brand-primary)' }}>
-              {lang === 'fr' ? 'Accessibilité' : 'إمكانية الوصول'}
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <ToggleRow
-              label={lang === 'fr' ? 'Réduire les animations' : 'تقليل الحركات'}
-              sub={lang === 'fr' ? 'Désactive les transitions' : 'إيقاف الانتقالات'}
-              value={settings.reduceAnimations ?? false}
-              onChange={v => updateSettings({ reduceAnimations: v })}
-            />
-            <ToggleRow
-              label={lang === 'fr' ? 'Police dyslexie' : 'خط عسر القراءة'}
-              sub={lang === 'fr' ? 'OpenDyslexic' : 'OpenDyslexic'}
-              value={settings.dyslexiaFont ?? false}
-              onChange={v => updateSettings({ dyslexiaFont: v })}
-            />
-            <ToggleRow
-              label={lang === 'fr' ? 'Contraste élevé' : 'تباين عالٍ'}
-              sub={lang === 'fr' ? 'Améliore la lisibilité' : 'يحسن قابلية القراءة'}
-              value={settings.highContrast ?? false}
-              onChange={v => updateSettings({ highContrast: v })}
-            />
-            <ToggleRow
-              label={lang === 'fr' ? 'Fond statique' : 'خلفية ثابتة'}
-              sub={lang === 'fr' ? 'Désactive le fond animé' : 'إيقاف الخلفية المتحركة'}
-              value={settings.staticBackground ?? false}
-              onChange={v => updateSettings({ staticBackground: v })}
-            />
-            <ToggleRow
-              label={lang === 'fr' ? 'Sons de navigation' : 'أصوات التنقل'}
-              sub={lang === 'fr' ? 'Feedback sonore' : 'ردود فعل صوتية'}
-              value={settings.soundEffects ?? false}
-              onChange={v => updateSettings({ soundEffects: v })}
-            />
-            <ToggleRow
-              label={lang === 'fr' ? 'Noms arabes des sourates' : 'الأسماء العربية للسور'}
-              sub={lang === 'fr' ? 'Afficher dans la grille' : 'إظهار في الشبكة'}
-              value={settings.showArabicNames}
-              onChange={v => updateSettings({ showArabicNames: v })}
-            />
-            <ToggleRow
-              label={lang === 'fr' ? 'Numéros de sourates' : 'أرقام السور'}
-              sub={lang === 'fr' ? 'Afficher les numéros' : 'إظهار الأرقام'}
-              value={settings.showSurahNumbers ?? true}
-              onChange={v => updateSettings({ showSurahNumbers: v })}
-            />
-            <ToggleRow
-              label={lang === 'fr' ? 'Confirmer avant suppression' : 'تأكيد الحذف'}
-              sub={lang === 'fr' ? 'Toujours demander' : 'اسأل دائماً'}
-              value={settings.confirmDelete ?? true}
-              onChange={v => updateSettings({ confirmDelete: v })}
-            />
-          </div>
-
-          {/* Line spacing */}
-          <div className="space-y-2">
-            <label className="text-[9px] uppercase tracking-widest font-black px-1" style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? 'Espacement des lignes' : 'تباعد الأسطر'}
-            </label>
-            <div className="flex gap-2 p-1.5 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
+            <div style={{ display: 'flex', gap: 4, padding: 4, background: t.cardElev, borderRadius: 10 }}>
               {([
-                { id: 'normal',      labelFr: 'Normal',       labelAr: 'عادي'    },
-                { id: 'comfortable', labelFr: 'Confortable',  labelAr: 'مريح'    },
-                { id: 'large',       labelFr: 'Large',        labelAr: 'واسع'    },
+                { id: 'normal', labelFr: 'Normal', labelAr: 'عادي' },
+                { id: 'comfortable', labelFr: 'Confortable', labelAr: 'مريح' },
+                { id: 'large', labelFr: 'Large', labelAr: 'واسع' },
               ] as const).map(s => (
-                <button key={s.id} onClick={() => updateSettings({ lineSpacing: s.id })}
-                  className="flex-1 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all"
-                  style={{
-                    background: (settings.lineSpacing ?? 'normal') === s.id ? 'var(--brand-surface)' : 'transparent',
-                    color: (settings.lineSpacing ?? 'normal') === s.id ? 'var(--brand-primary)' : 'var(--brand-text-muted)',
-                    boxShadow: (settings.lineSpacing ?? 'normal') === s.id ? 'var(--shadow-soft)' : 'none',
-                  }}>
-                  {lang === 'fr' ? s.labelFr : s.labelAr}
-                </button>
+                <SegButton key={s.id} active={(settings.lineSpacing ?? 'normal') === s.id} onClick={() => updateSettings({ lineSpacing: s.id })}>
+                  {fr ? s.labelFr : s.labelAr}
+                </SegButton>
               ))}
             </div>
           </div>
 
-          {/* Text direction */}
-          <div className="space-y-2">
-            <label className="text-[9px] uppercase tracking-widest font-black px-1" style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? 'Direction du texte' : 'اتجاه النص'}
-            </label>
-            <div className="flex gap-2 p-1.5 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
-              {([
-                { id: 'auto', labelFr: 'Auto', labelAr: 'تلقائي' },
-                { id: 'ltr',  labelFr: 'LTR ←', labelAr: 'يسار ←' },
-                { id: 'rtl',  labelFr: '→ RTL', labelAr: '→ يمين' },
-              ] as const).map(d => (
-                <button key={d.id} onClick={() => updateSettings({ textDirection: d.id })}
-                  className="flex-1 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all"
-                  style={{
-                    background: (settings.textDirection ?? 'auto') === d.id ? 'var(--brand-surface)' : 'transparent',
-                    color: (settings.textDirection ?? 'auto') === d.id ? 'var(--brand-primary)' : 'var(--brand-text-muted)',
-                    boxShadow: (settings.textDirection ?? 'auto') === d.id ? 'var(--shadow-soft)' : 'none',
-                  }}>
-                  {lang === 'fr' ? d.labelFr : d.labelAr}
-                </button>
-              ))}
+          <div>
+            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+              {fr ? 'Sauvegarde automatique (Diftar)' : 'الحفظ التلقائي (الدفتر)'}
             </div>
-          </div>
-
-          {/* Color blind mode */}
-          <div className="space-y-2">
-            <label className="text-[9px] uppercase tracking-widest font-black px-1" style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? 'Mode daltonien' : 'وضع عمى الألوان'}
-            </label>
-            <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
+            <div style={{ display: 'flex', gap: 4, padding: 4, background: t.cardElev, borderRadius: 10, flexWrap: 'wrap' }}>
               {([
-                { id: 'none',         labelFr: 'Aucun',       labelAr: 'لا شيء'   },
-                { id: 'deuteranopia', labelFr: 'Deutéranopie',labelAr: 'ديوترانوبيا' },
-                { id: 'protanopia',   labelFr: 'Protanopie',  labelAr: 'بروتانوبيا' },
-                { id: 'tritanopia',   labelFr: 'Tritanopie',  labelAr: 'تريتانوبيا' },
-              ] as const).map(c => (
-                <button key={c.id} onClick={() => updateSettings({ colorBlindMode: c.id })}
-                  className="flex-1 py-2 rounded-xl font-black text-[8px] uppercase tracking-widest transition-all min-w-[70px]"
-                  style={{
-                    background: (settings.colorBlindMode ?? 'none') === c.id ? 'var(--brand-primary)' : 'transparent',
-                    color: (settings.colorBlindMode ?? 'none') === c.id ? '#fff' : 'var(--brand-text-muted)',
-                  }}>
-                  {lang === 'fr' ? c.labelFr : c.labelAr}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Auto save interval */}
-          <div className="space-y-2">
-            <label className="text-[9px] uppercase tracking-widest font-black px-1" style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? 'Sauvegarde automatique (Diftar)' : 'الحفظ التلقائي (الدفتر)'}
-            </label>
-            <div className="flex gap-2 p-1.5 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}>
-              {([
-                { v: 30,  labelFr: '30s',    labelAr: '30ث'   },
-                { v: 60,  labelFr: '1 min',  labelAr: '1 د'   },
-                { v: 300, labelFr: '5 min',  labelAr: '5 د'   },
-                { v: 0,   labelFr: 'Manuel', labelAr: 'يدوي'  },
+                { v: 30,  labelFr: '30s',    labelAr: '30ث'  },
+                { v: 60,  labelFr: '1 min',  labelAr: '1 د'  },
+                { v: 300, labelFr: '5 min',  labelAr: '5 د'  },
+                { v: 0,   labelFr: 'Manuel', labelAr: 'يدوي' },
               ] as const).map(({ v, labelFr, labelAr }) => (
-                <button key={v} onClick={() => updateSettings({ autoSaveInterval: v })}
-                  className="flex-1 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all"
-                  style={{
-                    background: (settings.autoSaveInterval ?? 300) === v ? 'var(--brand-surface)' : 'transparent',
-                    color: (settings.autoSaveInterval ?? 300) === v ? 'var(--brand-primary)' : 'var(--brand-text-muted)',
-                    boxShadow: (settings.autoSaveInterval ?? 300) === v ? 'var(--shadow-soft)' : 'none',
-                  }}>
-                  {lang === 'fr' ? labelFr : labelAr}
-                </button>
+                <SegButton key={v} active={(settings.autoSaveInterval ?? 300) === v} onClick={() => updateSettings({ autoSaveInterval: v })}>
+                  {fr ? labelFr : labelAr}
+                </SegButton>
               ))}
             </div>
           </div>
-        </motion.section>
+        </div>
 
         {/* Notifications */}
-        <motion.section {...sl(5)} className="glass-card p-7 space-y-5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)' }}>
-              <Bell size={17} style={{ color: 'var(--brand-secondary)' }} />
-            </div>
-            <h3 className="text-xl" style={{ color: 'var(--brand-primary)' }}>{lang === 'fr' ? 'Notifications' : 'التنبيهات'}</h3>
+        <div style={card}>
+          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 16 }}>
+            {fr ? 'Notifications' : 'التنبيهات'}
           </div>
-
-          <ToggleRow
-            label={lang === 'fr' ? 'Rappels quotidiens' : 'تذكيرات يومية'}
-            sub={lang === 'fr' ? 'Rappel de lecture' : 'تذكير بالقراءة'}
-            value={settings.notifications}
-            onChange={v => updateSettings({ notifications: v })}
-          />
-
-          <AnimatePresence>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <ToggleRow label={fr ? 'Rappels quotidiens' : 'تذكيرات يومية'} sub={fr ? 'Rappel de lecture' : 'تذكير بالقراءة'} value={settings.notifications} onChange={v => updateSettings({ notifications: v })}/>
             {settings.notifications && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                className="space-y-2 overflow-hidden">
-                <label className="text-[9px] uppercase tracking-widest font-black px-1" style={{ color: 'var(--brand-text-muted)' }}>
-                  {lang === 'fr' ? 'Heure du rappel' : 'وقت التذكير'}
-                </label>
-                <div className="relative">
-                  <Clock size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--brand-secondary)' }} />
-                  <input type="time" value={settings.dailyReminder}
-                    onChange={e => updateSettings({ dailyReminder: e.target.value })}
-                    className="mishkat-input pl-11" />
+              <div>
+                <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>
+                  {fr ? 'Heure du rappel' : 'وقت التذكير'}
                 </div>
-              </motion.div>
+                <input type="time" value={settings.dailyReminder}
+                  onChange={e => updateSettings({ dailyReminder: e.target.value })}
+                  style={inputStyle}/>
+              </div>
             )}
-          </AnimatePresence>
-        </motion.section>
+          </div>
+        </div>
 
         {/* General */}
-        <motion.section {...sl(6)} className="glass-card p-7 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)' }}>
-              <SettingsIcon size={17} style={{ color: 'var(--brand-secondary)' }} />
-            </div>
-            <h3 className="text-xl" style={{ color: 'var(--brand-primary)' }}>{lang === 'fr' ? 'Général' : 'عام'}</h3>
+        <div style={card}>
+          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 16 }}>
+            {fr ? 'Général' : 'عام'}
           </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button onClick={exportData}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderRadius: 10, background: t.cardElev, border: `1px solid ${t.line}`, cursor: 'pointer', color: t.ink }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Icon d={Icons.download} size={15} color={t.accentBright}/>
+                <span style={{ fontSize: 13, fontWeight: 500 }}>{fr ? 'Exporter les données' : 'تصدير البيانات'}</span>
+              </div>
+              <Icon d={Icons.arrow} size={14} color={t.inkMute}/>
+            </button>
 
-          {/* Export */}
-          <button onClick={exportData}
-            className="w-full flex items-center justify-between p-4 rounded-2xl border transition-all group"
-            style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)', borderColor: 'var(--border-subtle)' }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border-accent)')}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}>
-            <div className="flex items-center gap-3">
-              <Download size={16} style={{ color: 'var(--brand-secondary)' }} />
-              <span className="text-sm font-bold" style={{ color: 'var(--brand-primary)' }}>
-                {lang === 'fr' ? 'Exporter les données' : 'تصدير البيانات'}
-              </span>
-            </div>
-            <ChevronRight size={16} style={{ color: 'var(--brand-text-muted)' }} />
-          </button>
+            <button onClick={() => importRef.current?.click()}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderRadius: 10, background: t.cardElev, border: `1px solid ${t.line}`, cursor: 'pointer', color: t.ink }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Icon d={Icons.upload} size={15} color={t.accentBright}/>
+                <span style={{ fontSize: 13, fontWeight: 500 }}>{fr ? 'Importer les données' : 'استيراد البيانات'}</span>
+              </div>
+              <Icon d={Icons.arrow} size={14} color={t.inkMute}/>
+            </button>
+            <input ref={importRef} type="file" accept=".json" style={{ display: 'none' }} onChange={importData}/>
 
-          {/* Import */}
-          <button onClick={() => importRef.current?.click()}
-            className="w-full flex items-center justify-between p-4 rounded-2xl border transition-all group"
-            style={{ background: 'color-mix(in srgb, var(--brand-primary) 4%, transparent)', borderColor: 'var(--border-subtle)' }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border-accent)')}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}>
-            <div className="flex items-center gap-3">
-              <Upload size={16} style={{ color: 'var(--brand-secondary)' }} />
-              <span className="text-sm font-bold" style={{ color: 'var(--brand-primary)' }}>
-                {lang === 'fr' ? 'Importer les données' : 'استيراد البيانات'}
-              </span>
-            </div>
-            <ChevronRight size={16} style={{ color: 'var(--brand-text-muted)' }} />
-          </button>
-          <input ref={importRef} type="file" accept=".json" className="hidden" onChange={importData} />
-
-          {/* Reset */}
-          <button
-            onClick={() => {
-              if (confirm(lang === 'fr' ? 'Voulez-vous vraiment tout réinitialiser ?' : 'هل تريد حقاً إعادة ضبط كل شيء؟')) {
+            <button onClick={() => {
+              if (confirm(fr ? 'Voulez-vous vraiment tout réinitialiser ?' : 'هل تريد حقاً إعادة ضبط كل شيء؟')) {
                 localStorage.removeItem('mishkat_user_data');
                 window.location.reload();
               }
             }}
-            className="w-full flex items-center justify-between p-4 rounded-2xl border transition-all"
-            style={{ background: 'rgba(239,68,68,0.04)', borderColor: 'rgba(239,68,68,0.1)' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.04)')}>
-            <div className="flex items-center gap-3">
-              <Trash2 size={16} style={{ color: 'rgba(239,68,68,0.6)' }} />
-              <span className="text-sm font-bold" style={{ color: 'rgba(239,68,68,0.7)' }}>
-                {lang === 'fr' ? 'Réinitialiser les données' : 'إعادة ضبط البيانات'}
-              </span>
-            </div>
-            <ChevronRight size={16} style={{ color: 'rgba(239,68,68,0.3)' }} />
-          </button>
-        </motion.section>
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderRadius: 10, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.12)', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Icon d={Icons.trash} size={15} color="rgba(239,68,68,0.6)"/>
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'rgba(239,68,68,0.75)' }}>
+                  {fr ? 'Réinitialiser les données' : 'إعادة ضبط البيانات'}
+                </span>
+              </div>
+              <Icon d={Icons.arrow} size={14} color="rgba(239,68,68,0.3)"/>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
-      <motion.div {...sl(7)} className="text-center pt-4 space-y-1">
-        <p className="text-[10px] uppercase tracking-[0.4em] font-black" style={{ color: 'var(--brand-text-muted)' }}>
-          Mishkat v2.0 · {lang === 'fr' ? 'Fait avec amour ❤' : 'صنع بكل حب ❤'}
-        </p>
-        <p className="text-[9px]" style={{ color: 'var(--brand-text-muted)', opacity: 0.5 }}>
+      <div style={{ textAlign: 'center', paddingTop: 8 }}>
+        <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.3em', textTransform: 'uppercase' }}>
+          Mishkat v2.0 · {fr ? 'Fait avec amour' : 'صنع بكل حب'}
+        </div>
+        <div style={{ fontSize: 9, color: t.inkMute, opacity: 0.5, marginTop: 4 }}>
           Par Rahima &amp; hamda_wa_chakra
-        </p>
-      </motion.div>
+        </div>
+      </div>
     </div>
   );
 };

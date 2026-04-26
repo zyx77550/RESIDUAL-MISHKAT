@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import {
-  Users, Activity, BookOpen, Target, Database, Wifi, WifiOff,
-  TrendingUp, Shield, Clock, FileText, Layers, RefreshCw, User,
-} from 'lucide-react';
 import { UserData } from '../types';
+import { useT } from '../lib/theme';
+import { Icon, Icons } from './ui';
 import { fetchAdminStats, fetchAllUsers, AdminStats, UserRow } from '../lib/supabase';
 
 interface AdminProps {
@@ -12,67 +9,47 @@ interface AdminProps {
   lang: string;
 }
 
-// ── SVG Donut Chart ──────────────────────────────────────────────────────────
-function DonutChart({ pct, label, value, color }: { pct: number; label: string; value: number; color: string }) {
+function DonutChart({ pct, label, value, color, inkMute }: { pct: number; label: string; value: number; color: string; inkMute: string }) {
   const r = 36;
   const circ = 2 * Math.PI * r;
   const dash = (pct / 100) * circ;
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="relative w-24 h-24">
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+      <div style={{ position: 'relative', width: 96, height: 96 }}>
         <svg width="96" height="96" viewBox="0 0 96 96">
-          <circle cx="48" cy="48" r={r} fill="none"
-            stroke="rgba(255,255,255,0.06)" strokeWidth="9" />
-          <motion.circle
-            cx="48" cy="48" r={r} fill="none"
-            stroke={color} strokeWidth="9"
-            strokeLinecap="round"
-            strokeDasharray={`${circ}`}
-            initial={{ strokeDashoffset: circ }}
-            animate={{ strokeDashoffset: circ - dash }}
-            transition={{ duration: 1.2, ease: 'easeOut' }}
-            style={{ transformOrigin: '48px 48px', transform: 'rotate(-90deg)' }}
-          />
+          <circle cx="48" cy="48" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="9"/>
+          <circle cx="48" cy="48" r={r} fill="none" stroke={color} strokeWidth="9"
+            strokeLinecap="round" strokeDasharray={`${circ}`}
+            strokeDashoffset={circ - dash}
+            style={{ transformOrigin: '48px 48px', transform: 'rotate(-90deg)', transition: 'stroke-dashoffset 1.2s ease' }}/>
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-black leading-none" style={{ color }}>{value}</span>
-          <span className="text-[9px] font-bold opacity-60 leading-none mt-0.5" style={{ color: 'var(--brand-text-muted)' }}>
-            {pct.toFixed(0)}%
-          </span>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: 18, fontWeight: 900, color, lineHeight: 1 }}>{value}</span>
+          <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.6, color: inkMute, marginTop: 2 }}>{pct.toFixed(0)}%</span>
         </div>
       </div>
-      <span className="text-[10px] font-black uppercase tracking-wider text-center" style={{ color: 'var(--brand-text-muted)' }}>
+      <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', textAlign: 'center', color: inkMute }}>
         {label}
       </span>
     </div>
   );
 }
 
-// ── SVG Bar Chart ────────────────────────────────────────────────────────────
-function BarChart({ bars }: { bars: { label: string; value: number; color: string }[] }) {
+function BarChart({ bars, inkMute }: { bars: { label: string; value: number; color: string }[]; inkMute: string }) {
   const max = Math.max(...bars.map(b => b.value), 1);
   const h = 80;
   return (
-    <div className="flex items-end gap-3 h-28 w-full justify-around pt-2">
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, height: 112, width: '100%', justifyContent: 'space-around', paddingTop: 8 }}>
       {bars.map((b, i) => {
         const barH = Math.max((b.value / max) * h, 4);
         return (
-          <div key={i} className="flex flex-col items-center gap-1.5 flex-1">
-            <span className="text-[10px] font-black" style={{ color: b.color }}>{b.value}</span>
-            <div className="w-full relative rounded-t-lg overflow-hidden" style={{ height: h }}>
-              <div className="absolute inset-x-0 bottom-0 rounded-t-lg"
-                style={{ background: 'rgba(255,255,255,0.04)', height: h }} />
-              <motion.div
-                className="absolute inset-x-0 bottom-0 rounded-t-lg"
-                style={{ background: b.color, opacity: 0.85 }}
-                initial={{ height: 0 }}
-                animate={{ height: barH }}
-                transition={{ duration: 0.9, delay: i * 0.1, ease: 'easeOut' }}
-              />
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1 }}>
+            <span style={{ fontSize: 10, fontWeight: 900, color: b.color }}>{b.value}</span>
+            <div style={{ width: '100%', height: h, position: 'relative', borderRadius: '4px 4px 0 0', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.04)' }}/>
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: b.color, opacity: 0.85, height: barH, borderRadius: '4px 4px 0 0', transition: 'height 0.9s ease' }}/>
             </div>
-            <span className="text-[8px] font-bold text-center leading-tight" style={{ color: 'var(--brand-text-muted)', opacity: 0.7 }}>
-              {b.label}
-            </span>
+            <span style={{ fontSize: 8, fontWeight: 700, textAlign: 'center', lineHeight: 1.3, color: inkMute, opacity: 0.7 }}>{b.label}</span>
           </div>
         );
       })}
@@ -80,28 +57,22 @@ function BarChart({ bars }: { bars: { label: string; value: number; color: strin
   );
 }
 
-// ── Mini Progress Bar ────────────────────────────────────────────────────────
-function MiniBar({ value, max, color }: { value: number; max: number; color: string }) {
+function MiniBar({ value, max, color, cardElev }: { value: number; max: number; color: string; cardElev: string }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
-    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
-      <motion.div
-        className="h-full rounded-full"
-        style={{ background: color }}
-        initial={{ width: 0 }}
-        animate={{ width: `${pct}%` }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
-      />
+    <div style={{ height: 6, borderRadius: 3, overflow: 'hidden', background: cardElev }}>
+      <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 0.8s ease' }}/>
     </div>
   );
 }
 
-// ── Main Component ───────────────────────────────────────────────────────────
 export const AdminSection = ({ userData, lang }: AdminProps) => {
+  const t = useT();
   const [cloudStats, setCloudStats] = useState<AdminStats | null>(null);
-  const [users, setUsers]           = useState<UserRow[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const fr = lang === 'fr';
 
   const localStats = {
     diftarPages:  userData.diftarPages.length,
@@ -128,276 +99,192 @@ export const AdminSection = ({ userData, lang }: AdminProps) => {
 
   useEffect(() => { loadStats(); }, []);
 
-  const fr = lang === 'fr';
   const connected = cloudStats !== null && !statsError;
+  const activePct = cloudStats && cloudStats.totalUsers > 0 ? (cloudStats.activeToday / cloudStats.totalUsers) * 100 : 0;
+  const newPct    = cloudStats && cloudStats.totalUsers > 0 ? (cloudStats.newThisWeek / cloudStats.totalUsers) * 100 : 0;
+  const localMax  = Math.max(localStats.diftarPages, localStats.totalStrokes / 10, localStats.surahs, localStats.goals, localStats.badges, localStats.loginStreak, 1);
 
-  const activePct  = cloudStats && cloudStats.totalUsers > 0 ? (cloudStats.activeToday / cloudStats.totalUsers) * 100 : 0;
-  const newPct     = cloudStats && cloudStats.totalUsers > 0 ? (cloudStats.newThisWeek / cloudStats.totalUsers) * 100 : 0;
-
-  const localMax = Math.max(
-    localStats.diftarPages, localStats.totalStrokes / 10,
-    localStats.surahs, localStats.goals, localStats.badges, localStats.loginStreak, 1
-  );
+  const card: React.CSSProperties = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 14, padding: '18px 20px' };
 
   return (
-    <div className="space-y-7 pb-10">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22, paddingBottom: 40 }}>
 
-      {/* ── Header ── */}
-      <div className="flex flex-wrap justify-between items-end gap-4">
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h2 className="text-4xl sm:text-5xl font-serif italic leading-tight" style={{ color: 'var(--brand-primary)' }}>
+          <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontStyle: 'italic', fontSize: 32, color: t.ink }}>
             {fr ? 'Administration' : 'الإدارة'}
-          </h2>
-          <p className="text-[10px] uppercase tracking-[0.4em] font-bold mt-1.5" style={{ color: 'var(--brand-secondary)', opacity: 0.65 }}>
+          </div>
+          <div style={{ fontSize: 10, color: t.accentBright, letterSpacing: '0.3em', textTransform: 'uppercase', marginTop: 4 }}>
             {fr ? 'Tableau de bord admin' : 'لوحة تحكم المشرف'}
-          </p>
+          </div>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-          onClick={loadStats} disabled={loadingStats}
-          className="flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-sm border transition-all"
-          style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 15%, transparent)', color: 'var(--brand-primary)', background: 'color-mix(in srgb, var(--brand-primary) 5%, transparent)' }}
-        >
-          <motion.div animate={{ rotate: loadingStats ? 360 : 0 }} transition={{ duration: 0.8, ease: 'linear', repeat: loadingStats ? Infinity : 0 }}>
-            <RefreshCw size={14} />
-          </motion.div>
+        <button onClick={loadStats} disabled={loadingStats}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 10, background: t.card, border: `1px solid ${t.line}`, color: t.ink, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+          <span style={{ display: 'inline-block', animation: loadingStats ? 'spin 0.8s linear infinite' : 'none' }}>↺</span>
           {fr ? 'Actualiser' : 'تحديث'}
-        </motion.button>
+        </button>
       </div>
 
-      {/* ── Supabase status ── */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-4 flex items-center gap-4">
-        <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-          style={{ background: connected ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.1)' }}>
-          {connected ? <Wifi size={20} style={{ color: '#22c55e' }} /> : <WifiOff size={20} style={{ color: '#ef4444' }} />}
+      {/* Supabase status */}
+      <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: connected ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.1)', fontSize: 18 }}>
+          {connected ? '🟢' : '🔴'}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-sm" style={{ color: 'var(--brand-primary)' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: t.ink }}>
             Supabase — {connected ? (fr ? 'Connecté' : 'متصل') : (fr ? 'Non connecté' : 'غير متصل')}
-          </p>
-          <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--brand-text-muted)', opacity: 0.7 }}>
+          </div>
+          <div style={{ fontSize: 11, color: t.inkMute, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {statsError || (connected
               ? (fr ? 'Données en temps réel disponibles' : 'البيانات الفورية متاحة')
               : (fr ? 'Chargement…' : 'جاري التحميل…'))}
-          </p>
+          </div>
         </div>
-        <div className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex-shrink-0"
-          style={{ background: connected ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.08)', color: connected ? '#22c55e' : '#ef4444' }}>
+        <div style={{ padding: '3px 10px', borderRadius: 20, fontSize: 9, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase', background: connected ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.08)', color: connected ? '#22c55e' : '#ef4444', flexShrink: 0 }}>
           {connected ? 'LIVE' : loadingStats ? '…' : 'ERR'}
         </div>
-      </motion.div>
+      </div>
 
-      {/* ── Cloud stats tiles ── */}
+      {/* Cloud stats tiles */}
       <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Database size={13} style={{ color: 'var(--brand-secondary)', opacity: 0.7 }} />
-          <p className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-            {fr ? 'Statistiques cloud' : 'إحصائيات السحابة'}
-          </p>
+        <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 12 }}>
+          {fr ? 'Statistiques cloud' : 'إحصائيات السحابة'}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
           {[
-            { icon: Users,      label: fr ? 'Utilisateurs'  : 'المستخدمون',      value: cloudStats?.totalUsers       ?? 0, sub: fr ? 'total inscrits'  : 'إجمالي المسجلين',   color: 'var(--brand-primary)'   },
-            { icon: Activity,   label: fr ? 'Actifs auj.'   : 'نشطون اليوم',     value: cloudStats?.activeToday      ?? 0, sub: fr ? 'dernières 24 h'  : 'آخر 24 ساعة',        color: '#22c55e'                 },
-            { icon: TrendingUp, label: fr ? 'Nouveaux/sem.' : 'جدد هذا الأسبوع', value: cloudStats?.newThisWeek      ?? 0, sub: fr ? 'inscriptions'    : 'تسجيلات جديدة',      color: 'var(--brand-secondary)' },
-            { icon: FileText,   label: fr ? 'Pages Diftar'  : 'صفحات الدفتر',    value: cloudStats?.totalDiftarPages ?? 0, sub: fr ? 'toutes pages'    : 'مجموع الصفحات',     color: '#8b5cf6'                 },
-          ].map((stat, i) => (
-            <motion.div key={i}
-              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-              className="glass-card p-4 space-y-2.5"
-            >
-              <div className="flex items-center justify-between">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: `color-mix(in srgb, ${stat.color} 12%, transparent)` }}>
-                  <stat.icon size={15} style={{ color: stat.color }} />
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
-                  style={{ background: 'color-mix(in srgb, var(--brand-primary) 7%, transparent)', color: 'var(--brand-text-muted)' }}>
-                  {fr ? 'cloud' : 'سحابة'}
-                </span>
-              </div>
-              <p className="text-2xl font-black" style={{ color: stat.color }}>
-                {cloudStats ? stat.value : '—'}
-              </p>
-              <div>
-                <p className="text-[11px] font-bold" style={{ color: 'var(--brand-primary)' }}>{stat.label}</p>
-                <p className="text-[10px]" style={{ color: 'var(--brand-text-muted)', opacity: 0.6 }}>{stat.sub}</p>
-              </div>
-            </motion.div>
+            { label: fr ? 'Utilisateurs' : 'المستخدمون',      value: cloudStats?.totalUsers ?? 0,       sub: fr ? 'total inscrits' : 'إجمالي', color: t.accent },
+            { label: fr ? 'Actifs auj.'  : 'نشطون اليوم',     value: cloudStats?.activeToday ?? 0,      sub: fr ? 'dernières 24h' : 'آخر 24 ساعة', color: '#22c55e' },
+            { label: fr ? 'Nouveaux/sem.': 'جدد هذا الأسبوع', value: cloudStats?.newThisWeek ?? 0,      sub: fr ? 'inscriptions' : 'تسجيلات', color: t.accentBright },
+            { label: fr ? 'Pages Diftar' : 'صفحات الدفتر',    value: cloudStats?.totalDiftarPages ?? 0, sub: fr ? 'toutes pages' : 'مجموع', color: '#8b5cf6' },
+          ].map((s, i) => (
+            <div key={i} style={card}>
+              <div style={{ fontFamily: 'Fraunces, serif', fontSize: 28, color: s.color, lineHeight: 1 }}>{cloudStats ? s.value : '—'}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: t.ink, marginTop: 6 }}>{s.label}</div>
+              <div style={{ fontSize: 10, color: t.inkMute, marginTop: 2 }}>{s.sub}</div>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* ── Charts row: Bar + Donuts ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-        {/* Bar chart */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="glass-card p-5">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-4" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-            {fr ? 'Vue d\'ensemble' : 'نظرة عامة'}
-          </p>
-          <BarChart bars={[
-            { label: fr ? 'Total'    : 'الكل',     value: cloudStats?.totalUsers       ?? 0, color: 'var(--brand-primary)'   },
-            { label: fr ? 'Actifs'   : 'نشطون',    value: cloudStats?.activeToday      ?? 0, color: '#22c55e'                 },
-            { label: fr ? 'Nouveaux' : 'جدد',      value: cloudStats?.newThisWeek      ?? 0, color: 'var(--brand-secondary)' },
-            { label: fr ? 'Diftar'   : 'الدفتر',   value: cloudStats?.totalDiftarPages ?? 0, color: '#8b5cf6'                 },
-          ]} />
-        </motion.div>
-
-        {/* Donut charts */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className="glass-card p-5">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-4" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-            {fr ? 'Taux d\'activité' : 'معدلات النشاط'}
-          </p>
-          <div className="flex justify-around items-center h-28 mt-2">
-            <DonutChart
-              pct={activePct}
-              label={fr ? 'Actifs auj.' : 'نشطون اليوم'}
-              value={cloudStats?.activeToday ?? 0}
-              color="#22c55e"
-            />
-            <div className="w-px h-16 opacity-10" style={{ background: 'var(--brand-primary)' }} />
-            <DonutChart
-              pct={newPct}
-              label={fr ? 'Nouveaux/sem.' : 'جدد الأسبوع'}
-              value={cloudStats?.newThisWeek ?? 0}
-              color="var(--brand-secondary)"
-            />
+      {/* Charts row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+        <div style={card}>
+          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 14 }}>
+            {fr ? "Vue d'ensemble" : 'نظرة عامة'}
           </div>
-        </motion.div>
+          <BarChart inkMute={t.inkMute} bars={[
+            { label: fr ? 'Total'    : 'الكل',   value: cloudStats?.totalUsers ?? 0,       color: t.accent },
+            { label: fr ? 'Actifs'   : 'نشطون',  value: cloudStats?.activeToday ?? 0,      color: '#22c55e' },
+            { label: fr ? 'Nouveaux' : 'جدد',    value: cloudStats?.newThisWeek ?? 0,      color: t.accentBright },
+            { label: fr ? 'Diftar'   : 'الدفتر', value: cloudStats?.totalDiftarPages ?? 0, color: '#8b5cf6' },
+          ]}/>
+        </div>
+        <div style={card}>
+          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 14 }}>
+            {fr ? "Taux d'activité" : 'معدلات النشاط'}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', height: 112, marginTop: 8 }}>
+            <DonutChart pct={activePct} label={fr ? 'Actifs auj.' : 'نشطون اليوم'} value={cloudStats?.activeToday ?? 0} color="#22c55e" inkMute={t.inkMute}/>
+            <div style={{ width: 1, height: 64, background: t.line }}/>
+            <DonutChart pct={newPct} label={fr ? 'Nouveaux/sem.' : 'جدد الأسبوع'} value={cloudStats?.newThisWeek ?? 0} color={t.accentBright} inkMute={t.inkMute}/>
+          </div>
+        </div>
       </div>
 
-      {/* ── Users table ── */}
+      {/* Users table */}
       {users.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-          className="glass-card overflow-hidden">
-          <div className="flex items-center gap-2 p-5 pb-3">
-            <Users size={13} style={{ color: 'var(--brand-secondary)', opacity: 0.7 }} />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-              {fr ? `Utilisateurs (${users.length})` : `المستخدمون (${users.length})`}
-            </p>
+        <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px 10px', fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase' }}>
+            {fr ? `Utilisateurs (${users.length})` : `المستخدمون (${users.length})`}
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  {[
-                    fr ? 'Email'        : 'البريد',
-                    fr ? 'Inscription'  : 'التسجيل',
-                    fr ? 'Vu'           : 'آخر ظهور',
-                    fr ? 'Diftar'       : 'الدفتر',
-                  ].map((h, i) => (
-                    <th key={i} className="text-left px-5 py-2.5 font-black text-[9px] uppercase tracking-wider"
-                      style={{ color: 'var(--brand-text-muted)', opacity: 0.6 }}>
+                <tr style={{ borderBottom: `1px solid ${t.line}` }}>
+                  {[fr?'Email':'البريد', fr?'Inscription':'التسجيل', fr?'Vu':'آخر ظهور', fr?'Diftar':'الدفتر'].map((h,i) => (
+                    <th key={i} style={{ textAlign: 'left', padding: '10px 20px', fontSize: 9, fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: t.inkMute }}>
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {users.slice(0, 12).map((u, i) => (
-                  <motion.tr key={u.id}
-                    initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.55 + i * 0.04 }}
-                    className="border-b transition-colors"
-                    style={{ borderColor: 'var(--border-subtle)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--brand-primary) 4%, transparent)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
-                          style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)' }}>
-                          <User size={11} style={{ color: 'var(--brand-primary)' }} />
+                {users.slice(0, 12).map((u) => (
+                  <tr key={u.id} style={{ borderBottom: `1px solid ${t.line}` }}>
+                    <td style={{ padding: '10px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ width: 24, height: 24, borderRadius: 6, background: t.cardElev, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Icon d={Icons.user} size={11} color={t.ink}/>
                         </div>
-                        <span className="font-medium truncate max-w-[140px]" style={{ color: 'var(--brand-text-main)' }}>
+                        <span style={{ color: t.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
                           {u.email || u.username || '—'}
                         </span>
                       </div>
                     </td>
-                    <td className="px-5 py-3 font-medium" style={{ color: 'var(--brand-text-muted)' }}>
+                    <td style={{ padding: '10px 20px', color: t.inkMute }}>
                       {u.created_at ? new Date(u.created_at).toLocaleDateString(fr ? 'fr-FR' : 'ar-SA', { day: '2-digit', month: 'short' }) : '—'}
                     </td>
-                    <td className="px-5 py-3 font-medium" style={{ color: 'var(--brand-text-muted)' }}>
+                    <td style={{ padding: '10px 20px', color: t.inkMute }}>
                       {u.last_seen ? new Date(u.last_seen).toLocaleDateString(fr ? 'fr-FR' : 'ar-SA', { day: '2-digit', month: 'short' }) : '—'}
                     </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-sm" style={{ color: u.diftarPages > 0 ? '#8b5cf6' : 'var(--brand-text-muted)', opacity: u.diftarPages > 0 ? 1 : 0.4 }}>
-                          {u.diftarPages}
-                        </span>
+                    <td style={{ padding: '10px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontWeight: 900, fontSize: 14, color: u.diftarPages > 0 ? '#8b5cf6' : t.inkMute, opacity: u.diftarPages > 0 ? 1 : 0.4 }}>{u.diftarPages}</span>
                         {u.diftarPages > 0 && (
-                          <div className="w-12">
-                            <MiniBar value={u.diftarPages} max={Math.max(...users.map(x => x.diftarPages), 1)} color="#8b5cf6" />
+                          <div style={{ width: 48 }}>
+                            <MiniBar value={u.diftarPages} max={Math.max(...users.map(x => x.diftarPages), 1)} color="#8b5cf6" cardElev={t.cardElev}/>
                           </div>
                         )}
                       </div>
                     </td>
-                  </motion.tr>
+                  </tr>
                 ))}
               </tbody>
             </table>
             {users.length > 12 && (
-              <p className="text-center text-[10px] py-3 font-bold" style={{ color: 'var(--brand-text-muted)', opacity: 0.5 }}>
+              <div style={{ textAlign: 'center', fontSize: 10, padding: '10px 0', color: t.inkMute, opacity: 0.5, fontWeight: 700 }}>
                 {fr ? `+ ${users.length - 12} autres utilisateurs` : `+ ${users.length - 12} مستخدمين آخرين`}
-              </p>
+              </div>
             )}
           </div>
-        </motion.div>
+        </div>
       )}
 
-      {/* ── Local stats ── */}
+      {/* Local stats */}
       <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Layers size={13} style={{ color: 'var(--brand-secondary)', opacity: 0.7 }} />
-          <p className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-            {fr ? 'Données locales — cet appareil' : 'بيانات محلية — هذا الجهاز'}
-          </p>
+        <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 12 }}>
+          {fr ? 'Données locales — cet appareil' : 'بيانات محلية — هذا الجهاز'}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
           {[
-            { icon: FileText,   label: fr ? 'Pages Diftar'    : 'صفحات الدفتر', value: localStats.diftarPages,  color: '#8b5cf6'                 },
-            { icon: Activity,   label: fr ? 'Traits dessinés' : 'خطوط مرسومة',  value: localStats.totalStrokes, color: 'var(--brand-secondary)' },
-            { icon: BookOpen,   label: fr ? 'Sourates suivies': 'سور متابعة',    value: localStats.surahs,       color: 'var(--brand-primary)'   },
-            { icon: Target,     label: fr ? 'Objectifs'       : 'الأهداف',       value: localStats.goals,        color: '#22c55e'                 },
-            { icon: Shield,     label: fr ? 'Badges débloqués': 'شارات مفتوحة', value: localStats.badges,       color: 'var(--brand-secondary)' },
-            { icon: TrendingUp, label: fr ? 'Jours de suite'  : 'أيام متتالية', value: localStats.loginStreak,  color: 'var(--brand-primary)'   },
-          ].map((stat, i) => (
-            <motion.div key={i}
-              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 + i * 0.05 }}
-              className="glass-card p-4 space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: `color-mix(in srgb, ${stat.color} 12%, transparent)` }}>
-                  <stat.icon size={15} style={{ color: stat.color }} />
-                </div>
-                <span className="text-xl font-black" style={{ color: stat.color }}>{stat.value}</span>
+            { label: fr ? 'Pages Diftar'     : 'صفحات الدفتر', value: localStats.diftarPages,  color: '#8b5cf6' },
+            { label: fr ? 'Traits dessinés'  : 'خطوط مرسومة',  value: localStats.totalStrokes, color: t.accentBright },
+            { label: fr ? 'Sourates suivies' : 'سور متابعة',    value: localStats.surahs,       color: t.accent },
+            { label: fr ? 'Objectifs'        : 'الأهداف',       value: localStats.goals,        color: '#22c55e' },
+            { label: fr ? 'Badges débloqués' : 'شارات مفتوحة', value: localStats.badges,       color: t.accentBright },
+            { label: fr ? 'Jours de suite'   : 'أيام متتالية', value: localStats.loginStreak,  color: t.accent },
+          ].map((s, i) => (
+            <div key={i} style={card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: t.ink }}>{s.label}</div>
+                <div style={{ fontFamily: 'Fraunces, serif', fontSize: 22, color: s.color, lineHeight: 1 }}>{s.value}</div>
               </div>
-              <div>
-                <p className="text-[11px] font-bold mb-1.5" style={{ color: 'var(--brand-primary)' }}>{stat.label}</p>
-                <MiniBar value={stat.value} max={localMax} color={stat.color} />
-              </div>
-            </motion.div>
+              <MiniBar value={s.value} max={localMax} color={s.color} cardElev={t.cardElev}/>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* ── Migration note ── */}
-      <div className="p-4 rounded-2xl border flex items-start gap-3"
-        style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', background: 'color-mix(in srgb, var(--brand-primary) 3%, transparent)' }}>
-        <Shield size={15} style={{ color: 'var(--brand-primary)', opacity: 0.6, flexShrink: 0, marginTop: 2 }} />
-        <p className="text-[11px] leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>
+      {/* Migration note */}
+      <div style={{ padding: '14px 18px', borderRadius: 12, border: `1px solid ${t.line}`, background: `${t.accentSoft}10`, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <Icon d={Icons.shield} size={14} color={t.inkMute} style={{ marginTop: 2, flexShrink: 0 } as React.CSSProperties}/>
+        <div style={{ fontSize: 11, color: t.inkDim, lineHeight: 1.6 }}>
           {fr
-            ? 'Migration sans perte : au 1er login Supabase, les données localforage de l\'utilisateur sont automatiquement copiées vers sa table user_data.'
+            ? "Migration sans perte : au 1er login Supabase, les données localforage de l'utilisateur sont automatiquement copiées vers sa table user_data."
             : 'ترحيل آمن: عند أول تسجيل دخول Supabase، تُنسخ بيانات localforage تلقائياً إلى جدول user_data. لا فقدان للبيانات.'}
-        </p>
+        </div>
       </div>
-
     </div>
   );
 };
