@@ -1279,7 +1279,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               <div style={{ width: 40, height: 40, borderRadius: '50%', background: t.cardElev, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon d={Icons.plus} size={18} color={t.accent}/>
               </div>
-              <span style={{ fontSize: 12 }}>{fr ? 'Nouvelle page' : 'صفحة جديدée'}</span>
+              <span style={{ fontSize: 12 }}>{fr ? 'Nouvelle page' : 'صفحة جديدة'}</span>
             </div>
           </div>
         )}
@@ -1292,7 +1292,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           >
             <div
               onClick={e => e.stopPropagation()}
-              style={{ background: t.bgSoft, border: `1px solid ${t.line}`, borderRadius: 24, padding: 32, maxWidth: 480, width: '100%', display: 'flex', flexDirection: 'column', gap: 24 }}
+              style={{ background: t.bgSoft, border: `1px solid ${t.line}`, borderRadius: 24, padding: narrow ? 20 : 32, maxWidth: 520, width: '100%', display: 'flex', flexDirection: 'column', gap: 24, maxHeight: '85vh', overflowY: 'auto' }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <div>
@@ -1311,7 +1311,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                 </button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 12 }}>
                 {PAGE_TEMPLATES.map(tpl => (
                   <button
                     key={tpl.type}
