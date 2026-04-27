@@ -23,6 +23,7 @@ export const KanbanSection = ({
   const t = useT();
   const narrow = useIsNarrow();
   const fr = lang === 'fr';
+  const showArabic = userData.settings.showArabicNames ?? true;
 
   const COLUMN_CONFIG = COLUMN_CONFIG_BASE.map(col => ({
     ...col,
@@ -103,7 +104,7 @@ export const KanbanSection = ({
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                       <span style={{ fontSize: 9.5, color: t.inkMute, fontFamily: 'Fraunces, serif' }}>#{surah.id}</span>
-                      <span style={{ fontFamily: 'Amiri Quran, serif', fontSize: 13, color: col.color }}>{surah.arabicName}</span>
+                      {showArabic && <span style={{ fontFamily: 'Amiri Quran, serif', fontSize: 13, color: col.color }}>{surah.arabicName}</span>}
                     </div>
                     <div style={{ fontSize: 12, color: t.ink, fontWeight: 500 }}>{surah.name}</div>
                     <div style={{ marginTop: 8 }}>

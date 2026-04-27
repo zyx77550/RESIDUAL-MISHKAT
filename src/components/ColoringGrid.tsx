@@ -38,6 +38,8 @@ export const ColoringGrid = ({
   const [activeTab, setActiveTab] = useState<'grid' | 'heart'>('grid');
   const [heartCells, setHeartCells] = useState<Array<{ cx: number; cy: number }>>([]);
   const fr = lang === 'fr';
+  const showArabic  = userData.settings.showArabicNames  ?? true;
+  const showNumbers = userData.settings.showSurahNumbers ?? true;
 
   useEffect(() => {
     const canvas = document.createElement('canvas');
@@ -179,7 +181,7 @@ export const ColoringGrid = ({
                       color: surah.color ? '#1a0f00' : t.inkMute,
                       cursor: 'pointer',
                     }}>
-                    {surah.id}
+                    {showNumbers ? surah.id : ''}
                   </button>
                   {surah.color && (
                     <button onClick={e => resetSurah(surah.id, e)}
@@ -297,8 +299,8 @@ export const ColoringGrid = ({
                         <path d={hexPath(cx, cy, HEX_R - 1.2)} fill={isColored ? surah!.color! : '#fff0f4'} stroke={isColored ? 'rgba(255,255,255,0.30)' : '#f0b8c4'} strokeWidth="0.9"/>
                         {isColored && <path d={hexPath(cx, cy - 4, HEX_R * 0.55)} fill="rgba(255,255,255,0.10)" stroke="none" style={{ pointerEvents: 'none' }}/>}
                         {surah && <>
-                          <text x={cx} y={cy - 9} textAnchor="middle" fontSize="5.5" fontFamily="monospace" fill={isColored ? 'rgba(255,255,255,0.60)' : '#c07080'} style={{ pointerEvents: 'none' }}>{surah.id}</text>
-                          <text x={cx} y={cy + 5} textAnchor="middle" dominantBaseline="middle" fontSize={nameFontSize} fontFamily="'Noto Naskh Arabic', serif" fontWeight="700" fill={isColored ? 'rgba(255,255,255,0.93)' : '#8B2635'} style={{ pointerEvents: 'none', direction: 'rtl' }}>{surah.arabicName}</text>
+                          {showNumbers && <text x={cx} y={cy - 9} textAnchor="middle" fontSize="5.5" fontFamily="monospace" fill={isColored ? 'rgba(255,255,255,0.60)' : '#c07080'} style={{ pointerEvents: 'none' }}>{surah.id}</text>}
+                          {showArabic  && <text x={cx} y={cy + 5} textAnchor="middle" dominantBaseline="middle" fontSize={nameFontSize} fontFamily="'Noto Naskh Arabic', serif" fontWeight="700" fill={isColored ? 'rgba(255,255,255,0.93)' : '#8B2635'} style={{ pointerEvents: 'none', direction: 'rtl' }}>{surah.arabicName}</text>}
                         </>}
                       </g>
                     );

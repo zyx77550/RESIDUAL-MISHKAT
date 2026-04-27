@@ -367,14 +367,6 @@ export const SettingsSection = ({
               <Toggle value={row.value} onChange={v => updateSettings({ [row.key]: v })}/>
             </div>
           ))}
-          <div style={{ marginTop: 14 }}>
-            <div style={{ fontSize: 11, color: t.inkDim, marginBottom: 8 }}>{fr ? 'Taille de police' : 'حجم الخط'}</div>
-            <div style={{ display: 'flex', gap: 4, padding: 4, background: t.cardElev, borderRadius: 10 }}>
-              {[{ id: 'small', fr: 'Petit' }, { id: 'medium', fr: 'Moyen' }, { id: 'large', fr: 'Grand' }].map(f => (
-                <SegButton key={f.id} active={settings.fontSize === f.id} onClick={() => updateSettings({ fontSize: f.id as any })}>{f.fr}</SegButton>
-              ))}
-            </div>
-          </div>
           <div style={{ marginTop: 12 }}>
             <div style={{ fontSize: 11, color: t.inkDim, marginBottom: 8 }}>{fr ? 'Espacement des lignes' : 'تباعد الأسطر'}</div>
             <div style={{ display: 'flex', gap: 4, padding: 4, background: t.cardElev, borderRadius: 10 }}>

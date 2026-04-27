@@ -205,6 +205,49 @@ export default function App() {
     return () => window.removeEventListener('mishkatUpdateAvailable', handleUpdate);
   }, []);
 
+  // Apply user settings to the DOM
+  useEffect(() => {
+    if (!userData?.settings) return;
+    const s = userData.settings;
+
+    let styleEl = document.getElementById('mishkat-settings-css') as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'mishkat-settings-css';
+      document.head.appendChild(styleEl);
+    }
+
+    const fontSizeMap: Record<string, string> = { small: '13px', medium: '15px', large: '18px' };
+    const lineMap: Record<string, string>     = { normal: '1.5', comfortable: '1.8', large: '2.2' };
+    const baseFont = fontSizeMap[s.fontSize ?? 'medium'];
+    const lineH    = lineMap[s.lineSpacing  ?? 'normal'];
+
+    styleEl.textContent = `
+      body {
+        font-size: ${baseFont};
+        line-height: ${lineH};
+        ${s.highContrast    ? 'filter: contrast(1.3);' : ''}
+        ${s.dyslexiaFont    ? "font-family: 'OpenDyslexic', sans-serif !important;" : ''}
+      }
+      ${s.reduceAnimations ? '*, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }' : ''}
+      ${s.dyslexiaFont     ? '[lang="ar"], [dir="rtl"], .arabic { font-family: "Amiri Quran", serif !important; }' : ''}
+    `;
+
+    // Load OpenDyslexic font on demand
+    const fontLinkId = 'mishkat-dyslexic-font';
+    if (s.dyslexiaFont && !document.getElementById(fontLinkId)) {
+      const link = document.createElement('link');
+      link.id   = fontLinkId;
+      link.rel  = 'stylesheet';
+      link.href = 'https://fonts.cdnfonts.com/css/opendyslexic';
+      document.head.appendChild(link);
+    }
+
+    // uiZoom on the app root
+    const appRoot = document.getElementById('mishkat-app-root');
+    if (appRoot) appRoot.style.zoom = `${s.uiZoom ?? 100}%`;
+  }, [userData?.settings]);
+
   const applyUpdate = () => {
     if (updateWorker) {
       let refreshing = false;
@@ -247,7 +290,7 @@ export default function App() {
       </svg>
 
       {/* Full-screen layout */}
-      <div style={{ width: '100vw', height: '100vh', background: t.bg, display: 'flex', overflow: 'hidden', fontFamily: 'Inter, sans-serif', color: t.ink, position: 'relative' }}>
+      <div id="mishkat-app-root" style={{ width: '100vw', height: '100vh', background: t.bg, display: 'flex', overflow: 'hidden', fontFamily: 'Inter, sans-serif', color: t.ink, position: 'relative' }}>
         {/* Geometric background pattern */}
         <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.06, pointerEvents: 'none', zIndex: 0 }}>
           <defs>
