@@ -61,10 +61,10 @@ export const SettingsSection = ({
   };
 
   const themes = [
-    { id: 'gold',    labelFr: 'Or',      labelAr: 'ذهبي',    bg: '#f8f3e9', accent: '#c8962a' },
-    { id: 'sakura',  labelFr: 'Sakura',  labelAr: 'ساكورا',  bg: '#fdf0f4', accent: '#c85068' },
-    { id: 'azur',    labelFr: 'Azur',    labelAr: 'أزرق',    bg: '#f0f5fa', accent: '#4580c0' },
-    { id: 'emerald', labelFr: 'Émeraude',labelAr: 'زمردي',   bg: '#f0f8f2', accent: '#4a9870' },
+    { id: 'gold',    labelFr: 'Or',       labelAr: 'ذهبي',   bg: '#f8f3e9', accent: '#c8962a', accentBright: '#d4a64a' },
+    { id: 'sakura',  labelFr: 'Sakura',   labelAr: 'ساكورا', bg: '#fdf0f4', accent: '#c85068', accentBright: '#d96b7a' },
+    { id: 'azur',    labelFr: 'Azur',     labelAr: 'أزرق',   bg: '#f0f5fa', accent: '#4580c0', accentBright: '#5b9bd5' },
+    { id: 'emerald', labelFr: 'Émeraude', labelAr: 'زمردي',  bg: '#f0f8f2', accent: '#4a9870', accentBright: '#5fb088' },
   ];
 
   const memorizedCount = userData.surahs.filter(s => s.status === 'memorized').length;
@@ -193,50 +193,50 @@ export const SettingsSection = ({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
 
         {/* Profile */}
+        {(activeSection === 'profile' || narrow) && (
         <div style={card}>
-          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 16 }}>
+          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
             {fr ? 'Profil' : 'الملف الشخصي'}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>
-                {fr ? "Nom d'utilisateur" : 'اسم المستخدم'}
-              </div>
-              <input type="text" value={settings.username} onChange={e => updateSettings({ username: e.target.value })}
-                placeholder={fr ? 'Votre nom…' : 'اسمك…'} style={inputStyle}/>
+          {/* Avatar row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18 }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: `linear-gradient(135deg, ${t.accent}, ${t.accentBright})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 26, color: '#1a0f00', fontWeight: 500, flexShrink: 0 }}>
+              {(settings.username || '?')[0].toUpperCase()}
             </div>
             <div>
-              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>
-                {fr ? 'Ville (horaires de prière)' : 'المدينة (مواقيت الصلاة)'}
-              </div>
-              <input type="text" value={settings.city ?? ''} onChange={e => updateSettings({ city: e.target.value })}
-                placeholder={fr ? 'Ex: Paris, Alger…' : 'مثال: الجزائر، باريس…'} style={inputStyle}/>
+              <div style={{ fontFamily: 'Fraunces, serif', fontSize: 19, color: t.ink, fontWeight: 300 }}>{settings.username || (fr ? 'Anonyme' : 'مجهول')}</div>
+              <div style={{ fontSize: 11, color: t.inkDim, marginTop: 2 }}>{fr ? 'Mishkat · حِفْظ القرآن' : 'مشكاة · حِفْظ القرآن'}</div>
+              {(userData.loginStreak || 1) > 1 && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, padding: '3px 10px', borderRadius: 999, background: `${t.accent}18`, fontSize: 11, color: t.accent }}>
+                  <Icon d={Icons.flame} size={11} color={t.accent}/> {userData.loginStreak} {fr ? 'jours' : 'يوم'}
+                </div>
+              )}
             </div>
-            {(userData.loginStreak || 1) > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: t.cardElev, border: `1px solid ${t.line}` }}>
-                <div style={{ width: 30, height: 30, borderRadius: 8, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon d={Icons.flame} size={13} color="#1a0f00"/>
-                </div>
-                <div>
-                  <div style={{ fontFamily: 'Fraunces, serif', fontSize: 16, color: t.accent }}>{userData.loginStreak} {fr ? 'jours de suite' : 'يوم متواصل'}</div>
-                  <div style={{ fontSize: 9.5, color: t.inkMute }}>{fr ? 'Continuez !' : 'أحسنت!'}</div>
-                </div>
-              </div>
-            )}
           </div>
+          {/* Field rows */}
+          {[
+            { label: fr ? "Nom d'utilisateur" : 'اسم المستخدم', value: settings.username, onChange: (v: string) => updateSettings({ username: v }), placeholder: fr ? 'Votre nom…' : 'اسمك…' },
+            { label: fr ? 'Ville (prière)' : 'المدينة (الصلاة)', value: settings.city ?? '', onChange: (v: string) => updateSettings({ city: v }), placeholder: fr ? 'Ex: Paris, Alger…' : 'مثال: الجزائر…' },
+          ].map(f => (
+            <div key={f.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${t.lineSoft}`, gap: 12 }}>
+              <span style={{ fontSize: 12, color: t.inkDim, flexShrink: 0 }}>{f.label}</span>
+              <input type="text" value={f.value} onChange={e => f.onChange(e.target.value)} placeholder={f.placeholder}
+                style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 12.5, color: t.ink, textAlign: 'right', width: '100%', fontFamily: 'inherit' }}/>
+            </div>
+          ))}
         </div>
+        )}
 
         {/* Appearance */}
+        {(activeSection === 'appearance' || narrow) && (
         <div style={card}>
-          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 16 }}>
+          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
             {fr ? 'Apparence' : 'المظهر'}
           </div>
 
-          {/* Dark / Light mode toggle */}
+          {/* Dark / Light mode */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
-              {fr ? 'Mode' : 'الوضع'}
-            </div>
+            <div style={{ fontSize: 11, color: t.inkDim, marginBottom: 8 }}>{fr ? 'Mode' : 'الوضع'}</div>
             <div style={{ display: 'flex', gap: 4, padding: 4, background: t.cardElev, borderRadius: 10 }}>
               <SegButton active={!(settings.darkMode ?? false)} onClick={() => updateSettings({ darkMode: false })}>
                 ☀ {fr ? 'Clair' : 'فاتح'}
@@ -247,25 +247,24 @@ export const SettingsSection = ({
             </div>
           </div>
 
+          {/* Theme swatches — 3 color dots */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>
-              {fr ? 'Thème' : 'السمة'}
-            </div>
+            <div style={{ fontSize: 11, color: t.inkDim, marginBottom: 10 }}>{fr ? 'Thème' : 'السمة'}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
               {themes.map(theme => {
                 const isActive = settings.theme === theme.id;
                 return (
                   <button key={theme.id} onClick={() => updateSettings({ theme: theme.id as any })}
-                    style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                      padding: '12px 8px', borderRadius: 12, cursor: 'pointer',
-                      background: isActive ? `${t.accent}20` : t.cardElev,
-                      border: `1.5px solid ${isActive ? t.accent : t.line}`,
-                    }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: theme.bg, border: `2px solid ${theme.accent}` }}/>
-                    <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: isActive ? t.accent : t.inkMute }}>
+                    style={{ padding: 10, background: isActive ? `${t.accent}10` : t.cardElev, border: `1px solid ${isActive ? t.accent : t.line}`, borderRadius: 8, cursor: 'pointer', textAlign: 'left' }}>
+                    <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
+                      <div style={{ width: 16, height: 16, borderRadius: 4, background: theme.accent }}/>
+                      <div style={{ width: 16, height: 16, borderRadius: 4, background: theme.accentBright }}/>
+                      <div style={{ width: 16, height: 16, borderRadius: 4, background: theme.bg, border: `1px solid ${theme.accent}44` }}/>
+                    </div>
+                    <div style={{ fontSize: 11, color: isActive ? t.accent : t.ink, fontWeight: isActive ? 600 : 400 }}>
                       {fr ? theme.labelFr : theme.labelAr}
-                    </span>
+                    </div>
+                    {isActive && <div style={{ fontSize: 9, color: t.accent, letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 3 }}>{fr ? 'Actuel' : 'الحالي'}</div>}
                   </button>
                 );
               })}
@@ -302,6 +301,7 @@ export const SettingsSection = ({
             </div>
           </div>
         </div>
+        )} {/* end Appearance conditional */}
 
         {/* Accessibility */}
         <div style={{ ...card, gridColumn: '1 / -1' }}>
