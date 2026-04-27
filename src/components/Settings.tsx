@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UserData, UserSettings } from '../types';
 import { useT } from '../lib/theme';
 import { Icon, Icons, useIsNarrow } from './ui';
@@ -11,8 +11,59 @@ export const SettingsSection = ({
   const settings = userData.settings;
   const [saved, setSaved] = useState(false);
   const [activeSection, setActiveSection] = useState('profile');
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default');
   const importRef = useRef<HTMLInputElement>(null);
   const fr = lang === 'fr';
+
+  useEffect(() => {
+    if ('Notification' in window) setNotifPermission(Notification.permission);
+  }, []);
+
+  const sendPWANotification = async (title: string, body: string) => {
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, {
+        body,
+        icon: '/icon-192.png',
+        badge: '/favicon-96x96.png',
+        tag: 'mishkat-reminder',
+      });
+    } catch {
+      new Notification(title, { body, icon: '/icon-192.png' });
+    }
+  };
+
+  const handleNotifToggle = async (enable: boolean) => {
+    if (!enable) { updateSettings({ notifications: false }); return; }
+    if (!('Notification' in window)) return;
+    const perm = await Notification.requestPermission();
+    setNotifPermission(perm);
+    if (perm === 'granted') {
+      updateSettings({ notifications: true });
+      await sendPWANotification(
+        'Mishkat 🕌',
+        fr ? 'Les rappels quotidiens sont activés !' : 'تم تفعيل التذكيرات اليومية!'
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (!settings.notifications || !settings.dailyReminder || notifPermission !== 'granted') return;
+    const today = new Date().toISOString().split('T')[0];
+    const lastDate = localStorage.getItem('mishkat_last_notif_date');
+    if (lastDate === today) return;
+    const [hh, mm] = settings.dailyReminder.split(':').map(Number);
+    const now = new Date();
+    if (now.getHours() > hh || (now.getHours() === hh && now.getMinutes() >= mm)) {
+      localStorage.setItem('mishkat_last_notif_date', today);
+      sendPWANotification(
+        'Mishkat 🕌',
+        fr ? `C'est l'heure de votre révision du Coran !` : 'حان وقت مراجعة القرآن الكريم!'
+      );
+    }
+  }, [settings.notifications, settings.dailyReminder, notifPermission]);
 
   const NAV_SECTIONS = [
     { id: 'profile',       labelFr: 'Profil',          labelAr: 'الملف الشخصي' },
@@ -342,21 +393,48 @@ export const SettingsSection = ({
         </div>
         )} {/* end Accessibility conditional */}
 
-        {/* Notifications — placeholder, real logic in Phase 4 */}
+        {/* Notifications PWA */}
         {(activeSection === 'notifications' || narrow) && (
         <div style={card}>
           <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
             {fr ? 'Notifications' : 'التنبيهات'}
           </div>
+
+          {/* Permission status badge */}
+          {notifPermission === 'denied' && (
+            <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)', fontSize: 11, color: 'rgba(239,68,68,0.8)', marginBottom: 14 }}>
+              {fr ? '⚠ Notifications bloquées par le navigateur. Autorisez-les dans les paramètres du site.' : '⚠ الإشعارات محظورة. أتح الإذن من إعدادات الموقع.'}
+            </div>
+          )}
+
+          {/* Main toggle */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${t.lineSoft}` }}>
-            <span style={{ fontSize: 12, color: t.ink }}>{fr ? 'Rappels quotidiens' : 'تذكيرات يومية'}</span>
-            <Toggle value={settings.notifications} onChange={v => updateSettings({ notifications: v })}/>
+            <div>
+              <div style={{ fontSize: 12, color: t.ink }}>{fr ? 'Rappels quotidiens' : 'تذكيرات يومية'}</div>
+              <div style={{ fontSize: 10, color: t.inkMute, marginTop: 2 }}>
+                {notifPermission === 'granted' ? (fr ? '✓ Autorisées' : '✓ مسموح') : (fr ? 'Appuyez pour autoriser' : 'اضغط للسماح')}
+              </div>
+            </div>
+            <Toggle value={settings.notifications} onChange={handleNotifToggle}/>
           </div>
-          {settings.notifications && (
+
+          {/* Time picker */}
+          {settings.notifications && notifPermission === 'granted' && (
             <div style={{ marginTop: 14 }}>
               <div style={{ fontSize: 11, color: t.inkDim, marginBottom: 8 }}>{fr ? 'Heure du rappel' : 'وقت التذكير'}</div>
-              <input type="time" value={settings.dailyReminder} onChange={e => updateSettings({ dailyReminder: e.target.value })} style={inputStyle}/>
+              <input type="time" value={settings.dailyReminder}
+                onChange={e => updateSettings({ dailyReminder: e.target.value })}
+                style={inputStyle}/>
             </div>
+          )}
+
+          {/* Test notification button */}
+          {notifPermission === 'granted' && (
+            <button
+              onClick={() => sendPWANotification('Mishkat 🕌', fr ? 'Notification de test — tout fonctionne !' : 'إشعار تجريبي — كل شيء يعمل!')}
+              style={{ marginTop: 14, width: '100%', padding: '10px', borderRadius: 10, border: `1px solid ${t.line}`, background: t.cardElev, cursor: 'pointer', fontSize: 12, color: t.inkDim, fontWeight: 500 }}>
+              {fr ? 'Envoyer un test' : 'إرسال تجريبي'}
+            </button>
           )}
         </div>
         )} {/* end Notifications conditional */}
@@ -405,6 +483,33 @@ export const SettingsSection = ({
           </div>
         </div>
         )} {/* end data conditional */}
+
+        {/* À propos */}
+        {(activeSection === 'about' || narrow) && (
+        <div style={card}>
+          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 18 }}>
+            {fr ? 'À propos' : 'حول التطبيق'}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { label: fr ? 'Version' : 'الإصدار',         value: 'Mishkat v2.0' },
+              { label: fr ? 'Développé par' : 'المطوّر',    value: 'Rahima & hamda_wa_chakra' },
+              { label: fr ? 'Stack' : 'التقنية',            value: 'React · TypeScript · PWA' },
+              { label: fr ? 'Thème actif' : 'السمة الحالية',value: `${settings.theme} ${settings.darkMode ? '🌙' : '☀️'}` },
+            ].map(row => (
+              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: `1px solid ${t.lineSoft}`, fontSize: 12 }}>
+                <span style={{ color: t.inkDim }}>{row.label}</span>
+                <span style={{ color: t.ink, fontWeight: 500 }}>{row.value}</span>
+              </div>
+            ))}
+            <div style={{ marginTop: 4, padding: '14px 16px', borderRadius: 10, background: `${t.accent}08`, border: `1px solid ${t.line}`, textAlign: 'center' }}>
+              <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 18, color: t.accentBright, direction: 'rtl' }}>اقْرَأْ بِاسْمِ رَبِّكَ</div>
+              <div style={{ fontSize: 10, color: t.inkMute, marginTop: 6, fontStyle: 'italic' }}>Une lanterne pour la mémoire du cœur</div>
+            </div>
+          </div>
+        </div>
+        )} {/* end about conditional */}
+
       </div> {/* end repeat-auto-fit cards grid */}
 
         </div> {/* end content area */}
