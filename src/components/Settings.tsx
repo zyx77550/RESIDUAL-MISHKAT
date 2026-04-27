@@ -50,10 +50,10 @@ export const SettingsSection = ({
   };
 
   const themes = [
-    { id: 'gold',    labelFr: 'Or',      labelAr: 'ذهبي',    bg: '#0c0a08', accent: '#d4a64a' },
-    { id: 'sakura',  labelFr: 'Sakura',  labelAr: 'ساكورا',  bg: '#100a0d', accent: '#d96b7a' },
-    { id: 'azur',    labelFr: 'Azur',    labelAr: 'أزرق',    bg: '#080d14', accent: '#5b9bd5' },
-    { id: 'emerald', labelFr: 'Émeraude',labelAr: 'زمردي',   bg: '#08100d', accent: '#5fb088' },
+    { id: 'gold',    labelFr: 'Or',      labelAr: 'ذهبي',    bg: '#f8f3e9', accent: '#c8962a' },
+    { id: 'sakura',  labelFr: 'Sakura',  labelAr: 'ساكورا',  bg: '#fdf0f4', accent: '#c85068' },
+    { id: 'azur',    labelFr: 'Azur',    labelAr: 'أزرق',    bg: '#f0f5fa', accent: '#4580c0' },
+    { id: 'emerald', labelFr: 'Émeraude',labelAr: 'زمردي',   bg: '#f0f8f2', accent: '#4a9870' },
   ];
 
   const memorizedCount = userData.surahs.filter(s => s.status === 'memorized').length;

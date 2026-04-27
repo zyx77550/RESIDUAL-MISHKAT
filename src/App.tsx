@@ -223,8 +223,8 @@ export default function App() {
 
   if (!userData) {
     return (
-      <div style={{ width: '100vw', height: '100vh', background: '#0c0a08', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <LanternMark size={48} color="#d4a64a"/>
+      <div style={{ width: '100vw', height: '100vh', background: '#f8f3e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <LanternMark size={48} color="#c8962a"/>
       </div>
     );
   }
@@ -246,11 +246,11 @@ export default function App() {
       {/* Full-screen layout */}
       <div style={{ width: '100vw', height: '100vh', background: t.bg, display: 'flex', overflow: 'hidden', fontFamily: 'Inter, sans-serif', color: t.ink, position: 'relative' }}>
         {/* Geometric background pattern */}
-        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.025, pointerEvents: 'none', zIndex: 0 }}>
+        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.06, pointerEvents: 'none', zIndex: 0 }}>
           <defs>
             <pattern id="app-pat" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
-              <rect x="20" y="20" width="40" height="40" fill="none" stroke={t.accent} strokeWidth="0.5"/>
-              <rect x="20" y="20" width="40" height="40" fill="none" stroke={t.accent} strokeWidth="0.5" transform="rotate(45 40 40)"/>
+              <rect x="20" y="20" width="40" height="40" fill="none" stroke={t.accent} strokeWidth="0.7"/>
+              <rect x="20" y="20" width="40" height="40" fill="none" stroke={t.accent} strokeWidth="0.7" transform="rotate(45 40 40)"/>
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#app-pat)"/>
