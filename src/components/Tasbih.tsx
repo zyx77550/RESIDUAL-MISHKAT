@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { UserData } from '../types';
 import { useT } from '../lib/theme';
 import { Icon, Icons, useIsNarrow } from './ui';
+import { playTasbihTap } from '../lib/sounds';
 
 const DHIKR: { ar: string; tr: string; fr: string; target: number }[] = [
   { ar: 'سُبْحَانَ اللهِ',         tr: 'Subhânallah',     fr: 'Gloire à Allah',              target: 33  },
@@ -34,6 +35,7 @@ export const TasbihSection = ({
 
   const increment = useCallback(() => {
     vibrate();
+    playTasbihTap();
     if (count >= target) {
       setCount(0); setDone(false); return;
     }

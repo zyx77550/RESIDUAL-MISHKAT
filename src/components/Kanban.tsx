@@ -2,6 +2,7 @@ import React from 'react';
 import { Surah, UserData } from '../types';
 import { useT } from '../lib/theme';
 import { useIsNarrow } from './ui';
+import { playKanbanAdvance } from '../lib/sounds';
 
 const COLUMN_CONFIG_BASE = [
   { id: 'not_started' as const, labelFr: 'À mémoriser',    labelAr: 'لم يبدأ',   color: null as null | string },
@@ -42,6 +43,7 @@ export const KanbanSection = ({
     const idx = order.indexOf(surah.status);
     const next = order[(idx + 1) % order.length];
     updateStatus(surah.id, next);
+    playKanbanAdvance();
   };
 
   return (

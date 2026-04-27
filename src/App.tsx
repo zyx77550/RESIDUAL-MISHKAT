@@ -18,6 +18,7 @@ import { UserData, Badge, generateAllSurahs, checkLoginStreak } from './types';
 import { checkAndUnlockBadges, celebrateBadgeUnlock } from './lib/badgeEngine';
 import { supabase, loadUserData, saveUserData, migrateLocalToSupabase, isAdminEmail } from './lib/supabase';
 import { AuthScreen } from './components/Auth';
+import { setSoundEnabled, playBadgeUnlock } from './lib/sounds';
 
 // Map old theme name → new token key
 const mapTheme = (old?: string): string => {
@@ -56,6 +57,7 @@ export default function App() {
       if (newBadges.length > 0) {
         const updated = { ...next, badges: [...next.badges, ...newBadges] };
         setNewlyUnlocked(newBadges);
+        playBadgeUnlock();
         newBadges.forEach((badge, i) => {
           setTimeout(() => celebrateBadgeUnlock(badge), i * 800);
         });
@@ -263,6 +265,8 @@ export default function App() {
     // uiZoom on the app root
     const appRoot = document.getElementById('mishkat-app-root');
     if (appRoot) appRoot.style.zoom = `${s.uiZoom ?? 100}%`;
+
+    setSoundEnabled(s.soundEffects ?? true);
   }, [userData?.settings]);
 
   const applyUpdate = () => {
