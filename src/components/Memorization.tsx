@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Surah, UserData } from '../types';
 import { useT } from '../lib/theme';
-import { Icon, Icons } from './ui';
+import { Icon, Icons, useIsNarrow } from './ui';
 
 type StatusFilter = 'all' | Surah['status'] | 'juz_amma' | 'tabarak';
 
@@ -9,6 +9,7 @@ export const MemorizationSection = ({
   userData, setUserData, lang
 }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const t = useT();
+  const narrow = useIsNarrow();
 
   const STATUS_CONFIG = {
     not_started: { color: t.inkMute,  labelFr: 'Non commencé', labelAr: 'لم تبدأ' },
@@ -104,7 +105,7 @@ export const MemorizationSection = ({
       </div>
 
       {/* ── 4 stat tiles ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10 }}>
         {[
           { label: fr ? 'Mémorisées' : 'محفوظة',   value: memorizedCount,  sub: '/114' },
           { label: fr ? 'En cours'   : 'قيد الحفظ', value: inProgressCount, sub: fr ? 'sourates' : 'سور' },
@@ -122,7 +123,7 @@ export const MemorizationSection = ({
       </div>
 
       {/* ── Filter bar ── */}
-      <div style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '10px 14px', background: t.card, border: `1px solid ${t.line}`, borderRadius: 10 }}>
+      <div style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '10px 14px', background: t.card, border: `1px solid ${t.line}`, borderRadius: 10, overflowX: narrow ? 'auto' : undefined }}>
         <span style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', flexShrink: 0, marginRight: 6 }}>
           {fr ? 'Filtre' : 'تصفية'}
         </span>
