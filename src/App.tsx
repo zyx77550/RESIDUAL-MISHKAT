@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ThemeContext, THEMES, DARK_THEMES, Theme } from './lib/theme';
 import { AppSidebar, LanternMark, useIsMobile } from './components/ui';
 import { Dashboard } from './components/Dashboard';
@@ -43,6 +43,10 @@ export default function App() {
   const themeMap = isDark ? DARK_THEMES : THEMES;
   const theme: Theme = themeMap[mapTheme(userData?.settings?.theme)] ?? themeMap.gold;
   const isMobile = useIsMobile();
+
+  const userDataRef = useRef(userData);
+  const supaDirtyRef = useRef(false);
+  useEffect(() => { userDataRef.current = userData; }, [userData]);
 
   const updateUserDataWithBadges = useCallback((updater: UserData | ((prev: UserData) => UserData)) => {
     setUserData(prev => {
@@ -187,13 +191,26 @@ export default function App() {
     load();
   }, []);
 
-  // ── Save ─────────────────────────────────────────────────────────────────
+  // ── Save local (immédiat) ────────────────────────────────────────────────
   useEffect(() => {
-    if (userData) {
-      localforage.setItem('mishkat_user_data', userData).catch(() => {});
-      if (supabaseUserId) saveUserData(supabaseUserId, userData).catch(() => {});
-    }
+    if (!userData) return;
+    localforage.setItem('mishkat_user_data', userData).catch(() => {});
+    if (supabaseUserId) supaDirtyRef.current = true;
   }, [userData, supabaseUserId]);
+
+  // ── Save Supabase (intervalle) ───────────────────────────────────────────
+  useEffect(() => {
+    if (!supabaseUserId) return;
+    const sec = userData?.settings?.autoSaveInterval ?? 60;
+    if (sec === 0) return; // sauvegarde manuelle uniquement
+    const id = setInterval(() => {
+      if (supaDirtyRef.current && userDataRef.current) {
+        saveUserData(supabaseUserId, userDataRef.current).catch(() => {});
+        supaDirtyRef.current = false;
+      }
+    }, sec * 1000);
+    return () => clearInterval(id);
+  }, [supabaseUserId, userData?.settings?.autoSaveInterval]);
 
   // ── SW update ────────────────────────────────────────────────────────────
   useEffect(() => {

@@ -45,7 +45,7 @@ export const KanbanSection = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 20, paddingBottom: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', ...(narrow ? {} : { height: '100%' }), gap: 20, paddingBottom: 16 }}>
       <div>
         <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, color: t.ink }}>
           {fr ? 'Tableau de Suivi' : 'جدول المتابعة'}
@@ -57,11 +57,9 @@ export const KanbanSection = ({
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: narrow ? 'repeat(2, minmax(160px, 1fr))' : 'repeat(4, 1fr)',
+        gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
         gap: 10,
-        flex: 1,
-        overflowX: narrow ? 'auto' : undefined,
-        minHeight: 0,
+        ...(narrow ? {} : { flex: 1, minHeight: 0 }),
       }}>
         {COLUMN_CONFIG.map(col => {
           const surahs = userData.surahs.filter(s => s.status === col.id);

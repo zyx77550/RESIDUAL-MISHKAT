@@ -431,6 +431,24 @@ export const SettingsSection = ({
             {fr ? 'Données' : 'البيانات'}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+            {/* Auto-save interval */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderRadius: 10, background: t.cardElev, border: `1px solid ${t.line}` }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: t.ink }}>{fr ? 'Sauvegarde automatique' : 'الحفظ التلقائي'}</div>
+                <div style={{ fontSize: 11, color: t.inkMute, marginTop: 2 }}>{fr ? 'Fréquence de sync cloud' : 'تردد المزامنة'}</div>
+              </div>
+              <select
+                value={userData.settings.autoSaveInterval ?? 60}
+                onChange={e => updateSettings({ autoSaveInterval: Number(e.target.value) as 30 | 60 | 300 | 0 })}
+                style={{ padding: '6px 10px', background: t.card, border: `1px solid ${t.line}`, borderRadius: 8, color: t.ink, fontSize: 12, outline: 'none', cursor: 'pointer' }}>
+                <option value={30}>{fr ? '30 secondes' : '٣٠ ثانية'}</option>
+                <option value={60}>{fr ? '1 minute' : 'دقيقة'}</option>
+                <option value={300}>{fr ? '5 minutes' : '٥ دقائق'}</option>
+                <option value={0}>{fr ? 'Manuel' : 'يدوي'}</option>
+              </select>
+            </div>
+
             <button onClick={exportData}
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderRadius: 10, background: t.cardElev, border: `1px solid ${t.line}`, cursor: 'pointer', color: t.ink }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
