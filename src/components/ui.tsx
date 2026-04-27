@@ -209,6 +209,8 @@ interface SidebarProps {
   streak?: number;
   isAdmin?: boolean;
   lang?: string;
+  open?: boolean;
+  onClose?: () => void;
 }
 
 const MENU_ITEMS = [
@@ -225,7 +227,7 @@ const MENU_ITEMS = [
   { id: 'settings',     labelFr: 'Réglages',         icon: 'settings'  },
 ];
 
-export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, lang = 'fr' }: SidebarProps) => {
+export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, lang = 'fr', open: openProp, onClose }: SidebarProps) => {
   const t = useT();
   const items = [
     ...MENU_ITEMS,
@@ -233,7 +235,10 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
   ];
 
   const isMobile = useIsMobile();
-  const [open, setOpen] = useState(true);
+  const [openLocal, setOpenLocal] = useState(true);
+  const controlled = openProp !== undefined;
+  const open = controlled ? openProp! : openLocal;
+  const handleClose = () => { if (controlled) onClose?.(); else setOpenLocal(false); };
 
   if (isMobile) {
     return (
@@ -266,30 +271,8 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
     );
   }
 
-  /* ── Fully hidden — tiny edge tab ── */
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        title="Ouvrir la navigation"
-        style={{
-          position: 'fixed', left: 0, top: '50%', transform: 'translateY(-50%)',
-          zIndex: 200, width: 16, height: 56,
-          borderRadius: '0 8px 8px 0',
-          background: t.bgSoft,
-          border: `1px solid ${t.line}`, borderLeft: 'none',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', color: t.inkMute,
-          boxShadow: '2px 0 10px rgba(0,0,0,0.07)',
-          padding: 0,
-        }}
-      >
-        <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
-          <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-    );
-  }
+  /* ── Fully hidden — edge tab rendered by parent in controlled mode ── */
+  if (!open) return null;
 
   /* ── Full sidebar ── */
   return (
@@ -304,7 +287,7 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 6px' }}>
         <LanternMark size={30} color={t.accent}/>
         <div style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 12, color: t.ink, letterSpacing: '0.32em', textTransform: 'uppercase', flex: 1 }}>Mishkat</div>
-        <button onClick={() => setOpen(false)}
+        <button onClick={handleClose}
           style={{ width: 26, height: 26, borderRadius: 6, background: t.card, border: `1px solid ${t.line}`, color: t.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>

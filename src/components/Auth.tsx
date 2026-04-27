@@ -56,24 +56,23 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
         <rect width="100%" height="100%" fill="url(#auth-pat)"/>
       </svg>
 
-      {/* Left — hero */}
-      <div className="hidden md:flex" style={{ flex: 1, padding: '60px 50px', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', borderRight: `1px solid ${t.line}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <LanternMark size={42} color={t.accent}/>
-          <div>
-            <div style={{ fontFamily: 'Fraunces, serif', fontSize: 22, color: t.ink, fontWeight: 300 }}>Mishkat</div>
-            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.32em', textTransform: 'uppercase' }}>مِشْكَاة · حِفْظ القرآن</div>
+      {/* Left — image hero */}
+      <div className="hidden md:flex" style={{ flex: 1, position: 'relative', overflow: 'hidden', borderRight: `1px solid ${t.line}` }}>
+        {/* Background image */}
+        <img src="/login-bg.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}/>
+        {/* Light overlay for readability */}
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.18)' }}/>
+        {/* Content overlay */}
+        <div style={{ position: 'relative', width: '100%', padding: '60px 50px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <LanternMark size={42} color={t.accent}/>
+            <div>
+              <div style={{ fontFamily: 'Fraunces, serif', fontSize: 22, color: t.ink, fontWeight: 300 }}>Mishkat</div>
+              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.32em', textTransform: 'uppercase' }}>مِشْكَاة · حِفْظ القرآن</div>
+            </div>
           </div>
-        </div>
-        <div style={{ position: 'relative', maxWidth: 480 }}>
-          <svg width="420" height="420" viewBox="0 0 500 500" fill="none" style={{ position: 'absolute', left: -60, top: -60, opacity: 0.35, pointerEvents: 'none' }}>
-            <circle cx="250" cy="250" r="200" stroke={t.accent} strokeWidth="0.4"/>
-            <circle cx="250" cy="250" r="160" stroke={t.accent} strokeWidth="0.4"/>
-            <circle cx="250" cy="250" r="120" stroke={t.accent} strokeWidth="0.4"/>
-            <path d="M 250 50 L 290 130 L 380 130 L 320 190 L 350 280 L 250 220 L 150 280 L 180 190 L 120 130 L 210 130 Z" fill={t.accent} opacity="0.2"/>
-          </svg>
-          <div style={{ position: 'relative' }}>
-            <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 30, color: t.ink, lineHeight: 1.8, direction: 'rtl', textAlign: 'right' }}>
+          <div>
+            <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 30, color: t.ink, lineHeight: 1.8, direction: 'rtl', textAlign: 'right', textShadow: '0 1px 8px rgba(255,255,255,0.6)' }}>
               اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ
             </div>
             <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 15, color: t.inkDim, marginTop: 14, lineHeight: 1.6 }}>
@@ -83,9 +82,9 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
               Al-ʿAlaq · 96:1
             </div>
           </div>
-        </div>
-        <div style={{ fontSize: 10.5, color: t.inkMute, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-          Une lanterne pour la mémoire du cœur
+          <div style={{ fontSize: 10.5, color: t.inkMute, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+            Une lanterne pour la mémoire du cœur
+          </div>
         </div>
       </div>
 

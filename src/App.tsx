@@ -39,6 +39,7 @@ export default function App() {
   const [showAuth,  setShowAuth]    = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [localOnly, setLocalOnly]   = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const isDark = userData?.settings?.darkMode ?? false;
@@ -333,14 +334,16 @@ export default function App() {
           <rect width="100%" height="100%" fill="url(#app-pat)"/>
         </svg>
 
-        {/* Sidebar — desktop */}
-        <div className="hidden md:block" style={{ position: 'relative', zIndex: 1, flexShrink: 0 }}>
+        {/* Sidebar — desktop (controlled: edge tab button at root level below) */}
+        <div className="hidden md:block" style={{ position: 'relative', zIndex: 1, flexShrink: 0, width: sidebarOpen ? undefined : 0, overflow: 'hidden', transition: 'width 0.2s ease' }}>
           <AppSidebar
             active={activeTab}
             onNavigate={setActiveTab}
             streak={userData.loginStreak}
             isAdmin={userData.settings?.isAdmin}
             lang={lang}
+            open={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
           />
         </div>
 
@@ -370,6 +373,30 @@ export default function App() {
         <div className="md:hidden" style={{ position: 'relative', zIndex: 1 }}>
           <AppSidebar active={activeTab} onNavigate={setActiveTab} streak={userData.loginStreak} isAdmin={userData.settings?.isAdmin} lang={lang}/>
         </div>
+
+        {/* Sidebar edge-reopen tab — desktop only, rendered at root level to avoid z-index burial */}
+        {!sidebarOpen && (
+          <button
+            className="hidden md:flex"
+            onClick={() => setSidebarOpen(true)}
+            title="Ouvrir la navigation"
+            style={{
+              position: 'fixed', left: 0, top: '50%', transform: 'translateY(-50%)',
+              zIndex: 9999, width: 18, height: 60,
+              borderRadius: '0 10px 10px 0',
+              background: t.bgSoft,
+              border: `1px solid ${t.line}`, borderLeft: 'none',
+              alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: t.inkMute,
+              boxShadow: '3px 0 12px rgba(0,0,0,0.1)',
+              padding: 0,
+            }}
+          >
+            <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M1 1l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Onboarding modal */}

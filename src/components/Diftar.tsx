@@ -1160,9 +1160,29 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   // ──────────────────────────────────
   if (!activePageId) {
     const TYPE_COLORS: Record<string, string> = {
-      revision: t.accent, tafsir: '#5b9bd5', dates: t.inkDim,
-      objectives: t.accent, vocab: '#5fb088', dua: '#d96b7a',
-      notes: '#e89460', schema: '#e89460', tajweed: '#a78bdb', custom: t.inkDim,
+      tajweed:    '#8B2635',
+      revision:   '#E63946',
+      tafsir:     '#2D6A4F',
+      dates:      '#7209B7',
+      objectives: '#4361EE',
+      vocab:      '#D4AF37',
+      dua:        '#03045E',
+      notes:      '#4A4E69',
+      schema:     '#FB8500',
+      custom:     '#B5838D',
+    };
+
+    const CARD_IMAGES: Record<string, string> = {
+      tajweed:    '/diftar-cards/tajweed.png',
+      revision:   '/diftar-cards/revision.png',
+      tafsir:     '/diftar-cards/tafsir.png',
+      dates:      '/diftar-cards/planning.png',
+      objectives: '/diftar-cards/objectif.png',
+      vocab:      '/diftar-cards/vocab.png',
+      dua:        '/diftar-cards/doua.png',
+      notes:      '/diftar-cards/notes.png',
+      schema:     '/diftar-cards/schema.png',
+      custom:     '/diftar-cards/libre.png',
     };
 
     const FILTER_LABELS = fr
@@ -1240,56 +1260,103 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'repeat(3, 1fr)', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: narrow ? 20 : 32 }}>
             {filteredPages.map(page => {
               const c = TYPE_COLORS[page.type] || t.accent;
               const tpl = PAGE_TEMPLATES.find(tp => tp.type === page.type);
+              const imgSrc = CARD_IMAGES[page.type] || '';
               return (
-                <div key={page.id}
-                  onClick={() => setActivePageId(page.id)}
-                  style={{ background: t.card, border: `1px solid ${t.line}`, borderRadius: 10, overflow: 'hidden', minHeight: 220, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}>
-                  {/* Preview area */}
-                  <div style={{ flex: 1, position: 'relative', padding: 16, background: `linear-gradient(135deg, ${c}10, transparent)`, borderBottom: `1px solid ${t.line}` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }}/>
-                      <span style={{ fontSize: 9, color: c, letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 600 }}>
-                        {tpl?.[fr ? 'labelFr' : 'labelAr'] || page.type}
-                      </span>
-                    </div>
-                    {/* Fake handwritten lines */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, opacity: 0.5 }}>
-                      {[80, 92, 70, 88, 65, 78].map((w, k) => (
-                        <div key={k} style={{ height: 1.5, background: t.inkMute, width: `${w}%`, borderRadius: 1 }}/>
-                      ))}
-                    </div>
-                    {page.type === 'schema' && (
-                      <svg style={{ position: 'absolute', bottom: 10, right: 10 }} width="50" height="40" fill="none" stroke={c} strokeWidth="1" opacity="0.6">
-                        <circle cx="10" cy="10" r="6"/><circle cx="40" cy="10" r="6"/><circle cx="25" cy="32" r="6"/>
-                        <line x1="10" y1="16" x2="25" y2="26"/><line x1="40" y1="16" x2="25" y2="26"/><line x1="16" y1="10" x2="34" y2="10"/>
-                      </svg>
-                    )}
+                <div key={page.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'all 0.4s ease' }}>
+
+                  {/* Top label */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12, border: `1px solid ${t.line}`, padding: '3px 12px', borderRadius: 20, background: t.card, color: t.inkMute, flexShrink: 0 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: c, flexShrink: 0 }}/>
+                    {tpl?.[fr ? 'labelFr' : 'labelAr'] || page.type}
                   </div>
-                  {/* Footer */}
-                  <div style={{ padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12.5, color: t.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{page.title}</div>
-                      <div style={{ fontSize: 10, color: t.inkMute, marginTop: 2 }}>{fr ? 'Modifié ' : 'عُدِّل '}{getTimeAgo(page.lastSaved)}</div>
+
+                  {/* Notebook card */}
+                  <div style={{ position: 'relative', borderRadius: '4px 16px 16px 4px', overflow: 'hidden', border: `1px solid ${t.line}`, background: t.card, aspectRatio: '3 / 4.2', width: '100%', display: 'flex', boxShadow: '0 8px 25px rgba(0,0,0,0.06)', transition: 'transform 0.3s cubic-bezier(0.2, 1, 0.3, 1), box-shadow 0.3s ease', cursor: 'pointer' }}
+                    onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = 'translateY(-5px)'; el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.1)'; }}
+                    onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = ''; el.style.boxShadow = '0 8px 25px rgba(0,0,0,0.06)'; }}
+                  >
+                    {/* Spine */}
+                    <div style={{ width: 18, background: c, flexShrink: 0, boxShadow: 'inset -2px 0 5px rgba(0,0,0,0.1)', position: 'relative' }}>
+                      <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-around', padding: '35px 0' }}>
+                        {[0,1,2,3,4].map(i => (
+                          <div key={i} style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,0.4)', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)' }}/>
+                        ))}
+                      </div>
                     </div>
+
+                    {/* Body */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={() => setActivePageId(page.id)}>
+                      {/* Cover image */}
+                      <div style={{ flex: 1, overflow: 'hidden', background: `${c}10` }}>
+                        <img src={imgSrc} alt={page.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
+                      </div>
+
+                      {/* Footer — title input inside the book */}
+                      <div style={{ padding: '12px 12px', background: t.card, borderTop: `2px solid ${c}25`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
+                          <input
+                            id={`diftar-title-${page.id}`}
+                            value={page.title}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => renamePage(page.id, e.target.value)}
+                            style={{ width: '100%', border: 'none', borderBottom: '1px solid transparent', background: 'transparent', fontFamily: 'Fraunces, serif', fontSize: narrow ? 12 : 14, fontWeight: 600, fontStyle: 'italic', color: c, outline: 'none', padding: 0, cursor: 'text', transition: 'border-color 0.2s' }}
+                            onFocus={e => { (e.target as HTMLInputElement).style.borderBottomColor = `${c}50`; }}
+                            onBlur={e => { (e.target as HTMLInputElement).style.borderBottomColor = 'transparent'; }}
+                          />
+                          <div style={{ fontSize: 9.5, color: t.inkMute, marginTop: 2 }}>
+                            {fr ? 'Modifié ' : 'عُدِّل '}{getTimeAgo(page.lastSaved)}
+                          </div>
+                        </div>
+                        <span style={{ fontSize: 15, opacity: 0.35, flexShrink: 0 }}>{tpl?.icon}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action buttons below the card */}
+                  <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center', gap: 8, width: '100%' }}>
+                    <button onClick={() => setActivePageId(page.id)}
+                      style={{ background: 'transparent', border: '1px solid rgba(45,106,79,0.2)', padding: '5px 14px', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#2D6A4F', cursor: 'pointer', borderRadius: 20, transition: 'all 0.2s' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(45,106,79,0.07)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(45,106,79,0.4)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(45,106,79,0.2)'; }}
+                    >
+                      {fr ? 'Entrer' : 'دخول'}
+                    </button>
+                    <button
+                      onClick={() => { const el = document.getElementById(`diftar-title-${page.id}`) as HTMLInputElement | null; el?.focus(); el?.select(); }}
+                      style={{ background: 'transparent', border: 'none', padding: '4px 8px', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: t.inkMute, cursor: 'pointer', borderRadius: 4, transition: 'color 0.15s' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = t.ink; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = t.inkMute; }}
+                    >
+                      {fr ? 'Renommer' : 'إعادة تسمية'}
+                    </button>
                     <button onClick={e => { e.stopPropagation(); setShowConfirmDelete(page.id); }}
-                      style={{ padding: 6, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
-                      <Icon d={Icons.more} size={14} color={t.inkMute}/>
+                      style={{ background: 'transparent', border: 'none', padding: '4px 8px', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: t.inkMute, cursor: 'pointer', borderRadius: 4, transition: 'all 0.15s' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#8B2635'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(139,38,53,0.05)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = t.inkMute; (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                    >
+                      {fr ? 'Supprimer' : 'حذف'}
                     </button>
                   </div>
                 </div>
               );
             })}
+
             {/* Add card */}
-            <div onClick={() => setShowTemplateModal(true)}
-              style={{ background: 'transparent', border: `1.5px dashed ${t.line}`, borderRadius: 10, minHeight: 220, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: t.inkDim, cursor: 'pointer' }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: t.cardElev, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon d={Icons.plus} size={18} color={t.accent}/>
+            <div onClick={() => setShowTemplateModal(true)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ width: 7, height: 7, opacity: 0, marginBottom: 12 }}/>
+              <div style={{ background: 'transparent', border: `1.5px dashed ${t.line}`, borderRadius: '4px 16px 16px 4px', aspectRatio: '3 / 4.2', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: t.inkDim, cursor: 'pointer', transition: 'border-color 0.2s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = t.accent; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = t.line; }}
+              >
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: t.cardElev, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon d={Icons.plus} size={18} color={t.accent}/>
+                </div>
+                <span style={{ fontSize: 12 }}>{fr ? 'Nouvelle page' : 'صفحة جديدة'}</span>
               </div>
-              <span style={{ fontSize: 12 }}>{fr ? 'Nouvelle page' : 'صفحة جديدة'}</span>
             </div>
           </div>
         )}
