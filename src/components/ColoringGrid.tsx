@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserData } from '../types';
 import { useT } from '../lib/theme';
+import { useIsNarrow } from './ui';
 import confetti from 'canvas-confetti';
 
 const PALETTE_GROUPS = [
@@ -31,6 +32,7 @@ export const ColoringGrid = ({
   userData, setUserData, lang
 }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const t = useT();
+  const narrow = useIsNarrow();
   const [selectedColor, setSelectedColor] = useState('#8B2635');
   const [filterJuz, setFilterJuz] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'grid' | 'heart'>('grid');
@@ -150,7 +152,7 @@ export const ColoringGrid = ({
 
       {/* ── Grid tab: 2-column layout ── */}
       {activeTab === 'grid' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : '1fr 220px', gap: 14, direction: narrow ? 'ltr' : undefined }}>
 
           {/* Left: surah grid */}
           <div style={{ ...card, padding: '16px 18px' }}>

@@ -185,6 +185,21 @@ export const SettingsSection = ({
             {fr ? 'Apparence' : 'المظهر'}
           </div>
 
+          {/* Dark / Light mode toggle */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+              {fr ? 'Mode' : 'الوضع'}
+            </div>
+            <div style={{ display: 'flex', gap: 4, padding: 4, background: t.cardElev, borderRadius: 10 }}>
+              <SegButton active={!(settings.darkMode ?? false)} onClick={() => updateSettings({ darkMode: false })}>
+                ☀ {fr ? 'Clair' : 'فاتح'}
+              </SegButton>
+              <SegButton active={settings.darkMode === true} onClick={() => updateSettings({ darkMode: true })}>
+                ☾ {fr ? 'Sombre' : 'داكن'}
+              </SegButton>
+            </div>
+          </div>
+
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>
               {fr ? 'Thème' : 'السمة'}

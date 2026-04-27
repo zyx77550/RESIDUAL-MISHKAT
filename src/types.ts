@@ -73,6 +73,7 @@ export interface UserSettings {
   colorBlindMode?: 'none' | 'deuteranopia' | 'protanopia' | 'tritanopia';
   city?: string;
   settingsVersion?: number;
+  darkMode?: boolean;
 }
 
 export interface Goal {

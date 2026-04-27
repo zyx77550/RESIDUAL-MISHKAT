@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ThemeContext, THEMES, Theme } from './lib/theme';
-import { AppSidebar, LanternMark } from './components/ui';
+import { ThemeContext, THEMES, DARK_THEMES, Theme } from './lib/theme';
+import { AppSidebar, LanternMark, useIsMobile } from './components/ui';
 import { Dashboard } from './components/Dashboard';
 import { Diftar } from './components/Diftar';
 import { ColoringGrid } from './components/ColoringGrid';
@@ -39,7 +39,10 @@ export default function App() {
   const [localOnly, setLocalOnly]   = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  const theme: Theme = THEMES[mapTheme(userData?.settings?.theme)] ?? THEMES.gold;
+  const isDark = userData?.settings?.darkMode ?? false;
+  const themeMap = isDark ? DARK_THEMES : THEMES;
+  const theme: Theme = themeMap[mapTheme(userData?.settings?.theme)] ?? themeMap.gold;
+  const isMobile = useIsMobile();
 
   const updateUserDataWithBadges = useCallback((updater: UserData | ((prev: UserData) => UserData)) => {
     setUserData(prev => {
@@ -223,8 +226,8 @@ export default function App() {
 
   if (!userData) {
     return (
-      <div style={{ width: '100vw', height: '100vh', background: '#f8f3e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <LanternMark size={48} color="#c8962a"/>
+      <div style={{ width: '100vw', height: '100vh', background: isDark ? '#0c0a08' : '#f8f3e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <LanternMark size={48} color={isDark ? '#d4a64a' : '#c8962a'}/>
       </div>
     );
   }
@@ -274,7 +277,7 @@ export default function App() {
           {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang}/>}
           {/* All other sections get consistent padding */}
           {!['dashboard','diftar'].includes(activeTab) && (
-            <div style={{ flex: 1, padding: '26px 34px 36px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <div style={{ flex: 1, padding: isMobile ? '16px 14px 100px' : '26px 28px 36px', display: 'flex', flexDirection: 'column', gap: 0 }}>
               {activeTab === 'coloring'     && <ColoringGrid {...commonProps}/>}
               {activeTab === 'goals'        && <GoalsSection {...commonProps}/>}
               {activeTab === 'tasbih'       && <TasbihSection {...commonProps}/>}

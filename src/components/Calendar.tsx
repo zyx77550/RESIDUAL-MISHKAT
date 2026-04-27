@@ -6,7 +6,7 @@ import {
 import { fr as frLocale, ar as arLocale } from 'date-fns/locale';
 import { UserData } from '../types';
 import { useT } from '../lib/theme';
-import { Icon, Icons } from './ui';
+import { Icon, Icons, useIsNarrow } from './ui';
 
 const PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as const;
 type Prayer = typeof PRAYERS[number];
@@ -15,6 +15,7 @@ export const CalendarSection = ({
   userData, setUserData, lang
 }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const t = useT();
+  const narrow = useIsNarrow();
   const [currentDate, setCurrentDate] = useState(new Date());
   const fr = lang === 'fr';
 
@@ -113,7 +114,7 @@ export const CalendarSection = ({
       </div>
 
       {/* ── 2-column grid ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : '2fr 1fr', gap: 14 }}>
 
         {/* ── LEFT : Calendar card ── */}
         <div style={{ ...card, padding: '14px 14px 10px' }}>

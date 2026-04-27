@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { UserData } from '../types';
 import { useT } from '../lib/theme';
-import { Icon, Icons } from './ui';
+import { Icon, Icons, useIsNarrow } from './ui';
 
 interface PrayerTime { name: string; nameAr: string; time: string; }
 
@@ -64,6 +64,7 @@ const Ring = ({ pct, size = 100, stroke = 5, color }: { pct: number; size?: numb
 
 export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; lang: string; onNavigate?: (section: string) => void }) => {
   const t = useT();
+  const narrow = useIsNarrow();
   const fr = lang === 'fr';
 
   const memorizedCount  = userData.surahs.filter(s => s.status === 'memorized').length;
@@ -124,7 +125,7 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0, height: '100%', overflowY: 'auto' }} className="no-scrollbar">
-      <div style={{ padding: '26px 34px 24px', display: 'flex', flexDirection: 'column', gap: 20, minHeight: '100%' }}>
+      <div style={{ padding: narrow ? '16px 14px 100px' : '26px 28px 24px', display: 'flex', flexDirection: 'column', gap: 20, minHeight: '100%' }}>
 
         {/* ── Header ─────────────────────────────────────── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
@@ -152,7 +153,7 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
         </div>
 
         {/* ── Stats tiles row ────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10 }}>
           {[
             { icon: Icons.flame,    value: streak,                   label: fr ? 'Jours de suite'   : 'يوم متواصل',  color: t.accent },
             { icon: Icons.book,     value: totalVersets,             label: fr ? 'Versets mémorisés' : 'آية محفوظة',  color: t.accent },
@@ -172,7 +173,7 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
         </div>
 
         {/* ── Main 2-column grid ─────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(0,2fr) minmax(0,1fr)', gap: 14 }}>
 
           {/* ── LEFT COLUMN ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

@@ -233,6 +233,7 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
   ];
 
   const isMobile = useIsMobile();
+  const [open, setOpen] = useState(true);
 
   if (isMobile) {
     return (
@@ -265,6 +266,38 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
     );
   }
 
+  /* ── Collapsed strip ── */
+  if (!open) {
+    return (
+      <aside style={{
+        width: 52, padding: '16px 8px',
+        background: t.bgSoft, borderRight: `1px solid ${t.line}`,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+        flexShrink: 0, height: '100%', overflow: 'hidden',
+      }}>
+        <button onClick={() => setOpen(true)}
+          style={{ width: 34, height: 34, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, color: t.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginBottom: 8 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        {items.map(item => {
+          const on = item.id === active;
+          return (
+            <button key={item.id} onClick={() => { onNavigate(item.id); setOpen(true); }}
+              style={{
+                width: 34, height: 34, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                background: on ? `${t.accent}18` : 'transparent',
+                border: on ? `1px solid ${t.accent}44` : '1px solid transparent',
+                color: on ? t.accent : t.inkMute,
+              }}>
+              <Icon d={(Icons as Record<string, React.ReactNode>)[item.icon]} size={15}/>
+            </button>
+          );
+        })}
+      </aside>
+    );
+  }
+
+  /* ── Full sidebar ── */
   return (
     <aside style={{
       width: 220, padding: '20px 12px',
@@ -273,10 +306,14 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
       display: 'flex', flexDirection: 'column', gap: 18,
       flexShrink: 0, height: '100%', overflow: 'hidden',
     }}>
-      {/* Logo */}
+      {/* Logo + close button */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 6px' }}>
         <LanternMark size={30} color={t.accent}/>
-        <div style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 12, color: t.ink, letterSpacing: '0.32em', textTransform: 'uppercase' }}>Mishkat</div>
+        <div style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 12, color: t.ink, letterSpacing: '0.32em', textTransform: 'uppercase', flex: 1 }}>Mishkat</div>
+        <button onClick={() => setOpen(false)}
+          style={{ width: 26, height: 26, borderRadius: 6, background: t.card, border: `1px solid ${t.line}`, color: t.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
 
       {/* Streak chip */}
@@ -398,4 +435,15 @@ export const useIsMobile = () => {
     return () => window.removeEventListener('resize', check);
   }, []);
   return mobile;
+};
+
+// ── useIsNarrow — covers mobile + small tablet (< 900px) ─────────────────────
+export const useIsNarrow = () => {
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 900 : false);
+  useEffect(() => {
+    const check = () => setNarrow(window.innerWidth < 900);
+    window.addEventListener('resize', check, { passive: true });
+    return () => window.removeEventListener('resize', check);
+  }, []);
+  return narrow;
 };

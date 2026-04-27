@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { UserData } from '../types';
 import { useT } from '../lib/theme';
-import { Icon, Icons } from './ui';
+import { Icon, Icons, useIsNarrow } from './ui';
 
 const DHIKR: { ar: string; tr: string; fr: string; target: number }[] = [
   { ar: 'سُبْحَانَ اللهِ',         tr: 'Subhânallah',     fr: 'Gloire à Allah',              target: 33  },
@@ -15,6 +15,7 @@ export const TasbihSection = ({
   userData, setUserData, lang
 }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const t = useT();
+  const narrow = useIsNarrow();
   const fr = lang === 'fr';
 
   const [idx, setIdx]       = useState(0);
@@ -85,7 +86,7 @@ export const TasbihSection = ({
       </div>
 
       {/* ── 2-column layout ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : '1fr 1fr', gap: 14 }}>
 
         {/* ── LEFT : Compteur ── */}
         <div style={{ ...card, minHeight: 520, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '28px 20px', overflow: 'hidden', position: 'relative' }}>

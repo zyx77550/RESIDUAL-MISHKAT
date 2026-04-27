@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { UserData, Goal } from '../types';
 import { useT } from '../lib/theme';
-import { Icon, Icons } from './ui';
+import { Icon, Icons, useIsNarrow } from './ui';
 
 interface GoalsSectionProps {
   userData: UserData;
@@ -11,6 +11,7 @@ interface GoalsSectionProps {
 
 export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps) => {
   const t = useT();
+  const narrow = useIsNarrow();
   const [newGoal, setNewGoal] = useState('');
   const fr = lang === 'fr';
 
@@ -71,7 +72,7 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
       </div>
 
       {/* ── 3 stat tiles ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 10 }}>
         {[
           { label: fr ? 'Complétés'        : 'مكتملة',    value: completedCount, sub: `/ ${totalCount} ${fr ? 'objectifs' : 'هدف'}` },
           { label: fr ? 'En cours'          : 'قيد التنفيذ', value: pending.length,  sub: fr ? 'à poursuivre' : 'للمتابعة' },

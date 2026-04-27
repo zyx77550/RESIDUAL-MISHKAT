@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Badge, UserData, BADGE_DEFINITIONS, getRarityColor, getRarityLabel } from '../types';
 import { getBadgeProgress, getBadgesByRarity, getTimeSinceUnlock, celebrateBadgeUnlock } from '../lib/badgeEngine';
 import { useT } from '../lib/theme';
-import { Icon, Icons } from './ui';
+import { Icon, Icons, useIsNarrow } from './ui';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   // lowercase
@@ -28,6 +28,7 @@ interface BadgesSectionProps {
 
 export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionProps) => {
   const t = useT();
+  const narrow = useIsNarrow();
   const [selectedRarity, setSelectedRarity] = useState<string | null>(null);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [currentUnlockIndex, setCurrentUnlockIndex] = useState(0);
@@ -91,7 +92,7 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
       </div>
 
       {/* ── 4 rarity tiles ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10 }}>
         {rarities.map(rarity => {
           const rColor = getRarityColor(rarity);
           const count = badgesByRarity[rarity]?.length || 0;
