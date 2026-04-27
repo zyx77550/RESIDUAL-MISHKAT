@@ -266,34 +266,28 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
     );
   }
 
-  /* ── Collapsed strip ── */
+  /* ── Fully hidden — tiny edge tab ── */
   if (!open) {
     return (
-      <aside style={{
-        width: 52, padding: '16px 8px',
-        background: t.bgSoft, borderRight: `1px solid ${t.line}`,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-        flexShrink: 0, height: '100%', overflow: 'hidden',
-      }}>
-        <button onClick={() => setOpen(true)}
-          style={{ width: 34, height: 34, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, color: t.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginBottom: 8 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-        {items.map(item => {
-          const on = item.id === active;
-          return (
-            <button key={item.id} onClick={() => { onNavigate(item.id); setOpen(true); }}
-              style={{
-                width: 34, height: 34, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                background: on ? `${t.accent}18` : 'transparent',
-                border: on ? `1px solid ${t.accent}44` : '1px solid transparent',
-                color: on ? t.accent : t.inkMute,
-              }}>
-              <Icon d={(Icons as Record<string, React.ReactNode>)[item.icon]} size={15}/>
-            </button>
-          );
-        })}
-      </aside>
+      <button
+        onClick={() => setOpen(true)}
+        title="Ouvrir la navigation"
+        style={{
+          position: 'fixed', left: 0, top: '50%', transform: 'translateY(-50%)',
+          zIndex: 200, width: 16, height: 56,
+          borderRadius: '0 8px 8px 0',
+          background: t.bgSoft,
+          border: `1px solid ${t.line}`, borderLeft: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: t.inkMute,
+          boxShadow: '2px 0 10px rgba(0,0,0,0.07)',
+          padding: 0,
+        }}
+      >
+        <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
+          <path d="M1 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
     );
   }
 

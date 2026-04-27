@@ -215,8 +215,18 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const scrollDragRef  = useRef<{ startY: number; startScrollTop: number } | null>(null);
   const hideTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollTrackRef = useRef<HTMLDivElement>(null);
+  const toolbarRef     = useRef<HTMLDivElement>(null);
+  const [toolbarH, setToolbarH] = useState(72);
 
   const activePage = userData.diftarPages.find(p => p.id === activePageId);
+
+  useEffect(() => {
+    const el = toolbarRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(([e]) => setToolbarH(e.contentRect.height));
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   const updateStaticBuffer = useCallback(() => {
     const canvas = canvasRef.current;
@@ -1394,8 +1404,8 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', height: '100%' }}>
 
-      {/* TOOLBAR FIXÉE */}
-      <div style={{ position: 'fixed', top: 8, left: 0, right: 0, zIndex: 100, padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none' }}>
+      {/* TOOLBAR */}
+      <div ref={toolbarRef} style={{ flexShrink: 0, position: 'relative', zIndex: 10, padding: '8px 12px 0', display: 'flex', flexDirection: 'column', pointerEvents: 'none' }}>
 
         {/* Barre principale */}
         <div style={{
@@ -1484,7 +1494,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         {/* Panels */}
         {(showToolsMenu || showCustomizationMenu || showShapePicker || showEmojiPicker || showPaperSettings) && (
           <div
-            style={{ width: '100%', maxWidth: 640, margin: '0 auto', pointerEvents: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 90px)' }}
+            style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, maxWidth: 640, margin: '0 auto', pointerEvents: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 90px)', paddingTop: 4 }}
           >
               {showToolsMenu && (
                 <div style={{ backdropFilter: 'blur(32px)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.16)', border: `1px solid ${t.accent}1a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: t.bg }}>
@@ -1726,7 +1736,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
 
       {/* Zone d'approche invisible */}
       <div
-        style={{ position: 'fixed', zIndex: 70, pointerEvents: 'auto', right: 0, top: 88, bottom: 100, width: 32 }}
+        style={{ position: 'fixed', zIndex: 70, pointerEvents: 'auto', right: 0, top: toolbarH, bottom: 100, width: 32 }}
         onPointerEnter={showScrollHandle}
         onPointerLeave={hideScrollHandle}
       />
@@ -1734,7 +1744,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       {/* Handle visible */}
       <div
         ref={scrollTrackRef}
-        style={{ position: 'fixed', zIndex: 71, pointerEvents: 'none', right: 4, top: 88, bottom: 100, opacity: scrollHover || scrollActive ? 1 : 0, transition: 'opacity 0.2s' }}
+        style={{ position: 'fixed', zIndex: 71, pointerEvents: 'none', right: 4, top: toolbarH, bottom: 100, opacity: scrollHover || scrollActive ? 1 : 0, transition: 'opacity 0.2s' }}
       >
         {/* Piste */}
         <div
@@ -1775,7 +1785,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             if (!drag) return;
             const s = scrollContainerRef.current;
             if (!s) return;
-            const trackH = scrollTrackRef.current?.clientHeight ?? (window.innerHeight - 188);
+            const trackH = scrollTrackRef.current?.clientHeight ?? (window.innerHeight - toolbarH - 100);
             const usableH = Math.max(trackH * (1 - thumbPct / 100), 1);
             const dy = e.clientY - drag.startY;
             s.scrollTop = drag.startScrollTop + (dy * 1.8 / usableH) * (s.scrollHeight - s.clientHeight);
@@ -1809,7 +1819,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       {/* ZONE SCROLLABLE (canvas) — pt-20 compense la toolbar fixed */}
       <div
         ref={scrollContainerRef}
-        style={{ flex: 1, borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflowY: 'auto', position: 'relative', border: `1px solid ${t.accent}14`, scrollBehavior: 'smooth', cursor: 'none', paddingTop: 80 }}
+        style={{ flex: 1, borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflowY: 'auto', position: 'relative', border: `1px solid ${t.accent}14`, scrollBehavior: 'smooth', cursor: 'none' }}
         onScroll={e => {
           const s = e.currentTarget;
           setScrollProgress(s.scrollTop / (s.scrollHeight - s.clientHeight || 1));
