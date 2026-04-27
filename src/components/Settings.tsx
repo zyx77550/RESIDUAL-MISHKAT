@@ -1,16 +1,27 @@
 import React, { useState, useRef } from 'react';
 import { UserData, UserSettings } from '../types';
 import { useT } from '../lib/theme';
-import { Icon, Icons } from './ui';
+import { Icon, Icons, useIsNarrow } from './ui';
 
 export const SettingsSection = ({
   userData, setUserData, lang
 }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const t = useT();
+  const narrow = useIsNarrow();
   const settings = userData.settings;
   const [saved, setSaved] = useState(false);
+  const [activeSection, setActiveSection] = useState('profile');
   const importRef = useRef<HTMLInputElement>(null);
   const fr = lang === 'fr';
+
+  const NAV_SECTIONS = [
+    { id: 'profile',       labelFr: 'Profil',          labelAr: 'الملف الشخصي' },
+    { id: 'appearance',    labelFr: 'Apparence',        labelAr: 'المظهر'       },
+    { id: 'notifications', labelFr: 'Notifications',    labelAr: 'التنبيهات'    },
+    { id: 'accessibility', labelFr: 'Accessibilité',    labelAr: 'إمكانية الوصول'},
+    { id: 'data',          labelFr: 'Données',          labelAr: 'البيانات'     },
+    { id: 'about',         labelFr: 'À propos',         labelAr: 'حول التطبيق'  },
+  ];
 
   const updateSettings = (newSettings: Partial<UserSettings>) => {
     setUserData((prev: UserData) => ({
@@ -103,7 +114,7 @@ export const SettingsSection = ({
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 860, paddingBottom: 32 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 32 }}>
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -112,7 +123,7 @@ export const SettingsSection = ({
             {fr ? 'Paramètres' : 'الإعدادات'}
           </div>
           <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.3em', textTransform: 'uppercase', marginTop: 4 }}>
-            {fr ? 'Personnalisez votre expérience' : 'خصص تجربتك'}
+            {fr ? 'Personnalisation · accessibilité · données' : 'تخصيص · وصول · بيانات'}
           </div>
         </div>
         {saved && (
@@ -122,6 +133,42 @@ export const SettingsSection = ({
           </div>
         )}
       </div>
+
+      {/* Nav pills (mobile) ou sidebar nav (desktop) */}
+      {narrow ? (
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+          {NAV_SECTIONS.map(s => {
+            const active = activeSection === s.id;
+            return (
+              <button key={s.id} onClick={() => setActiveSection(s.id)}
+                style={{ flexShrink: 0, padding: '7px 14px', borderRadius: 999, fontSize: 12, fontWeight: active ? 600 : 400, cursor: 'pointer', background: active ? `${t.accent}18` : t.bgSoft, border: `1px solid ${active ? `${t.accent}44` : t.line}`, color: active ? t.ink : t.inkDim }}>
+                {fr ? s.labelFr : s.labelAr}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {/* 2-column grid: sidebar + content */}
+      <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : '200px 1fr', gap: 14, alignItems: 'start' }}>
+
+        {/* Sidebar nav — desktop only */}
+        {!narrow && (
+          <div style={{ background: t.card, border: `1px solid ${t.line}`, borderRadius: 14, padding: '14px 4px', position: 'sticky', top: 16 }}>
+            {NAV_SECTIONS.map(s => {
+              const active = activeSection === s.id;
+              return (
+                <div key={s.id} onClick={() => setActiveSection(s.id)}
+                  style={{ padding: '9px 16px', fontSize: 12.5, cursor: 'pointer', color: active ? t.ink : t.inkDim, fontWeight: active ? 500 : 400, borderLeft: `2px solid ${active ? t.accent : 'transparent'}`, background: active ? `${t.accent}10` : 'transparent', transition: 'all 0.15s' }}>
+                  {fr ? s.labelFr : s.labelAr}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Content area */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
       {/* Stats */}
       <div style={card}>
@@ -370,7 +417,10 @@ export const SettingsSection = ({
             </button>
           </div>
         </div>
-      </div>
+      </div> {/* end repeat-auto-fit cards grid */}
+
+        </div> {/* end content area */}
+      </div> {/* end 2-column grid */}
 
       {/* Footer */}
       <div style={{ textAlign: 'center', paddingTop: 8 }}>
