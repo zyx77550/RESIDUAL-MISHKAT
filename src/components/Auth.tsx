@@ -8,11 +8,14 @@ interface AuthProps {
   onContinueLocal: () => void;
 }
 
+const REMEMBER_KEY = 'mishkat_remembered_email';
+
 export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
   const t = useT();
   const [mode, setMode]         = useState<'login' | 'signup'>('login');
-  const [email, setEmail]       = useState('');
+  const [email, setEmail]       = useState(() => localStorage.getItem(REMEMBER_KEY) ?? '');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem(REMEMBER_KEY));
   const [showPwd, setShowPwd]   = useState(false);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
@@ -26,6 +29,8 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
       if (mode === 'login') {
         const { error } = await signIn(email, password);
         if (error) throw error;
+        if (rememberMe) localStorage.setItem(REMEMBER_KEY, email);
+        else localStorage.removeItem(REMEMBER_KEY);
       } else {
         const { error } = await signUp(email, password);
         if (error) throw error;
@@ -126,6 +131,29 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
               </button>
             </div>
           </div>
+
+          {mode === 'login' && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+              <div
+                onClick={() => setRememberMe(v => !v)}
+                style={{
+                  width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                  border: `1.5px solid ${rememberMe ? t.accent : t.line}`,
+                  background: rememberMe ? t.accent : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.15s',
+                }}>
+                {rememberMe && (
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4l3 3 5-6" stroke="#1a0f00" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+              <span style={{ fontSize: 12, color: t.inkDim }}>
+                {fr ? 'Se souvenir de moi' : 'تذكرني'}
+              </span>
+            </label>
+          )}
 
           {(error || success) && (
             <div style={{ padding: '10px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500, background: error ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)', color: error ? '#ef4444' : '#16a34a', border: `1px solid ${error ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}` }}>

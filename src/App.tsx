@@ -37,6 +37,7 @@ export default function App() {
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
   const [showAuth,  setShowAuth]    = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [localOnly, setLocalOnly]   = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -76,6 +77,7 @@ export default function App() {
       } else if (!localOnly) {
         setShowAuth(true);
       }
+      setAuthChecked(true);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -280,6 +282,14 @@ export default function App() {
   };
 
   // ── Auth screen ──────────────────────────────────────────────────────────
+  if (!authChecked && !localOnly) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', background: isDark ? '#0c0a08' : '#f8f3e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <LanternMark size={48} color={isDark ? '#d4a64a' : '#c8962a'}/>
+      </div>
+    );
+  }
+
   if (showAuth && !localOnly) {
     return (
       <ThemeContext.Provider value={theme}>
