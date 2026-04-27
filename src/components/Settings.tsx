@@ -58,12 +58,12 @@ export const SettingsSection = ({
     const now = new Date();
     if (now.getHours() > hh || (now.getHours() === hh && now.getMinutes() >= mm)) {
       localStorage.setItem('mishkat_last_notif_date', today);
-      sendPWANotification(
-        'Mishkat 🕌',
-        fr ? `C'est l'heure de votre révision du Coran !` : 'حان وقت مراجعة القرآن الكريم!'
-      );
+      const body = fr ? `C'est l'heure de votre révision du Coran !` : 'حان وقت مراجعة القرآن الكريم!';
+      navigator.serviceWorker?.ready.then(reg =>
+        reg.showNotification('Mishkat 🕌', { body, icon: '/icon-192.png', badge: '/favicon-96x96.png', tag: 'mishkat-reminder' })
+      ).catch(() => new Notification('Mishkat 🕌', { body }));
     }
-  }, [settings.notifications, settings.dailyReminder, notifPermission]);
+  }, [settings.notifications, settings.dailyReminder, notifPermission, fr]);
 
   const NAV_SECTIONS = [
     { id: 'profile',       labelFr: 'Profil',          labelAr: 'الملف الشخصي' },
@@ -142,15 +142,6 @@ export const SettingsSection = ({
     </button>
   );
 
-  const ToggleRow = ({ label, sub, value, onChange }: { label: string; sub?: string; value: boolean; onChange: (v: boolean) => void }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderRadius: 10, background: t.cardElev }}>
-      <div>
-        <div style={{ fontSize: 13, color: t.ink, fontWeight: 500 }}>{label}</div>
-        {sub && <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 2 }}>{sub}</div>}
-      </div>
-      <Toggle value={value} onChange={onChange}/>
-    </div>
-  );
 
   const SegButton = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
     <button onClick={onClick}
@@ -221,12 +212,13 @@ export const SettingsSection = ({
         {/* Content area */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-      {/* Stats */}
+      {/* Stats — visible only on profile section */}
+      {(activeSection === 'profile' || narrow) && (
       <div style={card}>
-        <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
+        <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
           {fr ? 'Votre progression' : 'تقدمك'}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {[
             { value: memorizedCount,          label: fr ? 'Sourates'      : 'السور'    },
             { value: completedGoals,           label: fr ? 'Objectifs'     : 'الأهداف'  },
@@ -240,8 +232,9 @@ export const SettingsSection = ({
           ))}
         </div>
       </div>
+      )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {/* Profile */}
         {(activeSection === 'profile' || narrow) && (
@@ -442,8 +435,8 @@ export const SettingsSection = ({
         {/* General / Données */}
         {(activeSection === 'data' || narrow) && (
         <div style={card}>
-          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 16 }}>
-            {fr ? 'Général' : 'عام'}
+          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
+            {fr ? 'Données' : 'البيانات'}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button onClick={exportData}
@@ -510,7 +503,7 @@ export const SettingsSection = ({
         </div>
         )} {/* end about conditional */}
 
-      </div> {/* end repeat-auto-fit cards grid */}
+      </div> {/* end flex column cards */}
 
         </div> {/* end content area */}
       </div> {/* end 2-column grid */}
