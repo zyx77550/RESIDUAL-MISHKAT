@@ -304,78 +304,65 @@ export const SettingsSection = ({
         )} {/* end Appearance conditional */}
 
         {/* Accessibility */}
-        <div style={{ ...card, gridColumn: '1 / -1' }}>
-          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 16 }}>
+        {(activeSection === 'accessibility' || narrow) && (
+        <div style={card}>
+          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
             {fr ? 'Accessibilité' : 'إمكانية الوصول'}
           </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, marginBottom: 14 }}>
-            <ToggleRow label={fr ? 'Réduire les animations' : 'تقليل الحركات'} sub={fr ? 'Désactive les transitions' : 'إيقاف الانتقالات'} value={settings.reduceAnimations ?? false} onChange={v => updateSettings({ reduceAnimations: v })}/>
-            <ToggleRow label={fr ? 'Police dyslexie' : 'خط عسر القراءة'} sub="OpenDyslexic" value={settings.dyslexiaFont ?? false} onChange={v => updateSettings({ dyslexiaFont: v })}/>
-            <ToggleRow label={fr ? 'Contraste élevé' : 'تباين عالٍ'} sub={fr ? 'Améliore la lisibilité' : 'يحسن قابلية القراءة'} value={settings.highContrast ?? false} onChange={v => updateSettings({ highContrast: v })}/>
-            <ToggleRow label={fr ? 'Sons de navigation' : 'أصوات التنقل'} sub={fr ? 'Feedback sonore' : 'ردود فعل صوتية'} value={settings.soundEffects ?? false} onChange={v => updateSettings({ soundEffects: v })}/>
-            <ToggleRow label={fr ? 'Noms arabes des sourates' : 'الأسماء العربية للسور'} sub={fr ? 'Afficher dans la grille' : 'إظهار في الشبكة'} value={settings.showArabicNames} onChange={v => updateSettings({ showArabicNames: v })}/>
-            <ToggleRow label={fr ? 'Numéros de sourates' : 'أرقام السور'} sub={fr ? 'Afficher les numéros' : 'إظهار الأرقام'} value={settings.showSurahNumbers ?? true} onChange={v => updateSettings({ showSurahNumbers: v })}/>
-            <ToggleRow label={fr ? 'Confirmer avant suppression' : 'تأكيد الحذف'} sub={fr ? 'Toujours demander' : 'اسأل دائماً'} value={settings.confirmDelete ?? true} onChange={v => updateSettings({ confirmDelete: v })}/>
-          </div>
-
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
-              {fr ? 'Espacement des lignes' : 'تباعد الأسطر'}
+          {[
+            { label: fr ? 'Réduire les animations' : 'تقليل الحركات',           value: settings.reduceAnimations ?? false, key: 'reduceAnimations' as const },
+            { label: fr ? 'Police dyslexie (OpenDyslexic)' : 'خط عسر القراءة', value: settings.dyslexiaFont ?? false,     key: 'dyslexiaFont'     as const },
+            { label: fr ? 'Contraste élevé' : 'تباين عالٍ',                    value: settings.highContrast ?? false,     key: 'highContrast'     as const },
+            { label: fr ? 'Effets sonores' : 'أصوات التنقل',                   value: settings.soundEffects ?? false,     key: 'soundEffects'     as const },
+            { label: fr ? 'Noms arabes des sourates' : 'الأسماء العربية',       value: settings.showArabicNames,           key: 'showArabicNames'  as const },
+            { label: fr ? 'Numéros de sourates' : 'أرقام السور',               value: settings.showSurahNumbers ?? true,  key: 'showSurahNumbers' as const },
+            { label: fr ? 'Confirmer avant suppression' : 'تأكيد الحذف',       value: settings.confirmDelete ?? true,     key: 'confirmDelete'    as const },
+          ].map(row => (
+            <div key={row.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${t.lineSoft}` }}>
+              <span style={{ fontSize: 12, color: t.ink }}>{row.label}</span>
+              <Toggle value={row.value} onChange={v => updateSettings({ [row.key]: v })}/>
             </div>
+          ))}
+          <div style={{ marginTop: 14 }}>
+            <div style={{ fontSize: 11, color: t.inkDim, marginBottom: 8 }}>{fr ? 'Taille de police' : 'حجم الخط'}</div>
             <div style={{ display: 'flex', gap: 4, padding: 4, background: t.cardElev, borderRadius: 10 }}>
-              {([
-                { id: 'normal', labelFr: 'Normal', labelAr: 'عادي' },
-                { id: 'comfortable', labelFr: 'Confortable', labelAr: 'مريح' },
-                { id: 'large', labelFr: 'Large', labelAr: 'واسع' },
-              ] as const).map(s => (
-                <SegButton key={s.id} active={(settings.lineSpacing ?? 'normal') === s.id} onClick={() => updateSettings({ lineSpacing: s.id })}>
-                  {fr ? s.labelFr : s.labelAr}
-                </SegButton>
+              {[{ id: 'small', fr: 'Petit' }, { id: 'medium', fr: 'Moyen' }, { id: 'large', fr: 'Grand' }].map(f => (
+                <SegButton key={f.id} active={settings.fontSize === f.id} onClick={() => updateSettings({ fontSize: f.id as any })}>{f.fr}</SegButton>
               ))}
             </div>
           </div>
-
-          <div>
-            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
-              {fr ? 'Sauvegarde automatique (Diftar)' : 'الحفظ التلقائي (الدفتر)'}
-            </div>
-            <div style={{ display: 'flex', gap: 4, padding: 4, background: t.cardElev, borderRadius: 10, flexWrap: 'wrap' }}>
-              {([
-                { v: 30,  labelFr: '30s',    labelAr: '30ث'  },
-                { v: 60,  labelFr: '1 min',  labelAr: '1 د'  },
-                { v: 300, labelFr: '5 min',  labelAr: '5 د'  },
-                { v: 0,   labelFr: 'Manuel', labelAr: 'يدوي' },
-              ] as const).map(({ v, labelFr, labelAr }) => (
-                <SegButton key={v} active={(settings.autoSaveInterval ?? 300) === v} onClick={() => updateSettings({ autoSaveInterval: v })}>
-                  {fr ? labelFr : labelAr}
-                </SegButton>
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 11, color: t.inkDim, marginBottom: 8 }}>{fr ? 'Espacement des lignes' : 'تباعد الأسطر'}</div>
+            <div style={{ display: 'flex', gap: 4, padding: 4, background: t.cardElev, borderRadius: 10 }}>
+              {[{ id: 'normal', fr: 'Normal' }, { id: 'comfortable', fr: 'Confortable' }, { id: 'large', fr: 'Large' }].map(s => (
+                <SegButton key={s.id} active={(settings.lineSpacing ?? 'normal') === s.id} onClick={() => updateSettings({ lineSpacing: s.id as any })}>{s.fr}</SegButton>
               ))}
             </div>
           </div>
         </div>
+        )} {/* end Accessibility conditional */}
 
-        {/* Notifications */}
+        {/* Notifications — placeholder, real logic in Phase 4 */}
+        {(activeSection === 'notifications' || narrow) && (
         <div style={card}>
-          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 16 }}>
+          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
             {fr ? 'Notifications' : 'التنبيهات'}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <ToggleRow label={fr ? 'Rappels quotidiens' : 'تذكيرات يومية'} sub={fr ? 'Rappel de lecture' : 'تذكير بالقراءة'} value={settings.notifications} onChange={v => updateSettings({ notifications: v })}/>
-            {settings.notifications && (
-              <div>
-                <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>
-                  {fr ? 'Heure du rappel' : 'وقت التذكير'}
-                </div>
-                <input type="time" value={settings.dailyReminder}
-                  onChange={e => updateSettings({ dailyReminder: e.target.value })}
-                  style={inputStyle}/>
-              </div>
-            )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${t.lineSoft}` }}>
+            <span style={{ fontSize: 12, color: t.ink }}>{fr ? 'Rappels quotidiens' : 'تذكيرات يومية'}</span>
+            <Toggle value={settings.notifications} onChange={v => updateSettings({ notifications: v })}/>
           </div>
+          {settings.notifications && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontSize: 11, color: t.inkDim, marginBottom: 8 }}>{fr ? 'Heure du rappel' : 'وقت التذكير'}</div>
+              <input type="time" value={settings.dailyReminder} onChange={e => updateSettings({ dailyReminder: e.target.value })} style={inputStyle}/>
+            </div>
+          )}
         </div>
+        )} {/* end Notifications conditional */}
 
-        {/* General */}
+        {/* General / Données */}
+        {(activeSection === 'data' || narrow) && (
         <div style={card}>
           <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 16 }}>
             {fr ? 'Général' : 'عام'}
@@ -417,6 +404,7 @@ export const SettingsSection = ({
             </button>
           </div>
         </div>
+        )} {/* end data conditional */}
       </div> {/* end repeat-auto-fit cards grid */}
 
         </div> {/* end content area */}
