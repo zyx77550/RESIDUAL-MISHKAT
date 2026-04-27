@@ -4,6 +4,7 @@ import { getStroke } from 'perfect-freehand';
 import { HexColorPicker } from 'react-colorful';
 import { Stroke, Shape, DiftarPage, UserData } from '../types';
 import { useT } from '../lib/theme';
+import { Icon, Icons, useIsNarrow } from './ui';
 
 // Page templates
 const PAGE_TEMPLATES = [
@@ -138,6 +139,7 @@ const COLOR_PALETTE = {
 
 export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const t = useT();
+  const narrow = useIsNarrow();
   const fr = lang === 'fr';
   const [activePageId, setActivePageId]     = useState<string | null>(null);
   const [editingPageId, setEditingPageId]   = useState<string | null>(null);
@@ -180,6 +182,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(null);
   const [showConfirmClear, setShowConfirmClear]   = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [galleryFilter, setGalleryFilter]         = useState<string | null>(null);
   const [isDrawing, setIsDrawing]           = useState(false);
   const [toastMessage, setToastMessage]     = useState<string | null>(null);
   // Help guide
@@ -1146,180 +1149,140 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   // PAGE LIST VIEW (Gallery)
   // ──────────────────────────────────
   if (!activePageId) {
-    const lastModified = userData.diftarPages.length > 0
-      ? new Date(Math.max(...userData.diftarPages.map(p => p.lastSaved))).toLocaleDateString(fr ? 'fr-FR' : 'ar-SA')
-      : null;
+    const TYPE_COLORS: Record<string, string> = {
+      revision: t.accent, tafsir: '#5b9bd5', dates: t.inkDim,
+      objectives: t.accent, vocab: '#5fb088', dua: '#d96b7a',
+      notes: '#e89460', schema: '#e89460', tajweed: '#a78bdb', custom: t.inkDim,
+    };
+
+    const FILTER_LABELS = fr
+      ? ['Toutes', 'Révision', 'Tafsir', 'Planning', 'Objectifs', 'Vocab', "Dou'a", 'Notes', 'Tajweed', 'Schéma', 'Libre']
+      : ['الكل', 'مراجعة', 'تفسير', 'تخطيط', 'أهداف', 'مفردات', 'دعاء', 'ملاحظات', 'تجويد', 'مخطط', 'حر'];
+    const FILTER_TYPES = [null, 'revision', 'tafsir', 'dates', 'objectives', 'vocab', 'dua', 'notes', 'tajweed', 'schema', 'custom'];
+
+    const filteredPages = galleryFilter
+      ? userData.diftarPages.filter(p => p.type === galleryFilter)
+      : userData.diftarPages;
+
+    const getTimeAgo = (ts: number) => {
+      const diff = Date.now() - ts;
+      const mins = Math.floor(diff / 60000);
+      if (mins < 2) return fr ? 'à l\'instant' : 'الآن';
+      if (mins < 60) return fr ? `il y a ${mins} min` : `منذ ${mins} د`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return fr ? `il y a ${hrs}h` : `منذ ${hrs}س`;
+      const days = Math.floor(hrs / 24);
+      return fr ? `il y a ${days}j` : `منذ ${days}ي`;
+    };
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 28, paddingBottom: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 16 }}>
 
-        {/* Header */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16 }}>
+        {/* ── Header ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontStyle: 'italic', fontSize: 36, color: t.accent, lineHeight: 1.1 }}>
-              {fr ? 'Mon Diftar' : 'دفتري'}
+            <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 6 }}>
+              {`${userData.diftarPages.length} ${fr ? 'pages · cahier numérique' : 'صفحة · دفتر رقمي'}`}
             </div>
-            <div style={{ fontSize: 10, color: t.accentBright, opacity: 0.65, letterSpacing: '0.4em', textTransform: 'uppercase', fontWeight: 700, marginTop: 6 }}>
-              دَفْتَرُ الحِفْظِ الرَّقْمِي
-            </div>
+            <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, margin: 0, color: t.ink, letterSpacing: '-0.02em', lineHeight: 1 }}>
+              {fr ? 'Diftar' : 'الدفتر'}
+            </h1>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {userData.diftarPages.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ padding: '6px 12px', borderRadius: 20, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', background: `${t.accent}14`, color: t.accent }}>
-                  {userData.diftarPages.length} {fr ? 'page(s)' : 'صفحة'}
-                </span>
-                {lastModified && (
-                  <span style={{ padding: '6px 12px', borderRadius: 20, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', background: `${t.accentBright}14`, color: t.accentBright }}>
-                    {fr ? `Modifié le ${lastModified}` : `آخر تعديل ${lastModified}`}
-                  </span>
-                )}
-              </div>
-            )}
-            <button
-              onClick={() => setShowTemplateModal(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 20, background: t.accent, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
-            >
-              <span style={{ fontSize: 16 }}>+</span>
-              {fr ? 'Nouvelle page' : 'صفحة جديدة'}
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button style={{ padding: '8px 14px', borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, color: t.inkDim, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+              <Icon d={Icons.search} size={12}/> {fr ? 'Rechercher' : 'بحث'}
+            </button>
+            <button onClick={() => setShowTemplateModal(true)}
+              style={{ padding: '8px 16px', borderRadius: 8, background: t.accent, color: '#1a0f00', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', border: 'none' }}>
+              <Icon d={Icons.plus} size={13} color="#1a0f00"/> {fr ? 'Nouvelle page' : 'صفحة جديدة'}
             </button>
           </div>
         </div>
 
-        {/* Empty state */}
-        {userData.diftarPages.length === 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, padding: '96px 0', background: t.card, borderRadius: 20, border: `1px solid ${t.line}` }}>
-            <div style={{ width: 80, height: 80, borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.accent, fontSize: 36 }}>
-              📓
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 22, color: t.accent, marginBottom: 8 }}>
-                {fr ? 'Votre Diftar est vide' : 'دفترك فارغ'}
-              </div>
-              <div style={{ fontSize: 13, color: t.inkMute, maxWidth: 280, margin: '0 auto', lineHeight: 1.6 }}>
-                {fr ? 'Créez votre première page pour commencer à écrire vos notes, révisions ou réflexions.' : 'أنشئ أول صفحة لك وابدأ في كتابة ملاحظاتك ومراجعاتك.'}
-              </div>
-              <button
-                onClick={() => setShowTemplateModal(true)}
-                style={{ marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 20, background: t.accent, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700 }}
-              >
-                <span>+</span> {fr ? 'Créer une page' : 'إنشاء صفحة'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 20 }}>
-          {userData.diftarPages.map((page) => {
-            const paperBg = (page as any).paperColor || '#fdfcf8';
-            const borderColor = t.accent;
-            const tpl = PAGE_TEMPLATES.find(tp => tp.type === page.type);
-            const templateIcon = tpl?.icon || '📄';
-
+        {/* ── Filter chips ── */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {FILTER_LABELS.map((label, i) => {
+            const ft = FILTER_TYPES[i];
+            const active = galleryFilter === ft;
             return (
-              <div key={page.id} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {/* Notebook cover */}
-                <div
-                  onClick={() => setActivePageId(page.id)}
-                  style={{
-                    position: 'relative', aspectRatio: '3/4', cursor: 'pointer',
-                    borderRadius: '0 16px 16px 0', overflow: 'hidden',
-                    background: paperBg, borderLeft: `10px solid ${borderColor}`,
-                    boxShadow: '0 6px 24px rgba(0,0,0,0.1)', transition: 'box-shadow 0.2s',
-                  }}
-                >
-                  {/* Paper texture */}
-                  {page.paperStyle && page.paperStyle !== 'blank' && (
-                    <div style={{
-                      position: 'absolute', inset: 0, opacity: 0.4,
-                      backgroundImage: page.paperStyle === 'grid'
-                        ? `linear-gradient(rgba(139,38,53,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(139,38,53,0.05) 1px, transparent 1px)`
-                        : page.paperStyle === 'lines'
-                          ? `repeating-linear-gradient(transparent, transparent 19px, rgba(139,38,53,0.07) 20px)`
-                          : 'none',
-                      backgroundSize: page.paperStyle === 'grid' ? '20px 20px' : 'auto',
-                    }} />
-                  )}
-
-                  {/* Spiral holes */}
-                  <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-around', padding: '16px 8px' }}>
-                    {[...Array(6)].map((_, i) => (
-                      <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', border: `2px solid ${borderColor}`, background: '#fff', opacity: 0.5 }} />
-                    ))}
-                  </div>
-
-                  {/* Content */}
-                  <div style={{ padding: 16, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', marginLeft: 12, position: 'relative', zIndex: 1, boxSizing: 'border-box' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 14 }}>{templateIcon}</span>
-                        {page.type && page.type !== 'custom' && (
-                          <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 6px', borderRadius: 10, background: `${t.accent}14`, color: t.accent }}>
-                            {tpl?.[fr ? 'labelFr' : 'labelAr']}
-                          </span>
-                        )}
-                      </div>
-
-                      {editingPageId === page.id ? (
-                        <div onClick={e => e.stopPropagation()}>
-                          <input
-                            autoFocus
-                            style={{ width: '100%', background: 'transparent', borderBottom: `2px solid ${borderColor}`, border: 'none', borderBottomStyle: 'solid', borderBottomWidth: 2, borderBottomColor: borderColor, padding: '2px 4px', fontSize: 13, fontFamily: 'Fraunces, serif', fontStyle: 'italic', color: t.accent, outline: 'none' }}
-                            value={page.title}
-                            onChange={e => renamePage(page.id, e.target.value)}
-                            onBlur={() => setEditingPageId(null)}
-                            onKeyDown={e => e.key === 'Enter' && setEditingPageId(null)}
-                          />
-                        </div>
-                      ) : (
-                        <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 13, color: t.accent, lineHeight: 1.3 }}>
-                          {page.title}
-                        </div>
-                      )}
-
-                      <div style={{ width: 24, height: 2, borderRadius: 2, background: t.accentBright, opacity: 0.4 }} />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, color: t.accent, opacity: 0.4 }}>
-                        {PAPER_COLOR_NAMES[paperBg] || 'Crème'} · {page.paperStyle === 'lines' ? '≡' : page.paperStyle === 'grid' ? '⊞' : page.paperStyle === 'dots' ? '⁝' : page.paperStyle === 'arabesque' ? '✦' : '□'}
-                      </div>
-                      <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, color: t.accent, opacity: 0.35 }}>
-                        {new Date(page.lastSaved).toLocaleDateString(fr ? 'fr-FR' : 'ar-SA')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action row */}
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    onClick={() => setActivePageId(page.id)}
-                    style={{ flex: 1, padding: '8px 0', borderRadius: 12, fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', background: t.accent, color: '#fff', border: 'none', cursor: 'pointer' }}
-                  >
-                    {fr ? 'Ouvrir' : 'فتح'}
-                  </button>
-                  <button
-                    onClick={e => { e.stopPropagation(); setEditingPageId(editingPageId === page.id ? null : page.id); }}
-                    style={{ padding: '8px 10px', borderRadius: 12, background: `${t.accentBright}1f`, color: t.accent, border: 'none', cursor: 'pointer', fontSize: 12 }}
-                    title={fr ? 'Renommer' : 'تسمية'}
-                  >
-                    ✎
-                  </button>
-                  <button
-                    onClick={e => { e.stopPropagation(); setShowConfirmDelete(page.id); }}
-                    style={{ padding: '8px 10px', borderRadius: 12, background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.65)', border: 'none', cursor: 'pointer', fontSize: 12 }}
-                    title={fr ? 'Supprimer' : 'حذف'}
-                  >
-                    🗑
-                  </button>
-                </div>
-              </div>
+              <button key={label} onClick={() => setGalleryFilter(active ? null : ft)}
+                style={{
+                  fontSize: 11, padding: '6px 12px', borderRadius: 999, cursor: 'pointer',
+                  color: active ? t.ink : t.inkDim, fontWeight: active ? 500 : 400,
+                  background: active ? `${t.accent}18` : t.bgSoft,
+                  border: `1px solid ${active ? `${t.accent}33` : t.line}`,
+                }}>
+                {label}
+              </button>
             );
           })}
         </div>
+
+        {/* ── Empty state ── */}
+        {userData.diftarPages.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 0' }}>
+            <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 22, color: t.inkDim, marginBottom: 8 }}>
+              {fr ? 'Aucune page pour l\'instant.' : 'لا توجد صفحات بعد.'}
+            </div>
+            <button onClick={() => setShowTemplateModal(true)}
+              style={{ marginTop: 12, padding: '10px 20px', borderRadius: 8, background: t.accent, color: '#1a0f00', fontWeight: 600, fontSize: 12, cursor: 'pointer', border: 'none' }}>
+              {fr ? 'Créer une page' : 'إنشاء صفحة'}
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'repeat(3, 1fr)', gap: 12 }}>
+            {filteredPages.map(page => {
+              const c = TYPE_COLORS[page.type] || t.accent;
+              const tpl = PAGE_TEMPLATES.find(tp => tp.type === page.type);
+              return (
+                <div key={page.id}
+                  onClick={() => setActivePageId(page.id)}
+                  style={{ background: t.card, border: `1px solid ${t.line}`, borderRadius: 10, overflow: 'hidden', minHeight: 220, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}>
+                  {/* Preview area */}
+                  <div style={{ flex: 1, position: 'relative', padding: 16, background: `linear-gradient(135deg, ${c}10, transparent)`, borderBottom: `1px solid ${t.line}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }}/>
+                      <span style={{ fontSize: 9, color: c, letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 600 }}>
+                        {tpl?.[fr ? 'labelFr' : 'labelAr'] || page.type}
+                      </span>
+                    </div>
+                    {/* Fake handwritten lines */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, opacity: 0.5 }}>
+                      {[80, 92, 70, 88, 65, 78].map((w, k) => (
+                        <div key={k} style={{ height: 1.5, background: t.inkMute, width: `${w}%`, borderRadius: 1 }}/>
+                      ))}
+                    </div>
+                    {page.type === 'schema' && (
+                      <svg style={{ position: 'absolute', bottom: 10, right: 10 }} width="50" height="40" fill="none" stroke={c} strokeWidth="1" opacity="0.6">
+                        <circle cx="10" cy="10" r="6"/><circle cx="40" cy="10" r="6"/><circle cx="25" cy="32" r="6"/>
+                        <line x1="10" y1="16" x2="25" y2="26"/><line x1="40" y1="16" x2="25" y2="26"/><line x1="16" y1="10" x2="34" y2="10"/>
+                      </svg>
+                    )}
+                  </div>
+                  {/* Footer */}
+                  <div style={{ padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, color: t.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{page.title}</div>
+                      <div style={{ fontSize: 10, color: t.inkMute, marginTop: 2 }}>{fr ? 'Modifié ' : 'عُدِّل '}{getTimeAgo(page.lastSaved)}</div>
+                    </div>
+                    <button onClick={e => { e.stopPropagation(); setShowConfirmDelete(page.id); }}
+                      style={{ padding: 6, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+                      <Icon d={Icons.more} size={14} color={t.inkMute}/>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            {/* Add card */}
+            <div onClick={() => setShowTemplateModal(true)}
+              style={{ background: 'transparent', border: `1.5px dashed ${t.line}`, borderRadius: 10, minHeight: 220, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: t.inkDim, cursor: 'pointer' }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: t.cardElev, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon d={Icons.plus} size={18} color={t.accent}/>
+              </div>
+              <span style={{ fontSize: 12 }}>{fr ? 'Nouvelle page' : 'صفحة جديدée'}</span>
+            </div>
+          </div>
+        )}
 
         {/* Template Modal */}
         {showTemplateModal && (
