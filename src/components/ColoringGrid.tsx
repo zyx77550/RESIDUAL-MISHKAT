@@ -119,100 +119,69 @@ export const ColoringGrid = ({
     </div>
   );
 
-  const card = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 14 };
+  const card: React.CSSProperties = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 12 };
+  const allColors = PALETTE_GROUPS.flatMap(g => g.colors);
+  const usedColors = new Set(userData.surahs.filter(s => s.color).map(s => s.color));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, color: t.ink }}>
-            {fr ? 'Grille de Coloriage' : 'شبكة التلوين'}
+          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 6 }}>
+            {fr ? `${coloredCount} sur 114 colorées` : `${coloredCount} من ١١٤ ملوّنة`}
           </div>
-          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.3em', textTransform: 'uppercase', marginTop: 4 }}>
-            {fr ? '114 Sourates à colorier' : '١١٤ سورة للتلوين'}
-          </div>
+          <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, margin: 0, color: t.ink, letterSpacing: '-0.02em', lineHeight: 1 }}>
+            {fr ? 'Coloriage' : 'التلوين'}
+          </h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ ...card, padding: '10px 16px', textAlign: 'center' }}>
-            <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, color: t.accent, lineHeight: 1 }}>{coloredCount}</div>
-            <div style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>/ 114</div>
-          </div>
-          {coloredCount > 0 && (
-            <button onClick={resetAll}
-              style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(239,68,68,0.08)', color: 'rgba(239,68,68,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}
-              title={fr ? 'Tout réinitialiser' : 'إعادة ضبط الكل'}>
-              ↺
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Progress bar */}
-      {coloredCount > 0 && (
-        <div style={{ ...card, padding: '14px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-              {fr ? 'Progression' : 'التقدم'}
-            </div>
-            <div style={{ fontFamily: 'Fraunces, serif', fontSize: 18, color: t.accent }}>{progressPct}%</div>
-          </div>
-          <div style={{ height: 4, background: t.cardElev, borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${progressPct}%`, background: t.accent, borderRadius: 2 }}/>
-          </div>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8 }}>
-        {[
-          { id: 'grid' as const, labelFr: 'Grille', labelAr: 'شبكة' },
-          { id: 'heart' as const, labelFr: 'Cœur du Coran', labelAr: 'قلب القرآن' },
-        ].map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            style={{
-              padding: '9px 18px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              background: activeTab === tab.id ? t.accent : t.card,
-              color: activeTab === tab.id ? '#1a0f00' : t.inkDim,
-              border: `1px solid ${activeTab === tab.id ? t.accent : t.line}`,
-            }}>
-            {fr ? tab.labelFr : tab.labelAr}
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <button onClick={() => setActiveTab(activeTab === 'heart' ? 'grid' : 'heart')}
+            style={{ padding: '8px 14px', borderRadius: 8, background: activeTab === 'heart' ? `${t.accent}18` : t.card, border: `1px solid ${activeTab === 'heart' ? t.accent : t.line}`, color: activeTab === 'heart' ? t.accent : t.inkDim, fontSize: 11, cursor: 'pointer' }}>
+            {fr ? 'Cœur du Coran' : 'قلب القرآن'}
           </button>
-        ))}
+          <button onClick={resetAll}
+            style={{ padding: '8px 14px', borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, color: t.inkDim, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            ↺ {fr ? 'Réinit.' : 'إعادة'}
+          </button>
+        </div>
       </div>
 
-      {/* Grid tab */}
+      {/* ── Grid tab: 2-column layout ── */}
       {activeTab === 'grid' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            <select value={filterJuz ?? ''} onChange={e => setFilterJuz(e.target.value === '' ? null : parseInt(e.target.value))}
-              style={{ padding: '9px 12px', background: t.card, border: `1px solid ${t.line}`, borderRadius: 8, color: t.ink, fontSize: 12, outline: 'none', cursor: 'pointer' }}>
-              <option value="">{fr ? 'Tous les Juz' : 'كل الأجزاء'}</option>
-              {[...Array(30)].map((_, i) => <option key={i+1} value={i+1}>{fr ? `Juz ${i+1}` : `الجزء ${i+1}`}</option>)}
-            </select>
-            <ColorPalette/>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: 14 }}>
 
-          <div style={{ ...card, padding: 14, maxHeight: '60vh', overflowY: 'auto' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(52px, 1fr))', gap: 5 }}>
+          {/* Left: surah grid */}
+          <div style={{ ...card, padding: '16px 18px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+                {fr ? 'Coran complet · 114 sourates' : 'القرآن الكريم · ١١٤ سورة'}
+              </div>
+              <select value={filterJuz ?? ''} onChange={e => setFilterJuz(e.target.value === '' ? null : parseInt(e.target.value))}
+                style={{ padding: '4px 8px', background: t.cardElev, border: `1px solid ${t.line}`, borderRadius: 6, color: t.inkDim, fontSize: 10, outline: 'none', cursor: 'pointer' }}>
+                <option value="">{fr ? 'Tous' : 'الكل'}</option>
+                {[...Array(30)].map((_, i) => <option key={i+1} value={i+1}>{fr ? `Juz ${i+1}` : `${i+1}`}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(15, 1fr)', gap: 4 }}>
               {displayedSurahs.map(surah => (
                 <div key={surah.id} style={{ position: 'relative' }}>
                   <button onClick={() => updateSurahColor(surah.id)}
+                    title={`${surah.id}. ${surah.name}`}
                     style={{
-                      width: '100%', aspectRatio: '1', borderRadius: 10, display: 'flex', flexDirection: 'column',
-                      alignItems: 'center', justifyContent: 'center', padding: 3, cursor: 'pointer',
-                      background: surah.color || t.cardElev,
+                      width: '100%', aspectRatio: '1', borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: surah.color || t.bg,
                       border: `1px solid ${surah.color ? 'transparent' : t.line}`,
-                      boxShadow: surah.color ? `0 4px 14px ${surah.color}50` : 'none',
-                    }}
-                    title={`${surah.id}. ${surah.arabicName} · ${surah.name}`}>
-                    <span style={{ fontSize: 8, fontWeight: 700, color: surah.color ? 'rgba(255,255,255,0.85)' : t.inkMute, lineHeight: 1 }}>{surah.id}</span>
-                    <span style={{ fontFamily: 'Amiri Quran, serif', fontSize: 7, color: surah.color ? 'rgba(255,255,255,0.75)' : t.inkDim, textAlign: 'center', lineHeight: 1.3, direction: 'rtl' }}>{surah.arabicName}</span>
+                      fontFamily: 'Fraunces, serif', fontSize: 9, fontWeight: 300,
+                      color: surah.color ? '#1a0f00' : t.inkMute,
+                      cursor: 'pointer',
+                    }}>
+                    {surah.id}
                   </button>
                   {surah.color && (
                     <button onClick={e => resetSurah(surah.id, e)}
-                      style={{ position: 'absolute', top: -3, right: -3, width: 14, height: 14, borderRadius: '50%', background: '#fff', border: '1px solid rgba(239,68,68,0.3)', color: 'rgba(239,68,68,0.8)', fontSize: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, zIndex: 10 }}>
+                      style={{ position: 'absolute', top: -3, right: -3, width: 13, height: 13, borderRadius: '50%', background: '#fff', border: '1px solid rgba(239,68,68,0.3)', color: 'rgba(239,68,68,0.8)', fontSize: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, lineHeight: 1 }}>
                       ✕
                     </button>
                   )}
@@ -221,8 +190,64 @@ export const ColoringGrid = ({
             </div>
           </div>
 
-          <div style={{ fontSize: 9, color: t.inkMute, textAlign: 'center', letterSpacing: '0.14em', textTransform: 'uppercase', opacity: 0.6 }}>
-            {fr ? 'Cliquez pour colorier · Survolez pour réinitialiser' : 'انقر للتلوين · حوّم لإعادة الضبط'}
+          {/* Right: palette + stats */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Palette */}
+            <div style={{ ...card, padding: '14px 16px' }}>
+              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 12 }}>
+                {fr ? 'Palette' : 'الألوان'}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 7 }}>
+                {allColors.map(c => (
+                  <button key={c} onClick={() => setSelectedColor(c)}
+                    style={{
+                      aspectRatio: '1', borderRadius: 7, background: c, cursor: 'pointer',
+                      border: selectedColor === c ? `2.5px solid ${t.ink}` : '2px solid transparent',
+                      transform: selectedColor === c ? 'scale(1.1)' : 'scale(1)',
+                      transition: 'all 0.12s',
+                    }}/>
+                ))}
+                {/* Custom color */}
+                <div style={{ aspectRatio: '1', borderRadius: 7, position: 'relative', border: `2px solid ${t.line}`, overflow: 'hidden' }}>
+                  <input type="color" value={selectedColor.startsWith('#') ? selectedColor : '#8B2635'}
+                    onChange={e => setSelectedColor(e.target.value)}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}/>
+                  <div style={{ width: '100%', height: '100%', background: selectedColor }}/>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div style={{ ...card, padding: '14px 16px', flex: 1 }}>
+              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 12 }}>
+                {fr ? 'Statistiques' : 'الإحصاء'}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 6, background: `${t.accent}14`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 12 }}>🎨</span>
+                  </div>
+                  <span style={{ fontFamily: 'Fraunces, serif', fontSize: 18, color: t.ink, fontWeight: 300 }}>{coloredCount}</span>
+                  <span style={{ fontSize: 10, color: t.inkDim }}>{fr ? 'sourates colorées' : 'سور ملوّنة'}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 6, background: `${t.accent}14`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 12 }}>✦</span>
+                  </div>
+                  <span style={{ fontFamily: 'Fraunces, serif', fontSize: 18, color: t.ink, fontWeight: 300 }}>{usedColors.size}</span>
+                  <span style={{ fontSize: 10, color: t.inkDim }}>{fr ? 'couleurs utilisées' : 'ألوان مستخدمة'}</span>
+                </div>
+                <div style={{ marginTop: 4 }}>
+                  <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>
+                    {fr ? 'Progression' : 'التقدم'}
+                  </div>
+                  <div style={{ height: 4, background: t.cardElev, borderRadius: 4 }}>
+                    <div style={{ height: '100%', width: `${progressPct}%`, background: `linear-gradient(90deg, ${t.accent}, ${t.accentBright})`, borderRadius: 4 }}/>
+                  </div>
+                  <div style={{ fontFamily: 'Fraunces, serif', fontSize: 13, color: t.inkDim, marginTop: 6 }}>{progressPct}% {fr ? 'du Coran' : 'من القرآن'}</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
