@@ -218,6 +218,10 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const scrollTrackRef = useRef<HTMLDivElement>(null);
   const toolbarRef     = useRef<HTMLDivElement>(null);
   const [toolbarH, setToolbarH] = useState(72);
+  const [searchQuery, setSearchQuery]   = useState('');
+  const [showSearch, setShowSearch]     = useState(false);
+  const [libraryScrolled, setLibraryScrolled] = useState(false);
+  const libraryContainerRef = useRef<HTMLDivElement>(null);
 
   const activePage = userData.diftarPages.find(p => p.id === activePageId);
 
@@ -228,6 +232,17 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (activePageId) { setLibraryScrolled(false); return; }
+    const el = libraryContainerRef.current;
+    if (!el) return;
+    const scrollParent = el.closest('main') as HTMLElement | null;
+    if (!scrollParent) return;
+    const handle = () => setLibraryScrolled(scrollParent.scrollTop > 100);
+    scrollParent.addEventListener('scroll', handle, { passive: true });
+    return () => scrollParent.removeEventListener('scroll', handle);
+  }, [activePageId]);
 
   const updateStaticBuffer = useCallback(() => {
     const canvas = canvasRef.current;
@@ -1191,9 +1206,10 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       : ['الكل', 'مراجعة', 'تفسير', 'تخطيط', 'أهداف', 'مفردات', 'دعاء', 'ملاحظات', 'تجويد', 'مخطط', 'حر'];
     const FILTER_TYPES = [null, 'revision', 'tafsir', 'dates', 'objectives', 'vocab', 'dua', 'notes', 'tajweed', 'schema', 'custom'];
 
-    const filteredPages = galleryFilter
+    const filteredPages = (galleryFilter
       ? userData.diftarPages.filter(p => p.type === galleryFilter)
-      : userData.diftarPages;
+      : userData.diftarPages
+    ).filter(p => !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const getTimeAgo = (ts: number) => {
       const diff = Date.now() - ts;
@@ -1207,7 +1223,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     };
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 16 }}>
+      <div ref={libraryContainerRef} style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 16 }}>
 
         {/* ── Header ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
@@ -1220,7 +1236,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             </h1>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button style={{ padding: '8px 14px', borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, color: t.inkDim, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <button
+              onClick={() => { setShowSearch(v => !v); if (showSearch) setSearchQuery(''); }}
+              style={{ padding: '8px 14px', borderRadius: 8, background: showSearch ? `${t.accent}14` : t.card, border: `1px solid ${showSearch ? t.accent : t.line}`, color: showSearch ? t.accent : t.inkDim, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', transition: 'all 0.15s' }}>
               <Icon d={Icons.search} size={12}/> {fr ? 'Rechercher' : 'بحث'}
             </button>
             <button onClick={() => setShowTemplateModal(true)}
@@ -1249,6 +1267,25 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           })}
         </div>
 
+        {/* ── Search input ── */}
+        {showSearch && (
+          <div style={{ position: 'relative' }}>
+            <input
+              autoFocus
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={fr ? 'Rechercher une page par titre…' : 'ابحث عن صفحة...'}
+              style={{ width: '100%', padding: '10px 36px 10px 14px', background: t.card, border: `1px solid ${t.accent}40`, borderRadius: 10, color: t.ink, fontSize: 13, outline: 'none', boxShadow: `0 0 0 3px ${t.accent}10` }}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')}
+                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: t.inkMute, cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>
+                ×
+              </button>
+            )}
+          </div>
+        )}
+
         {/* ── Empty state ── */}
         {userData.diftarPages.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0' }}>
@@ -1258,6 +1295,17 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             <button onClick={() => setShowTemplateModal(true)}
               style={{ marginTop: 12, padding: '10px 20px', borderRadius: 8, background: t.accent, color: '#1a0f00', fontWeight: 600, fontSize: 12, cursor: 'pointer', border: 'none' }}>
               {fr ? 'Créer une page' : 'إنشاء صفحة'}
+            </button>
+          </div>
+        ) : filteredPages.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '48px 0', color: t.inkMute }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
+            <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 20, color: t.inkDim }}>
+              {fr ? `Aucun résultat pour « ${searchQuery} »` : `لا نتائج لـ « ${searchQuery} »`}
+            </div>
+            <button onClick={() => setSearchQuery('')}
+              style={{ marginTop: 14, padding: '8px 18px', borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, color: t.inkDim, fontSize: 12, cursor: 'pointer' }}>
+              {fr ? 'Effacer la recherche' : 'مسح البحث'}
             </button>
           </div>
         ) : (
@@ -1443,6 +1491,16 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               </div>
             </div>
           </div>
+        )}
+
+        {/* ── Scroll-to-top (library view) ── */}
+        {libraryScrolled && (
+          <button
+            onClick={() => (libraryContainerRef.current?.closest('main') as HTMLElement | null)?.scrollTo({ top: 0, behavior: 'smooth' })}
+            style={{ position: 'fixed', bottom: isMobile ? 88 : 28, right: isMobile ? 16 : 28, zIndex: 100, width: 40, height: 40, borderRadius: '50%', background: t.card, border: `1px solid ${t.accent}30`, boxShadow: `0 4px 16px rgba(0,0,0,0.14)`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: t.accent, fontSize: 16, fontWeight: 900, transition: 'box-shadow 0.15s' }}
+          >
+            ↑
+          </button>
         )}
       </div>
     );
