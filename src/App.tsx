@@ -18,6 +18,7 @@ import { UserData, Badge, generateAllSurahs, checkLoginStreak } from './types';
 import { checkAndUnlockBadges, celebrateBadgeUnlock } from './lib/badgeEngine';
 import { supabase, loadUserData, saveUserData, migrateLocalToSupabase, isAdminEmail } from './lib/supabase';
 import { AuthScreen } from './components/Auth';
+import { OnboardingModal } from './components/Onboarding';
 import { setSoundEnabled, playBadgeUnlock } from './lib/sounds';
 
 // Map old theme name → new token key
@@ -217,6 +218,35 @@ export default function App() {
     return () => clearInterval(id);
   }, [supabaseUserId, userData?.settings?.autoSaveInterval]);
 
+  // ── Notifications toutes les 15 min ─────────────────────────────────────
+  useEffect(() => {
+    if (!userData || userData.settings?.notifications === false) return;
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') Notification.requestPermission();
+    const NOTIFS_FR = [
+      { title: 'Mishkat · Rappel prière 🕌', body: 'N\'oublie pas de valider tes prières du jour dans le calendrier.' },
+      { title: 'Mishkat · Tasbih 📿',        body: 'Prends un moment pour ton dhikr — 33× Subhânallah.' },
+      { title: 'Mishkat · Mémorisation 📖',  body: 'Continue ta mémorisation — consulte ton suivi Kanban.' },
+      { title: 'Mishkat · Rappel 🌙',        body: 'Revise une sourate aujourd\'hui. Tu es si proche de ton objectif !' },
+      { title: 'Mishkat · Objectifs 🎯',     body: 'Consulte tes objectifs du mois et coche ce qui est fait.' },
+    ];
+    const NOTIFS_AR = [
+      { title: 'مشكاة · تذكير الصلاة 🕌', body: 'لا تنسَ تأكيد صلواتك في التقويم.' },
+      { title: 'مشكاة · التسبيح 📿',      body: 'خصص لحظة لذكر الله — ٣٣× سبحان الله.' },
+      { title: 'مشكاة · الحفظ 📖',        body: 'واصل حفظك — راجع متابعتك في كانبان.' },
+      { title: 'مشكاة · تذكير 🌙',        body: 'راجع سورة اليوم. أنت قريب جداً من هدفك!' },
+    ];
+    const msgs = lang === 'fr' ? NOTIFS_FR : NOTIFS_AR;
+    let idx = 0;
+    const id = setInterval(() => {
+      if (Notification.permission !== 'granted') return;
+      const m = msgs[idx % msgs.length];
+      new Notification(m.title, { body: m.body, icon: '/icon-192.png', badge: '/favicon-96x96.png' });
+      idx++;
+    }, 15 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [lang, userData?.settings?.notifications]);
+
   // ── SW update ────────────────────────────────────────────────────────────
   useEffect(() => {
     const handleUpdate = (e: any) => {
@@ -401,27 +431,7 @@ export default function App() {
 
       {/* Onboarding modal */}
       {showOnboarding && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div style={{ background: t.card, border: `1px solid ${t.line}`, borderRadius: 16, padding: '48px 40px', maxWidth: 420, width: '100%', textAlign: 'center' }}>
-            <LanternMark size={64} color={t.accent}/>
-            <h2 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, color: t.ink, margin: '20px 0 8px', letterSpacing: '-0.02em' }}>Mishkat</h2>
-            <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 20, color: t.accentBright, marginBottom: 16 }}>مِشْكَاة</div>
-            <p style={{ fontSize: 13, color: t.inkDim, lineHeight: 1.7, marginBottom: 28 }}>
-              {lang === 'fr'
-                ? 'Bienvenue dans votre compagnon de mémorisation. Suivez vos progrès et écrivez vos notes.'
-                : 'مرحباً بك في رفيقك في الحفظ.'}
-            </p>
-            <button
-              onClick={() => setShowOnboarding(false)}
-              style={{ width: '100%', padding: '13px', borderRadius: 10, background: t.accent, color: '#1a0f00', fontFamily: 'Inter', fontWeight: 600, fontSize: 14 }}
-            >
-              {lang === 'fr' ? 'Commencer' : 'ابدأ'}
-            </button>
-            <div style={{ marginTop: 16, fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-              Artisans du Savoir · Rahima · @hamda_wa_chakra
-            </div>
-          </div>
-        </div>
+        <OnboardingModal lang={lang} onClose={() => setShowOnboarding(false)}/>
       )}
 
       {/* Update prompt */}

@@ -56,40 +56,26 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
         <rect width="100%" height="100%" fill="url(#auth-pat)"/>
       </svg>
 
-      {/* Left — image hero */}
-      <div className="hidden md:flex" style={{ flex: 1, position: 'relative', overflow: 'hidden', borderRight: `1px solid ${t.line}` }}>
-        {/* Background image */}
+      {/* Left — image hero (desktop only, hidden on tablet/mobile) */}
+      <div className="hidden lg:flex" style={{ flex: 1, position: 'relative', overflow: 'hidden', borderRight: `1px solid ${t.line}` }}>
         <img src="/login-bg.png" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}/>
-        {/* Light overlay for readability */}
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.18)' }}/>
-        {/* Content overlay */}
-        <div style={{ position: 'relative', width: '100%', padding: '60px 50px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.22)' }}/>
+        <div style={{ position: 'relative', width: '100%', padding: '50px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <LanternMark size={42} color={t.accent}/>
+            <LanternMark size={40} color="#f5e6b8"/>
             <div>
-              <div style={{ fontFamily: 'Fraunces, serif', fontSize: 22, color: t.ink, fontWeight: 300 }}>Mishkat</div>
-              <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.32em', textTransform: 'uppercase' }}>مِشْكَاة · حِفْظ القرآن</div>
+              <div style={{ fontFamily: 'Fraunces, serif', fontSize: 22, color: '#fff', fontWeight: 300 }}>Mishkat</div>
+              <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.32em', textTransform: 'uppercase' }}>مِشْكَاة · حِفْظ القرآن</div>
             </div>
           </div>
-          <div>
-            <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 30, color: t.ink, lineHeight: 1.8, direction: 'rtl', textAlign: 'right', textShadow: '0 1px 8px rgba(255,255,255,0.6)' }}>
-              اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ
-            </div>
-            <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 15, color: t.inkDim, marginTop: 14, lineHeight: 1.6 }}>
-              « Lis, au nom de ton Seigneur qui a créé. »
-            </div>
-            <div style={{ fontSize: 10, color: t.accentBright, letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 8 }}>
-              Al-ʿAlaq · 96:1
-            </div>
-          </div>
-          <div style={{ fontSize: 10.5, color: t.inkMute, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
             Une lanterne pour la mémoire du cœur
           </div>
         </div>
       </div>
 
-      {/* Right — form */}
-      <div style={{ width: '100%', maxWidth: 440, padding: '40px 32px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: t.bgSoft, overflowY: 'auto' }}>
+      {/* Right — form (full width on mobile/tablet, 440px on desktop) */}
+      <div style={{ width: '100%', maxWidth: 440, padding: 'clamp(24px, 5vw, 48px) clamp(20px, 5vw, 40px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: t.bgSoft, overflowY: 'auto', flex: 'none' }}>
         <div style={{ fontSize: 11, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 8 }}>
           {fr ? 'Bienvenue' : 'أهلاً وسهلاً'}
         </div>

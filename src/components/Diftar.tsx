@@ -4,7 +4,7 @@ import { getStroke } from 'perfect-freehand';
 import { HexColorPicker } from 'react-colorful';
 import { Stroke, Shape, DiftarPage, UserData } from '../types';
 import { useT } from '../lib/theme';
-import { Icon, Icons, useIsNarrow } from './ui';
+import { Icon, Icons, useIsNarrow, useIsMobile } from './ui';
 
 // Page templates
 const PAGE_TEMPLATES = [
@@ -140,6 +140,7 @@ const COLOR_PALETTE = {
 export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
   const t = useT();
   const narrow = useIsNarrow();
+  const isMobile = useIsMobile();
   const fr = lang === 'fr';
   const [activePageId, setActivePageId]     = useState<string | null>(null);
   const [editingPageId, setEditingPageId]   = useState<string | null>(null);
@@ -1260,7 +1261,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: narrow ? 20 : 32 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : narrow ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: isMobile ? 24 : narrow ? 20 : 32 }}>
             {filteredPages.map(page => {
               const c = TYPE_COLORS[page.type] || t.accent;
               const tpl = PAGE_TEMPLATES.find(tp => tp.type === page.type);
