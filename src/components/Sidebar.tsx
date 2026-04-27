@@ -253,7 +253,7 @@ export const Sidebar = ({
               <p className="text-[9px] font-black uppercase tracking-widest mb-1"
                  style={{ color: 'var(--brand-secondary)' }}>Artisans du Savoir</p>
               <p className="text-[10px] font-medium mb-2" style={{ color: 'var(--brand-text-muted)' }}>
-                Rahima & hamda_wa_chakra
+                Rahima · @hamda_wa_chakra
               </p>
               <div className="flex gap-3">
                 <a href="https://www.instagram.com/hamda_wa_chakra" target="_blank" rel="noopener noreferrer"

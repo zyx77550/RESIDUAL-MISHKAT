@@ -140,15 +140,15 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginTop: 4 }}>
-            <button style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.inkMute }}>
+            <button onClick={() => onNavigate?.('memorization')} style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.inkMute, cursor: 'pointer' }}>
               <Icon d={Icons.search} size={14}/>
             </button>
-            <button style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.inkMute }}>
+            <button onClick={() => onNavigate?.('settings')} style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.inkMute, cursor: 'pointer' }}>
               <Icon d={Icons.bell} size={14}/>
             </button>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 16, color: '#1a0f00', fontWeight: 400 }}>
+            <button onClick={() => onNavigate?.('settings')} style={{ width: 36, height: 36, borderRadius: 8, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 16, color: '#1a0f00', fontWeight: 400, border: 'none', cursor: 'pointer' }}>
               {username.charAt(0).toUpperCase()}
-            </div>
+            </button>
           </div>
         </div>
 

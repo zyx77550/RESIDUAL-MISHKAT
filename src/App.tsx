@@ -350,7 +350,7 @@ export default function App() {
               {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked}/>}
               {activeTab === 'kanban'       && <KanbanSection {...commonProps}/>}
               {activeTab === 'albaqara'     && <AlBaqaraSection {...commonProps}/>}
-              {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang}/>}
+              {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} setLang={setLang}/>}
               {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang}/>}
             </div>
           )}
@@ -381,7 +381,7 @@ export default function App() {
               {lang === 'fr' ? 'Commencer' : 'ابدأ'}
             </button>
             <div style={{ marginTop: 16, fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-              Artisans du Savoir · Rahima & hamda_wa_chakra
+              Artisans du Savoir · Rahima · @hamda_wa_chakra
             </div>
           </div>
         </div>
@@ -389,7 +389,7 @@ export default function App() {
 
       {/* Update prompt */}
       {showUpdatePrompt && (
-        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 110, width: 'calc(100% - 48px)', maxWidth: 360 }}>
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, width: 'calc(100% - 48px)', maxWidth: 360, pointerEvents: 'auto' }}>
           <div style={{ background: t.card, border: `1px solid ${t.line}`, borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div>
               <div style={{ fontSize: 10, color: t.accent, letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 600 }}>

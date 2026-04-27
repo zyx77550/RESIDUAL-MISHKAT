@@ -355,7 +355,7 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
       {/* Footer credits */}
       <div style={{ padding: '10px 8px', borderTop: `1px solid ${t.lineSoft}` }}>
         <div style={{ fontSize: 9.5, color: t.inkMute, letterSpacing: '0.14em' }}>Artisans du Savoir</div>
-        <div style={{ fontSize: 10, color: t.inkMute, opacity: 0.6, marginTop: 2 }}>Rahima & hamda_wa_chakra</div>
+        <div style={{ fontSize: 10, color: t.inkMute, opacity: 0.6, marginTop: 2 }}>Rahima · @hamda_wa_chakra</div>
       </div>
     </aside>
   );

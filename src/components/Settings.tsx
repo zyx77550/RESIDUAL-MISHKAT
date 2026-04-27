@@ -4,8 +4,8 @@ import { useT } from '../lib/theme';
 import { Icon, Icons, useIsNarrow } from './ui';
 
 export const SettingsSection = ({
-  userData, setUserData, lang
-}: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
+  userData, setUserData, lang, setLang,
+}: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string; setLang?: (l: 'fr' | 'ar') => void }) => {
   const t = useT();
   const narrow = useIsNarrow();
   const settings = userData.settings;
@@ -257,6 +257,22 @@ export const SettingsSection = ({
               )}
             </div>
           </div>
+          {/* Langue de l'interface */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${t.lineSoft}` }}>
+            <span style={{ fontSize: 12, color: t.inkDim }}>{fr ? 'Langue' : 'اللغة'}</span>
+            <div style={{ display: 'flex', gap: 4, padding: 3, background: t.cardElev, borderRadius: 8, border: `1px solid ${t.line}` }}>
+              {(['fr', 'ar'] as const).map(l => (
+                <button key={l} onClick={() => setLang?.(l)}
+                  style={{ padding: '5px 14px', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: 'none',
+                    background: lang === l ? t.accent : 'transparent',
+                    color: lang === l ? '#1a0f00' : t.inkDim,
+                  }}>
+                  {l === 'fr' ? 'Français' : 'العربية'}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Field rows */}
           {[
             { label: fr ? "Nom d'utilisateur" : 'اسم المستخدم', value: settings.username, onChange: (v: string) => updateSettings({ username: v }), placeholder: fr ? 'Votre nom…' : 'اسمك…' },
@@ -496,7 +512,7 @@ export const SettingsSection = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[
               { label: fr ? 'Version' : 'الإصدار',         value: 'Mishkat v2.0' },
-              { label: fr ? 'Développé par' : 'المطوّر',    value: 'Rahima & hamda_wa_chakra' },
+              { label: fr ? 'Développé par' : 'المطوّر',    value: 'Rahima (@hamda_wa_chakra)' },
               { label: fr ? 'Stack' : 'التقنية',            value: 'React · TypeScript · PWA' },
               { label: fr ? 'Thème actif' : 'السمة الحالية',value: `${settings.theme} ${settings.darkMode ? '🌙' : '☀️'}` },
             ].map(row => (
@@ -524,7 +540,7 @@ export const SettingsSection = ({
           Mishkat v2.0 · {fr ? 'Fait avec amour' : 'صنع بكل حب'}
         </div>
         <div style={{ fontSize: 9, color: t.inkMute, opacity: 0.5, marginTop: 4 }}>
-          Par Rahima &amp; hamda_wa_chakra
+          Par Rahima · @hamda_wa_chakra
         </div>
       </div>
     </div>
