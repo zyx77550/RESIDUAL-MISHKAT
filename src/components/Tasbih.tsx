@@ -27,8 +27,9 @@ export const TasbihSection = ({
   const target = dhikr.target;
   const ticks  = target <= 33 ? 33 : target <= 99 ? 99 : 100;
 
-  const r = 110;
-  const cx = 120, cy = 120;
+  const svgSize = narrow ? 200 : 240;
+  const r = narrow ? 88 : 110;
+  const cx = svgSize / 2, cy = svgSize / 2;
   const circ = 2 * Math.PI * r;
 
   const vibrate = useCallback(() => { if ('vibrate' in navigator) navigator.vibrate(40); }, []);
@@ -107,8 +108,8 @@ export const TasbihSection = ({
           </div>
 
           {/* Counter ring with tick marks */}
-          <div style={{ position: 'relative', width: 240, height: 240 }}>
-            <svg width={240} height={240} style={{ transform: 'rotate(-90deg)' }}>
+          <div style={{ position: 'relative', width: svgSize, height: svgSize }}>
+            <svg width={svgSize} height={svgSize} style={{ transform: 'rotate(-90deg)' }}>
               {/* Background track */}
               <circle cx={cx} cy={cy} r={r} stroke={t.line} strokeWidth="2" fill="none"/>
               {/* Progress arc */}

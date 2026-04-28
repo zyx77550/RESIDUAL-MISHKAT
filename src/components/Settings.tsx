@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UserData, UserSettings } from '../types';
 import { useT } from '../lib/theme';
 import { Icon, Icons, useIsNarrow } from './ui';
+import { signOut } from '../lib/supabase';
 
 export const SettingsSection = ({
-  userData, setUserData, lang, setLang,
-}: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string; setLang?: (l: 'fr' | 'ar') => void }) => {
+  userData, setUserData, lang, setLang, onSignOut,
+}: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string; setLang?: (l: 'fr' | 'ar') => void; onSignOut?: () => void }) => {
   const t = useT();
   const narrow = useIsNarrow();
   const settings = userData.settings;
@@ -218,7 +219,7 @@ export const SettingsSection = ({
         <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
           {fr ? 'Votre progression' : 'تقدمك'}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 16 }}>
           {[
             { value: memorizedCount,          label: fr ? 'Sourates'      : 'السور'    },
             { value: completedGoals,           label: fr ? 'Objectifs'     : 'الأهداف'  },
@@ -284,6 +285,16 @@ export const SettingsSection = ({
                 style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 12.5, color: t.ink, textAlign: 'right', width: '100%', fontFamily: 'inherit' }}/>
             </div>
           ))}
+
+          {onSignOut && (
+            <div style={{ paddingTop: 14, marginTop: 4 }}>
+              <button
+                onClick={async () => { await signOut(); onSignOut(); }}
+                style={{ width: '100%', padding: '10px', borderRadius: 9, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.05)', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer', letterSpacing: '0.05em' }}>
+                {fr ? 'Se déconnecter' : 'تسجيل الخروج'}
+              </button>
+            </div>
+          )}
         </div>
         )}
 

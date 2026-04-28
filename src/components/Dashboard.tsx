@@ -287,7 +287,7 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
                   </div>
                   {city && <div style={{ fontSize: 10, color: t.inkMute }}>{city}</div>}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)', gap: 6 }}>
                   {prayerTimes.map(p => {
                     const isNext = nextPrayer?.name === p.name;
                     return (

@@ -42,6 +42,7 @@ export default function App() {
   const [localOnly, setLocalOnly]   = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showTrialPopup, setShowTrialPopup] = useState(false);
 
   const isDark = userData?.settings?.darkMode ?? false;
   const themeMap = isDark ? DARK_THEMES : THEMES;
@@ -222,7 +223,6 @@ export default function App() {
   useEffect(() => {
     if (!userData || userData.settings?.notifications === false) return;
     if (!('Notification' in window)) return;
-    if (Notification.permission === 'default') Notification.requestPermission();
     const NOTIFS_FR = [
       { title: 'Mishkat · Rappel prière 🕌', body: 'N\'oublie pas de valider tes prières du jour dans le calendrier.' },
       { title: 'Mishkat · Tasbih 📿',        body: 'Prends un moment pour ton dhikr — 33× Subhânallah.' },
@@ -238,12 +238,20 @@ export default function App() {
     ];
     const msgs = lang === 'fr' ? NOTIFS_FR : NOTIFS_AR;
     let idx = 0;
-    const id = setInterval(() => {
+    const fire = () => {
       if (Notification.permission !== 'granted') return;
       const m = msgs[idx % msgs.length];
-      new Notification(m.title, { body: m.body, icon: '/icon-192.png', badge: '/favicon-96x96.png' });
+      navigator.serviceWorker?.ready.then(reg =>
+        reg.showNotification(m.title, { body: m.body, icon: '/icon-192.png', badge: '/favicon-96x96.png', tag: 'mishkat-reminder' })
+      ).catch(() => new Notification(m.title, { body: m.body, icon: '/icon-192.png' }));
       idx++;
-    }, 15 * 60 * 1000);
+    };
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then(p => {
+        if (p === 'granted') fire();
+      });
+    }
+    const id = setInterval(fire, 15 * 60 * 1000);
     return () => clearInterval(id);
   }, [lang, userData?.settings?.notifications]);
 
@@ -301,6 +309,26 @@ export default function App() {
 
     setSoundEnabled(s.soundEffects ?? true);
   }, [userData?.settings]);
+
+  const handleSignOut = () => {
+    setSupabaseUserId(null);
+    setUserData(null);
+    setLocalOnly(false);
+    setShowAuth(true);
+  };
+
+  // ── Trial popup (1 month free, non-admin users) ──────────────────────────
+  useEffect(() => {
+    if (!userData || userData.settings?.isAdmin) return;
+    const TRIAL_KEY = 'mishkat_trial_ack';
+    if (localStorage.getItem(TRIAL_KEY)) return;
+    const TRIAL_START_KEY = 'mishkat_trial_start';
+    if (!localStorage.getItem(TRIAL_START_KEY)) {
+      localStorage.setItem(TRIAL_START_KEY, Date.now().toString());
+    }
+    const delay = setTimeout(() => setShowTrialPopup(true), 1200);
+    return () => clearTimeout(delay);
+  }, [userData?.settings?.isAdmin]);
 
   const applyUpdate = () => {
     if (updateWorker) {
@@ -393,7 +421,7 @@ export default function App() {
               {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked}/>}
               {activeTab === 'kanban'       && <KanbanSection {...commonProps}/>}
               {activeTab === 'albaqara'     && <AlBaqaraSection {...commonProps}/>}
-              {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} setLang={setLang}/>}
+              {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} setLang={setLang} onSignOut={!localOnly ? handleSignOut : undefined}/>}
               {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang}/>}
             </div>
           )}
@@ -432,6 +460,42 @@ export default function App() {
       {/* Onboarding modal */}
       {showOnboarding && (
         <OnboardingModal lang={lang} onClose={() => setShowOnboarding(false)}/>
+      )}
+
+      {/* Trial popup */}
+      {showTrialPopup && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9990, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: t.card, border: `1px solid ${t.line}`, borderRadius: 22, maxWidth: 440, width: '100%', padding: '36px 32px', display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center', textAlign: 'center', boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }}>
+            <div style={{ fontSize: 36 }}>🌙</div>
+            <div>
+              <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 24, color: t.ink, marginBottom: 6 }}>
+                {lang === 'fr' ? 'Bienvenue dans Mishkat' : 'مرحباً في مشكاة'}
+              </div>
+              <div style={{ fontSize: 10, color: t.accentBright, letterSpacing: '0.22em', textTransform: 'uppercase' }}>
+                {lang === 'fr' ? 'Période de découverte' : 'فترة الاكتشاف'}
+              </div>
+            </div>
+            <div style={{ background: `${t.accent}0d`, border: `1px solid ${t.accent}22`, borderRadius: 14, padding: '18px 22px', width: '100%' }}>
+              <div style={{ fontFamily: 'Fraunces, serif', fontSize: 48, color: t.accent, lineHeight: 1, marginBottom: 6 }}>1</div>
+              <div style={{ fontSize: 11, color: t.ink, fontWeight: 600 }}>{lang === 'fr' ? 'mois gratuit' : 'شهر مجاناً'}</div>
+              <div style={{ fontSize: 10, color: t.inkMute, marginTop: 4, lineHeight: 1.6 }}>
+                {lang === 'fr'
+                  ? 'Profite de toutes les fonctionnalités sans limitation. Après cette période, Mishkat deviendra payant et les comptes non renouvelés seront supprimés.'
+                  : 'استمتع بجميع الميزات دون قيود. بعد هذه الفترة، ستصبح مشكاة مدفوعة وستُحذف الحسابات غير المجددة.'}
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: t.inkMute, lineHeight: 1.7 }}>
+              {lang === 'fr'
+                ? '⚠ Les comptes administrateurs ne seront jamais supprimés.'
+                : '⚠ لن تُحذف حسابات المشرفين أبداً.'}
+            </div>
+            <button
+              onClick={() => { localStorage.setItem('mishkat_trial_ack', '1'); setShowTrialPopup(false); }}
+              style={{ width: '100%', padding: '13px', borderRadius: 12, background: t.accent, color: '#1a0f00', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}>
+              {lang === 'fr' ? 'J\'ai compris — Bismillah !' : 'فهمت — بسم الله!'}
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Update prompt */}
