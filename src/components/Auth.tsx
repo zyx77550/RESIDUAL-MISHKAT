@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useT } from '../lib/theme';
 import { LanternMark, Icon, Icons } from './ui';
 import { signIn, signUp } from '../lib/supabase';
@@ -20,7 +20,23 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [success, setSuccess]   = useState<string | null>(null);
+  const [showPwaModal, setShowPwaModal] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const fr = lang === 'fr';
+
+  useEffect(() => {
+    const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleNativeInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+    setShowPwaModal(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,7 +177,70 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
           style={{ width: '100%', padding: '11px', borderRadius: 10, border: `1px solid ${t.line}`, background: 'transparent', color: t.inkDim, fontFamily: 'Inter', fontWeight: 500, fontSize: 12 }}>
           {fr ? 'Continuer sans compte (données locales)' : 'المتابعة بدون حساب'}
         </button>
+
+        {/* PWA install hint */}
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setShowPwaModal(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 16px', borderRadius: 20, border: `1px solid ${t.lineSoft}`, background: 'transparent', color: t.inkMute, fontSize: 11, cursor: 'pointer', letterSpacing: '0.06em' }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v13M7 9l5 5 5-5"/><path d="M20 17v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2"/>
+            </svg>
+            {fr ? 'Installer l\'appli sur l\'écran d\'accueil' : 'تثبيت التطبيق على الشاشة الرئيسية'}
+          </button>
+        </div>
       </div>
+
+      {/* PWA install modal */}
+      {showPwaModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0 16px 24px' }} onClick={() => setShowPwaModal(false)}>
+          <div style={{ background: t.card, border: `1px solid ${t.line}`, borderRadius: 18, padding: '24px 24px 20px', width: '100%', maxWidth: 400, boxShadow: '0 -8px 40px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 20, color: t.ink }}>
+                {fr ? 'Installer Mishkat' : 'تثبيت مشكاة'}
+              </div>
+              <button onClick={() => setShowPwaModal(false)} style={{ padding: 4, color: t.inkMute, background: 'transparent', borderRadius: 8 }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ padding: '14px 16px', background: `${t.accent}0d`, border: `1px solid ${t.accent}22`, borderRadius: 12 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  iPhone · iPad &nbsp;·&nbsp; Safari
+                </div>
+                <div style={{ fontSize: 12, color: t.inkDim, lineHeight: 1.7 }}>
+                  {fr
+                    ? <>1. Appuie sur le bouton <b>Partager</b> <span style={{ fontSize: 14 }}>⎋</span> en bas de l'écran<br/>2. Fais défiler et choisis <b>« Sur l'écran d'accueil »</b></>
+                    : <>١. اضغط على زر <b>المشاركة</b> ⎋ أسفل الشاشة<br/>٢. اختر <b>« إضافة إلى الشاشة الرئيسية »</b></>}
+                </div>
+              </div>
+
+              <div style={{ padding: '14px 16px', background: `${t.accent}0d`, border: `1px solid ${t.accent}22`, borderRadius: 12 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  Android &nbsp;·&nbsp; Chrome
+                </div>
+                <div style={{ fontSize: 12, color: t.inkDim, lineHeight: 1.7 }}>
+                  {fr
+                    ? <>1. Appuie sur le menu <b>⋮</b> en haut à droite<br/>2. Choisis <b>« Ajouter à l'écran d'accueil »</b></>
+                    : <>١. اضغط على قائمة <b>⋮</b> في أعلى اليمين<br/>٢. اختر <b>« إضافة إلى الشاشة الرئيسية »</b></>}
+                </div>
+              </div>
+            </div>
+
+            {deferredPrompt && (
+              <button
+                onClick={handleNativeInstall}
+                style={{ marginTop: 16, width: '100%', padding: '12px', borderRadius: 10, background: t.accent, color: '#1a0f00', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}
+              >
+                {fr ? 'Installer maintenant' : 'تثبيت الآن'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

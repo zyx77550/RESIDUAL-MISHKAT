@@ -510,9 +510,14 @@ export default function App() {
                 {lang === 'fr' ? 'Nouvelle version de Mishkat !' : 'إصدار جديد من مشكاة!'}
               </div>
             </div>
-            <button onClick={applyUpdate} style={{ padding: '8px 14px', borderRadius: 8, background: t.accent, color: '#1a0f00', fontFamily: 'Inter', fontWeight: 600, fontSize: 12, flexShrink: 0 }}>
-              {lang === 'fr' ? 'Actualiser' : 'تحديث'}
-            </button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+              <button onClick={applyUpdate} style={{ padding: '8px 14px', borderRadius: 8, background: t.accent, color: '#1a0f00', fontFamily: 'Inter', fontWeight: 600, fontSize: 12 }}>
+                {lang === 'fr' ? 'Actualiser' : 'تحديث'}
+              </button>
+              <button onClick={() => setShowUpdatePrompt(false)} style={{ padding: '6px', borderRadius: 8, background: 'transparent', color: t.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Ignorer">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 1l11 11M12 1L1 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              </button>
+            </div>
           </div>
         </div>
       )}
