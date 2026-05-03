@@ -225,6 +225,7 @@ const MENU_ITEMS = [
   { id: 'kanban',       labelFr: 'Suivi',            icon: 'chart'     },
   { id: 'quran',        labelFr: 'Coran',             icon: 'bookmark'  },
   { id: 'adhkar',       labelFr: 'Adhkar',            icon: 'moon'      },
+  { id: 'quiz',         labelFr: 'Quiz',              icon: 'sparkle'   },
   { id: 'settings',     labelFr: 'Réglages',         icon: 'settings'  },
 ];
 
