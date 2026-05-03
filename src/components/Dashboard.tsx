@@ -1,7 +1,17 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { UserData } from '../types';
 import { useT } from '../lib/theme';
 import { Icon, Icons, useIsNarrow } from './ui';
+import { Skeleton, SkeletonCard } from './Skeleton';
+
+const RESUME_KEY = 'mishkat_quran_last';
+export function saveQuranPosition(surahId: number, surahName: string, ayah: number) {
+  localStorage.setItem(RESUME_KEY, JSON.stringify({ surahId, surahName, ayah, ts: Date.now() }));
+}
+export function loadQuranPosition(): { surahId: number; surahName: string; ayah: number } | null {
+  try { return JSON.parse(localStorage.getItem(RESUME_KEY) || 'null'); } catch { return null; }
+}
 
 interface PrayerTime { name: string; nameAr: string; time: string; }
 
@@ -75,12 +85,47 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
   const username        = userData.settings?.username || 'Hafiz';
   const city            = userData.settings?.city;
 
-  const [verse, setVerse]             = useState<typeof FALLBACK_VERSE>(FALLBACK_VERSE);
+  const [verse, setVerse]             = useState<typeof FALLBACK_VERSE | null>(null);
   const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([]);
   const [nowTime, setNowTime]         = useState(new Date());
+  const [verseLoading, setVerseLoading]       = useState(true);
+  const [prayerLoading, setPrayerLoading]     = useState(!!city);
+  const [pullY, setPullY]             = useState(0);
+  const [pulling, setPulling]         = useState(false);
+  const [refreshing, setRefreshing]   = useState(false);
+  const resumePos = loadQuranPosition();
 
-  useEffect(() => { fetchVerseOfDay().then(v => { if (v) setVerse(v); }); }, []);
-  useEffect(() => { if (city) fetchPrayerTimes(city).then(setPrayerTimes); }, [city]);
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    setVerseLoading(true);
+    if (city) setPrayerLoading(true);
+    await Promise.all([
+      fetchVerseOfDay().then(v => { setVerse(v ?? FALLBACK_VERSE); setVerseLoading(false); }),
+      city ? fetchPrayerTimes(city).then(p => { setPrayerTimes(p); setPrayerLoading(false); }) : Promise.resolve(),
+    ]);
+    setRefreshing(false);
+  }, [city]);
+
+  useEffect(() => {
+    fetchVerseOfDay().then(v => { setVerse(v ?? FALLBACK_VERSE); setVerseLoading(false); });
+  }, []);
+  useEffect(() => {
+    if (city) fetchPrayerTimes(city).then(p => { setPrayerTimes(p); setPrayerLoading(false); });
+  }, [city]);
+
+  // Pull-to-refresh touch handlers
+  const touchStartY = React.useRef(0);
+  const onTouchStart = (e: React.TouchEvent) => { touchStartY.current = e.touches[0].clientY; };
+  const onTouchMove  = (e: React.TouchEvent) => {
+    const el = e.currentTarget as HTMLElement;
+    if (el.scrollTop > 0) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) { setPulling(true); setPullY(Math.min(dy * 0.4, 60)); }
+  };
+  const onTouchEnd = () => {
+    if (pullY > 45) refresh();
+    setPulling(false); setPullY(0);
+  };
   useEffect(() => {
     const id = setInterval(() => setNowTime(new Date()), 30000);
     return () => clearInterval(id);
@@ -124,7 +169,19 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, height: '100%', overflowY: 'auto' }} className="no-scrollbar">
+    <div
+      style={{ display: 'flex', flexDirection: 'column', gap: 0, height: '100%', overflowY: 'auto', transform: `translateY(${pullY}px)`, transition: pulling ? 'none' : 'transform 0.3s ease' }}
+      className="no-scrollbar"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      {(pulling || refreshing) && (
+        <div style={{ position: 'absolute', top: -40, left: 0, right: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', height: 40 }}>
+          <div style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${t.accent}`, borderTopColor: 'transparent', animation: refreshing ? 'spin 0.7s linear infinite' : 'none', transform: `rotate(${pullY * 3}deg)`, transition: 'transform 0.05s' }}/>
+        </div>
+      )}
       <div style={{ padding: narrow ? '16px 14px 100px' : '26px 28px 24px', display: 'flex', flexDirection: 'column', gap: 20, minHeight: '100%' }}>
 
         {/* ── Header ─────────────────────────────────────── */}
@@ -178,6 +235,28 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
           {/* ── LEFT COLUMN ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
+            {/* Resume Quran reading card */}
+            {resumePos && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                style={{ ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', background: `linear-gradient(135deg, ${t.accent}0e, ${t.card})` }}
+                onClick={() => onNavigate?.('quran')}
+              >
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon d={Icons.bookmark} size={16} color="#1a0f00"/>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 9, color: t.accentBright, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>
+                    {fr ? 'Reprendre la lecture' : 'متابعة القراءة'}
+                  </div>
+                  <div style={{ fontSize: 13, color: t.ink, fontWeight: 600, marginTop: 2 }}>
+                    {resumePos.surahName} · v.{resumePos.ayah}
+                  </div>
+                </div>
+                <Icon d={Icons.arrow} size={14} color={t.inkMute}/>
+              </motion.div>
+            )}
+
             {/* Hero card — verse / current surah */}
             <div style={{ ...card, padding: '24px 28px', position: 'relative', overflow: 'hidden' }}>
               {/* subtle gradient overlay */}
@@ -198,17 +277,26 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
                   )}
                 </div>
 
-                <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 28, color: t.ink, lineHeight: 1.9, direction: 'rtl', textAlign: 'right' }}>
-                  {verse.ar}
-                </div>
-
-                <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 13, color: t.inkDim, marginTop: 12, lineHeight: 1.7 }}>
-                  « {verse.fr} »
-                </div>
-
-                <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 8 }}>
-                  {verse.ref}
-                </div>
+                {verseLoading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '8px 0' }}>
+                    <Skeleton height={28} width="90%" borderRadius={6}/>
+                    <Skeleton height={22} width="75%" borderRadius={6}/>
+                    <Skeleton height={14} width="55%" borderRadius={6}/>
+                    <Skeleton height={11} width="35%" borderRadius={6}/>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 28, color: t.ink, lineHeight: 1.9, direction: 'rtl', textAlign: 'right' }}>
+                      {verse?.ar}
+                    </div>
+                    <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 13, color: t.inkDim, marginTop: 12, lineHeight: 1.7 }}>
+                      « {verse?.fr} »
+                    </div>
+                    <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 8 }}>
+                      {verse?.ref}
+                    </div>
+                  </>
+                )}
 
                 <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
                   <button
@@ -279,7 +367,7 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
             )}
 
             {/* Prayer times */}
-            {prayerTimes.length > 0 && (
+            {(prayerLoading || prayerTimes.length > 0) && (
               <div style={{ ...card, padding: '18px 22px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                   <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
@@ -287,17 +375,52 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
                   </div>
                   {city && <div style={{ fontSize: 10, color: t.inkMute }}>{city}</div>}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)', gap: 6 }}>
-                  {prayerTimes.map(p => {
-                    const isNext = nextPrayer?.name === p.name;
-                    return (
-                      <div key={p.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 4px', borderRadius: 8, background: isNext ? `${t.accent}14` : t.cardElev, border: `1px solid ${isNext ? t.accent : t.line}` }}>
-                        <div style={{ fontSize: 9, color: isNext ? t.accent : t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>{fr ? p.name : p.nameAr}</div>
-                        <div style={{ fontSize: 11, color: isNext ? t.ink : t.inkDim, fontFamily: 'Fraunces, serif' }}>{p.time}</div>
+                {prayerLoading ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 6 }}>
+                    {[1,2,3,4,5].map(i => <Skeleton key={i} height={52} borderRadius={8}/>)}
+                  </div>
+                ) : (
+                  <>
+                    {/* Next prayer ring */}
+                    {nextPrayer && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, padding: '12px 16px', borderRadius: 10, background: `${t.accent}0e`, border: `1px solid ${t.accent}33` }}>
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <Ring pct={(() => {
+                            const idx = prayerTimes.findIndex(p => p.name === nextPrayer.name);
+                            const prev = prayerTimes[idx > 0 ? idx - 1 : prayerTimes.length - 1];
+                            const [ph, pm] = prev.time.split(':').map(Number);
+                            const [nh, nm] = nextPrayer.time.split(':').map(Number);
+                            const total = ((nh * 60 + nm) - (ph * 60 + pm) + 1440) % 1440;
+                            return total > 0 ? Math.max(0, 100 - (nextPrayer.minsLeft / total * 100)) : 0;
+                          })()} size={64} stroke={4} color={t.accent}/>
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 9, color: t.accent, fontWeight: 700 }}>
+                              {Math.floor(nextPrayer.minsLeft / 60)}h{String(nextPrayer.minsLeft % 60).padStart(2,'0')}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, color: t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{fr ? 'Prochaine' : 'التالية'}</div>
+                          <div style={{ fontSize: 18, color: t.ink, fontFamily: 'Fraunces, serif', fontWeight: 300, lineHeight: 1.2 }}>
+                            {fr ? nextPrayer.name : nextPrayer.nameAr}
+                          </div>
+                          <div style={{ fontSize: 11, color: t.accentBright, marginTop: 2 }}>{nextPrayer.time}</div>
+                        </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    )}
+                    <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)', gap: 6 }}>
+                      {prayerTimes.map(p => {
+                        const isNext = nextPrayer?.name === p.name;
+                        return (
+                          <div key={p.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 4px', borderRadius: 8, background: isNext ? `${t.accent}14` : t.cardElev, border: `1px solid ${isNext ? t.accent : t.line}` }}>
+                            <div style={{ fontSize: 9, color: isNext ? t.accent : t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>{fr ? p.name : p.nameAr}</div>
+                            <div style={{ fontSize: 11, color: isNext ? t.ink : t.inkDim, fontFamily: 'Fraunces, serif' }}>{p.time}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>

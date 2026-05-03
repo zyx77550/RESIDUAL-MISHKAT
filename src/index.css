@@ -26,3 +26,9 @@ button { cursor: pointer; border: none; background: none; }
 
 /* Amiri Quran direction */
 .arabic { direction: rtl; font-family: 'Amiri Quran', serif; }
+
+/* Skeleton shimmer */
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

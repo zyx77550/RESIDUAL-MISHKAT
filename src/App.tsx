@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Toaster } from 'react-hot-toast';
 import { ThemeContext, THEMES, DARK_THEMES, Theme } from './lib/theme';
+import { OfflineBanner } from './components/OfflineBanner';
 import { AppSidebar, LanternMark, useIsMobile } from './components/ui';
 import { Dashboard } from './components/Dashboard';
 import { Diftar } from './components/Diftar';
@@ -370,6 +373,16 @@ export default function App() {
 
   return (
     <ThemeContext.Provider value={t}>
+      <OfflineBanner lang={lang} />
+      <Toaster
+        position="bottom-center"
+        toastOptions={{
+          style: { background: t.card, color: t.ink, border: `1px solid ${t.line}`, fontFamily: 'Inter, sans-serif', fontSize: 13, borderRadius: 10 },
+          success: { iconTheme: { primary: t.accent, secondary: t.card } },
+          error:   { iconTheme: { primary: '#ef4444', secondary: t.card } },
+          duration: 2500,
+        }}
+      />
       {/* SVG colour-blind filters */}
       <svg width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }}>
         <defs>
@@ -407,24 +420,33 @@ export default function App() {
 
         {/* Main content */}
         <main style={{ flex: 1, overflowY: 'auto', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
-          {/* Dashboard and Diftar manage their own padding/layout */}
-          {activeTab === 'dashboard'    && <Dashboard {...commonProps} onNavigate={setActiveTab}/>}
-          {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang}/>}
-          {/* All other sections get consistent padding */}
-          {!['dashboard','diftar'].includes(activeTab) && (
-            <div style={{ flex: 1, padding: isMobile ? '16px 14px 100px' : '26px 28px 36px', display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {activeTab === 'coloring'     && <ColoringGrid {...commonProps}/>}
-              {activeTab === 'goals'        && <GoalsSection {...commonProps}/>}
-              {activeTab === 'tasbih'       && <TasbihSection {...commonProps}/>}
-              {activeTab === 'memorization' && <MemorizationSection {...commonProps}/>}
-              {activeTab === 'calendar'     && <CalendarSection {...commonProps}/>}
-              {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked}/>}
-              {activeTab === 'kanban'       && <KanbanSection {...commonProps}/>}
-              {activeTab === 'quran'        && <QuranSection userData={userData!} lang={lang} />}
-              {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} setLang={setLang} onSignOut={!localOnly ? handleSignOut : undefined}/>}
-              {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang}/>}
-            </div>
-          )}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
+            >
+              {activeTab === 'dashboard'    && <Dashboard {...commonProps} onNavigate={setActiveTab}/>}
+              {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang}/>}
+              {!['dashboard','diftar'].includes(activeTab) && (
+                <div style={{ flex: 1, padding: isMobile ? '16px 14px 100px' : '26px 28px 36px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {activeTab === 'coloring'     && <ColoringGrid {...commonProps}/>}
+                  {activeTab === 'goals'        && <GoalsSection {...commonProps}/>}
+                  {activeTab === 'tasbih'       && <TasbihSection {...commonProps}/>}
+                  {activeTab === 'memorization' && <MemorizationSection {...commonProps}/>}
+                  {activeTab === 'calendar'     && <CalendarSection {...commonProps}/>}
+                  {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked}/>}
+                  {activeTab === 'kanban'       && <KanbanSection {...commonProps}/>}
+                  {activeTab === 'quran'        && <QuranSection userData={userData!} lang={lang} />}
+                  {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} setLang={setLang} onSignOut={!localOnly ? handleSignOut : undefined}/>}
+                  {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang}/>}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </main>
 
         {/* Mobile bottom nav */}
