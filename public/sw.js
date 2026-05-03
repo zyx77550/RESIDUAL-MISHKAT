@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'mishkat-cache-v5';
+const CACHE_VERSION = 'mishkat-cache-v6';
 
 self.addEventListener('install', (event) => {
   console.log('SW: Installing version', CACHE_VERSION);

@@ -223,7 +223,7 @@ const MENU_ITEMS = [
   { id: 'coloring',     labelFr: 'Coloriage',        icon: 'palette'   },
   { id: 'diftar',       labelFr: 'Diftar',           icon: 'pen'       },
   { id: 'kanban',       labelFr: 'Suivi',            icon: 'chart'     },
-  { id: 'albaqara',     labelFr: 'Al-Baqarah',       icon: 'bookmark'  },
+  { id: 'quran',        labelFr: 'Coran',             icon: 'bookmark'  },
   { id: 'settings',     labelFr: 'Réglages',         icon: 'settings'  },
 ];
 
