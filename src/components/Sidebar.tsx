@@ -34,7 +34,7 @@ export const Sidebar = ({
     { id: 'coloring',     icon: Palette,          labelFr: 'Coloriage',        labelAr: 'التلوين'     },
     { id: 'diftar',       icon: NotebookPen,      labelFr: 'Diftar',           labelAr: 'الدفتر'      },
     { id: 'kanban',       icon: Kanban,           labelFr: 'Suivi',            labelAr: 'المتابعة'    },
-    { id: 'albaqara',     icon: BookOpen,         labelFr: 'Al-Baqarah',       labelAr: 'البقرة'    },
+    { id: 'quran',        icon: BookOpen,         labelFr: 'Coran',            labelAr: 'القرآن'    },
     { id: 'settings',     icon: Settings,         labelFr: 'Réglages',         labelAr: 'الإعدادات'   },
   ];
 
