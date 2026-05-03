@@ -15,6 +15,7 @@ import { BadgesSection } from './components/Badges';
 import { KanbanSection } from './components/Kanban';
 import { SettingsSection } from './components/Settings';
 import { QuranSection } from './components/Quran';
+import { AdhkarSection } from './components/Adhkar';
 import { AdminSection } from './components/Admin';
 import localforage from 'localforage';
 import { UserData, Badge, generateAllSurahs, checkLoginStreak } from './types';
@@ -441,6 +442,7 @@ export default function App() {
                   {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked}/>}
                   {activeTab === 'kanban'       && <KanbanSection {...commonProps}/>}
                   {activeTab === 'quran'        && <QuranSection userData={userData!} lang={lang} />}
+                  {activeTab === 'adhkar'       && <AdhkarSection lang={lang} />}
                   {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} setLang={setLang} onSignOut={!localOnly ? handleSignOut : undefined}/>}
                   {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang}/>}
                 </div>

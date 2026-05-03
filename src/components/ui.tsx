@@ -224,6 +224,7 @@ const MENU_ITEMS = [
   { id: 'diftar',       labelFr: 'Diftar',           icon: 'pen'       },
   { id: 'kanban',       labelFr: 'Suivi',            icon: 'chart'     },
   { id: 'quran',        labelFr: 'Coran',             icon: 'bookmark'  },
+  { id: 'adhkar',       labelFr: 'Adhkar',            icon: 'moon'      },
   { id: 'settings',     labelFr: 'Réglages',         icon: 'settings'  },
 ];
 
