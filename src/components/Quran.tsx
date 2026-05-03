@@ -3,7 +3,7 @@ import { List as VirtualList } from 'react-window';
 import { usePinch } from '@use-gesture/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, BookOpen, ChevronDown, Copy, X,
+  Search, BookOpen, Copy, X,
   Bookmark, BookMarked, ChevronLeft, ChevronUp, AlertCircle,
   LayoutList, BookText, Volume2, VolumeX, Share2, Minus, Plus, Globe,
 } from 'lucide-react';
@@ -611,7 +611,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         </div>
       </motion.div>
 
-      <div ref={listRef} className={`flex-1 overflow-y-auto pr-1 pb-6 custom-scrollbar ${viewMode === 'list' ? 'space-y-3' : ''}`} style={{ touchAction: 'pan-y' }}>
+      <div ref={listRef} className="flex-1 overflow-y-auto pb-6" style={{ touchAction: 'pan-y' }}>
         {loading && (
           <div className="flex flex-col items-center justify-center py-24">
             <IslamicLoader size={52} label={lang === 'fr' ? 'Chargement…' : 'جارٍ التحميل…'} />
@@ -641,83 +641,154 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
           </div>
         )}
 
-        {/* LIST MODE */}
+        {/* LIST MODE — Al-Baqara reference design */}
         {viewMode === 'list' && !loading && !dbError && filteredVerses.length > 0 && (
-          <AnimatePresence mode="popLayout">
-            {filteredVerses.map((verse, idx) => {
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              background: t.card,
+              border: `1px solid ${t.line}`,
+              borderRadius: 16,
+              overflow: 'hidden',
+              marginBottom: 24,
+            }}
+          >
+            {/* Progress header */}
+            <div style={{
+              padding: '16px 24px',
+              borderBottom: `1px solid ${t.line}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: `linear-gradient(180deg, ${t.accent}08, transparent)`,
+            }}>
+              <span style={{ fontFamily: 'Fraunces, serif', fontSize: 18, color: t.ink, fontWeight: 300 }}>
+                {verseSearch
+                  ? (lang === 'fr' ? `${filteredVerses.length} résultat${filteredVerses.length > 1 ? 's' : ''}` : `${filteredVerses.length} نتيجة`)
+                  : (lang === 'fr' ? `${filteredVerses.length} versets` : `${filteredVerses.length} آية`)}
+              </span>
+              <span style={{ fontSize: 11, color: t.inkDim }}>· Juz {selectedSurah?.juz}</span>
+            </div>
+
+            {/* Bismillah (surah ≠ 9, not filtering) */}
+            {selectedSurahId !== 9 && !verseSearch && (
+              <div style={{ padding: '22px 40px 16px', textAlign: 'center', borderBottom: `1px solid ${t.line}` }}>
+                <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 26, color: t.accentBright, direction: 'rtl' }}>
+                  بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                </div>
+              </div>
+            )}
+
+            {/* Verse rows */}
+            {filteredVerses.map(verse => {
               const key: BookmarkKey = `${verse.surah_number}:${verse.ayah_number}`;
               const isBookmarked = bookmarks.has(key);
-              const isExpanded = expandedId === verse.id || !!verseSearch;
+              const isSelected = expandedId === verse.id;
               return (
-                <motion.div
+                <div
                   id={`verse-${verse.ayah_number}`}
                   key={verse.id}
-                  layout
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.97 }}
-                  transition={{ delay: Math.min(idx * 0.008, 0.25) }}
-                  whileHover={{ y: -2 }}
-                  onClick={() => { setExpandedId(expandedId === verse.id ? null : verse.id); saveQuranPosition(verse.surah_number, selectedSurah?.name ?? '', verse.ayah_number); }}
-                  className="glass-card p-5 cursor-pointer group relative overflow-hidden"
-                  style={{ borderLeft: isBookmarked ? '3px solid var(--brand-secondary)' : '3px solid transparent' }}
+                  onClick={() => {
+                    setExpandedId(isSelected ? null : verse.id);
+                    saveQuranPosition(verse.surah_number, selectedSurah?.name ?? '', verse.ayah_number);
+                  }}
+                  style={{
+                    padding: '20px 20px 20px 26px',
+                    borderBottom: `1px solid ${t.lineSoft}`,
+                    background: isSelected ? `${t.accent}08` : 'transparent',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'background 0.15s',
+                  }}
                 >
-                  <div className="card-accent-bar" />
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black"
-                        style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', color: 'var(--brand-primary)' }}
-                      >
-                        {verse.ayah_number}
+                  {/* Left accent bar */}
+                  {isSelected && (
+                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: t.accent }} />
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14 }}>
+                    {/* Circle verse number */}
+                    <div style={{
+                      width: 30, height: 30, flexShrink: 0,
+                      borderRadius: '50%',
+                      border: `1px solid ${isSelected ? t.accent : t.line}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontFamily: 'Fraunces, serif', fontSize: 11,
+                      color: isSelected ? t.accentBright : t.inkDim,
+                      transition: 'border-color 0.15s, color 0.15s',
+                    }}>
+                      {verse.ayah_number}
+                    </div>
+
+                    {/* Arabic + French */}
+                    <div style={{ flex: 1, textAlign: 'right', direction: 'rtl' }}>
+                      <div style={{
+                        fontFamily: 'Amiri Quran, serif',
+                        fontSize: fontSize,
+                        lineHeight: 2,
+                        color: readingInk ?? t.ink,
+                      }}>
+                        {verse.arabic_text}
                       </div>
-                      <div className="text-[9px] uppercase tracking-widest font-bold" style={{ color: 'var(--brand-text-muted)' }}>
-                        {lang === 'fr' ? `Verset ${verse.ayah_number}` : `آية ${verse.ayah_number}`}
+                      <div style={{
+                        fontFamily: 'Fraunces, serif',
+                        fontStyle: 'italic',
+                        fontWeight: 300,
+                        fontSize: 13,
+                        color: readingMuted ?? t.inkDim,
+                        marginTop: 8,
+                        lineHeight: 1.6,
+                        direction: 'ltr',
+                        textAlign: 'left',
+                      }}>
+                        {verse.french_text}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                      <button onClick={e => playAudio(verse, e)} className="p-1.5 rounded-lg transition-all hover:scale-110" style={{ color: playingId === verse.id ? 'var(--brand-secondary)' : 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}>
-                        {playingId === verse.id ? <VolumeX size={12}/> : <Volume2 size={12}/>}
+
+                    {/* Right action icons */}
+                    <div style={{
+                      display: 'flex', flexDirection: 'column', gap: 6,
+                      opacity: isSelected ? 1 : (isBookmarked ? 0.5 : 0.22),
+                      transition: 'opacity 0.15s',
+                      flexShrink: 0,
+                    }}>
+                      <button
+                        onClick={e => playAudio(verse, e)}
+                        style={{ padding: 4, color: playingId === verse.id ? t.accentBright : t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}
+                      >
+                        {playingId === verse.id ? <VolumeX size={13}/> : <Volume2 size={13}/>}
                       </button>
-                      <button onClick={e => copyVerse(verse, e)} className="p-1.5 rounded-lg transition-all hover:scale-110" style={{ color: 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}>
-                        <Copy size={12} />
+                      <button
+                        onClick={e => copyVerse(verse, e)}
+                        style={{ padding: 4, color: t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}
+                      >
+                        <Copy size={13}/>
                       </button>
-                      <button onClick={e => shareVerse(verse, e)} className="p-1.5 rounded-lg transition-all hover:scale-110" style={{ color: 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}>
-                        <Share2 size={12}/>
+                      <button
+                        onClick={e => shareVerse(verse, e)}
+                        style={{ padding: 4, color: t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}
+                      >
+                        <Share2 size={13}/>
                       </button>
-                      <button onClick={e => toggleBookmark(verse.surah_number, verse.ayah_number, e)} className="p-1.5 rounded-lg transition-all hover:scale-110" style={{ color: isBookmarked ? 'var(--brand-secondary)' : 'var(--brand-text-muted)', background: isBookmarked ? 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)' : 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}>
-                        {isBookmarked ? <BookMarked size={12} /> : <Bookmark size={12} />}
+                      <button
+                        onClick={e => toggleBookmark(verse.surah_number, verse.ayah_number, e)}
+                        style={{ padding: 4, color: isBookmarked ? t.accentBright : t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}
+                      >
+                        {isBookmarked ? <BookMarked size={13}/> : <Bookmark size={13}/>}
                       </button>
                     </div>
                   </div>
-                  <p className="text-right leading-loose" style={{ color: readingInk ?? 'var(--brand-primary)', fontFamily: 'Amiri, serif', lineHeight: '2.2', fontSize: fontSize }}>
-                    {verse.arabic_text}
-                  </p>
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                        <div className="pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                          <p className="text-sm leading-relaxed italic" style={{ color: 'var(--brand-text-muted)' }}>{verse.french_text}</p>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  {!isExpanded && (
-                    <div className="flex items-center gap-1 mt-1 text-[9px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: 'var(--brand-text-muted)' }}>
-                      <ChevronDown size={10} />
-                      {lang === 'fr' ? 'Voir traduction' : 'عرض الترجمة'}
-                    </div>
-                  )}
-                </motion.div>
+                </div>
               );
             })}
-          </AnimatePresence>
-        )}
 
-        {viewMode === 'list' && !loading && filteredVerses.length > 0 && (
-          <p className="text-center text-[9px] uppercase tracking-widest font-black py-8" style={{ color: 'var(--brand-text-muted)', opacity: 0.5 }}>
-            — {lang === 'fr' ? `Fin · ${filteredVerses.length} versets` : `النهاية · ${filteredVerses.length} آية`} —
-          </p>
+            {/* End footer */}
+            <div style={{ textAlign: 'center', padding: '14px 0', fontSize: 9, color: t.inkMute, textTransform: 'uppercase', letterSpacing: '0.2em', opacity: 0.5 }}>
+              — {lang === 'fr' ? `Fin · ${filteredVerses.length} versets` : `النهاية · ${filteredVerses.length} آية`} —
+            </div>
+          </motion.div>
         )}
 
         {/* MUSHAF MODE */}

@@ -129,7 +129,7 @@ export const QuizSection = ({ lang }: QuizProps) => {
 
           {loading && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0' }}>
-              <Loader2 size={16} className="animate-spin" style={{ color: 'var(--brand-primary)' }} />
+              <IslamicLoader size={20} />
               <span style={{ fontSize: 12, color: t.inkMute }}>{fr ? 'Chargement…' : 'جارٍ التحميل…'}</span>
             </div>
           )}

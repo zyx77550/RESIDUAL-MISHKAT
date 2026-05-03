@@ -42,3 +42,41 @@ button { cursor: pointer; border: none; background: none; }
   0%, 100% { opacity: 0.65; }
   50%       { opacity: 0.9; }
 }
+
+/* ── Component classes (CSS vars injected by App.tsx root) ─── */
+.glass-card {
+  background: var(--brand-bg-soft);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+}
+.card-accent-bar {
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 2px;
+  background: var(--brand-primary);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.group:hover .card-accent-bar { opacity: 1; }
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.mishkat-input {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--brand-bg-soft);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  color: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.mishkat-input:focus { border-color: var(--brand-primary); }
+.mishkat-input::placeholder { color: var(--brand-text-muted); opacity: 1; }

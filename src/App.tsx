@@ -395,7 +395,7 @@ export default function App() {
       </svg>
 
       {/* Full-screen layout */}
-      <div id="mishkat-app-root" style={{ width: '100vw', height: '100vh', background: t.bg, display: 'flex', overflow: 'hidden', fontFamily: 'Inter, sans-serif', color: t.ink, position: 'relative' }}>
+      <div id="mishkat-app-root" style={{ '--brand-primary': t.accent, '--brand-secondary': t.accentBright, '--brand-accent': t.accent, '--brand-text-muted': t.inkMute, '--border-subtle': t.line, '--brand-bg': t.bg, '--brand-bg-soft': t.bgSoft, width: '100vw', height: '100vh', background: t.bg, display: 'flex', overflow: 'hidden', fontFamily: 'Inter, sans-serif', color: t.ink, position: 'relative' } as React.CSSProperties}>
         {/* Geometric background pattern */}
         <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.06, pointerEvents: 'none', zIndex: 0 }}>
           <defs>
