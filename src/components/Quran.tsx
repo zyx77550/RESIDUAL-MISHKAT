@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
+import { List as VirtualList } from 'react-window';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, BookOpen, ChevronDown, Copy, Check, X,
+  Search, BookOpen, ChevronDown, Copy, X,
   Bookmark, BookMarked, ChevronLeft, ChevronUp, AlertCircle, Loader2,
-  LayoutList, BookText, Moon, Sun, Volume2, VolumeX, Share2, Minus, Plus,
+  LayoutList, BookText, Volume2, VolumeX, Share2, Minus, Plus, Globe,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import toast from 'react-hot-toast';
@@ -32,6 +33,67 @@ function loadBookmarks(): Set<BookmarkKey> {
 const toArabicNum = (n: number) =>
   n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[+d]);
 
+const GLOBAL_ITEM_HEIGHT = 114;
+
+interface GlobalRowProps {
+  results: QuranVerse[];
+  lang: 'fr' | 'ar';
+  t: ReturnType<typeof useT>;
+  onOpen: (surahId: number, ayahNumber: number) => void;
+}
+
+function GlobalRow({
+  index, style, results, lang, t, onOpen,
+}: { index: number; style: React.CSSProperties; ariaAttributes?: unknown } & GlobalRowProps) {
+  const verse = results[index];
+  const surah = SURAH_DATA.find(s => s.id === verse.surah_number);
+  return (
+    <div style={{ ...style, paddingBottom: 8, paddingRight: 4, boxSizing: 'border-box' }}>
+      <button
+        onClick={() => onOpen(verse.surah_number, verse.ayah_number)}
+        style={{
+          width: '100%',
+          height: GLOBAL_ITEM_HEIGHT - 10,
+          background: t.card,
+          border: `1px solid ${t.line}`,
+          borderRadius: 12,
+          padding: '10px 14px',
+          cursor: 'pointer',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          overflow: 'hidden',
+          textAlign: 'left',
+          boxSizing: 'border-box',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+          <span style={{ fontSize: 10, color: t.accentBright, fontWeight: 700, letterSpacing: '0.1em' }}>
+            {surah?.name} · {lang === 'fr' ? `v.${verse.ayah_number}` : `آية ${toArabicNum(verse.ayah_number)}`}
+          </span>
+          <span style={{ fontSize: 12, color: t.ink, fontFamily: 'Amiri, serif' }}>
+            {surah?.arabicName}
+          </span>
+        </div>
+        <p style={{
+          fontFamily: 'Amiri, serif', fontSize: 16, direction: 'rtl', textAlign: 'right',
+          color: t.ink, lineHeight: '1.7', overflow: 'hidden',
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+          flex: 1,
+        }}>
+          {verse.arabic_text}
+        </p>
+        <p style={{
+          fontSize: 11, color: t.inkDim, fontStyle: 'italic',
+          overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', flexShrink: 0,
+        }}>
+          {verse.french_text}
+        </p>
+      </button>
+    </div>
+  );
+}
+
 export const QuranSection = ({ userData, lang }: QuranProps) => {
   const t = useT();
   const [selectedSurahId, setSelectedSurahId] = useState<number | null>(null);
@@ -41,7 +103,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const [surahSearch, setSurahSearch] = useState('');
   const [verseSearch, setVerseSearch] = useState('');
   const [expandedId, setExpandedId]   = useState<number | null>(null);
-  const [copied, setCopied]       = useState(false);
   const [bookmarks, setBookmarks] = useState<Set<BookmarkKey>>(loadBookmarks);
   const [viewMode, setViewMode]   = useState<'list' | 'mushaf'>('list');
   const [mushafSelected, setMushafSelected] = useState<QuranVerse | null>(null);
@@ -50,6 +111,16 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const [playingId, setPlayingId] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const shareRef = useRef<HTMLDivElement | null>(null);
+
+  // Global search
+  const [globalMode, setGlobalMode] = useState(false);
+  const [globalQuery, setGlobalQuery] = useState('');
+  const [globalResults, setGlobalResults] = useState<QuranVerse[]>([]);
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalSearched, setGlobalSearched] = useState(false);
+  const [scrollToAyah, setScrollToAyah] = useState<number | null>(null);
+  const [globalListHeight, setGlobalListHeight] = useState(500);
+  const globalListContainerRef = useRef<HTMLDivElement>(null);
 
   const cache   = useRef<Map<number, QuranVerse[]>>(new Map());
   const listRef = useRef<HTMLDivElement>(null);
@@ -76,7 +147,57 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
     setVerses(data ?? []);
   }, []);
 
-  const openSurah = (id: number) => {
+  // Debounced global search
+  useEffect(() => {
+    if (!globalMode || globalQuery.trim().length < 2) {
+      setGlobalResults([]);
+      setGlobalSearched(false);
+      return;
+    }
+    const q = globalQuery.trim();
+    const timer = setTimeout(async () => {
+      setGlobalLoading(true);
+      const { data, error } = await supabase
+        .from('quran_verses')
+        .select('*')
+        .or(`arabic_text.like.%${q}%,french_text.ilike.%${q}%`)
+        .limit(200);
+      setGlobalLoading(false);
+      setGlobalSearched(true);
+      if (!error && data) setGlobalResults(data);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [globalQuery, globalMode]);
+
+  // Measure virtual list container
+  useLayoutEffect(() => {
+    if (!globalMode) return;
+    const el = globalListContainerRef.current;
+    if (!el) return;
+    const update = () => {
+      const h = el.getBoundingClientRect().height;
+      if (h > 0) setGlobalListHeight(h);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [globalMode]);
+
+  // Scroll to ayah after surah loads
+  useEffect(() => {
+    if (loading || scrollToAyah === null || verses.length === 0) return;
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`verse-${scrollToAyah}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setScrollToAyah(null);
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [loading, scrollToAyah, verses.length]);
+
+  const openSurah = useCallback((id: number) => {
     setSelectedSurahId(id);
     setVerseSearch('');
     setExpandedId(null);
@@ -85,12 +206,14 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
     listRef.current?.scrollTo({ top: 0 });
     const s = SURAH_DATA.find(x => x.id === id);
     if (s) saveQuranPosition(id, s.name, 1);
-  };
+  }, [fetchVerses]);
 
-  const handleVerseClick = (v: QuranVerse) => {
-    setExpandedId(expandedId === v.id ? null : v.id);
-    saveQuranPosition(v.surah_number, selectedSurah?.name ?? '', v.ayah_number);
-  };
+  const openSurahAtVerse = useCallback((surahId: number, ayahNumber: number) => {
+    setScrollToAyah(ayahNumber);
+    openSurah(surahId);
+    setGlobalMode(false);
+    setGlobalQuery('');
+  }, [openSurah]);
 
   const goBack = () => {
     setSelectedSurahId(null);
@@ -126,7 +249,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
       return;
     }
     if (audioRef.current) audioRef.current.pause();
-    // global ayah number = sum of all previous surah verses + ayah_number
     const prevVerses = SURAH_DATA.slice(0, v.surah_number - 1).reduce((acc, s) => acc + s.verses, 0);
     const globalNum = prevVerses + v.ayah_number;
     const url = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${globalNum}.mp3`;
@@ -139,7 +261,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const shareVerse = async (v: QuranVerse, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!shareRef.current) return;
-    // Populate the hidden share card
     setMushafSelected(v);
     await new Promise(r => setTimeout(r, 100));
     try {
@@ -177,6 +298,13 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
     );
   }, [verseSearch, verses]);
 
+  const globalRowData = useMemo<GlobalRowProps>(() => ({
+    results: globalResults,
+    lang,
+    t,
+    onOpen: openSurahAtVerse,
+  }), [globalResults, lang, t, openSurahAtVerse]);
+
   const bookmarkCount = bookmarks.size;
   const userSurahStatus = (id: number) =>
     userData.surahs.find(s => s.id === id)?.status ?? 'not_started';
@@ -192,8 +320,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   if (selectedSurahId === null) {
     return (
       <div className="flex flex-col h-full gap-0 relative">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex-shrink-0 pb-5">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex-shrink-0 pb-4">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h2
@@ -224,16 +351,57 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
             </div>
           </div>
 
-          <div className="relative mt-4">
+          {/* Mode tabs */}
+          <div style={{ display: 'flex', gap: 6, marginTop: 14, background: t.cardElev, borderRadius: 12, padding: 4 }}>
+            <button
+              onClick={() => setGlobalMode(false)}
+              style={{
+                flex: 1, padding: '8px 12px', borderRadius: 9, fontSize: 11, fontWeight: 700,
+                letterSpacing: '0.1em', textTransform: 'uppercase',
+                background: !globalMode ? 'var(--brand-primary)' : 'transparent',
+                color: !globalMode ? '#fff' : t.inkDim,
+                border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              }}
+            >
+              <BookOpen size={11} />
+              {lang === 'fr' ? 'Sourates' : 'السور'}
+            </button>
+            <button
+              onClick={() => setGlobalMode(true)}
+              style={{
+                flex: 1, padding: '8px 12px', borderRadius: 9, fontSize: 11, fontWeight: 700,
+                letterSpacing: '0.1em', textTransform: 'uppercase',
+                background: globalMode ? 'var(--brand-primary)' : 'transparent',
+                color: globalMode ? '#fff' : t.inkDim,
+                border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              }}
+            >
+              <Globe size={11} />
+              {lang === 'fr' ? 'Rechercher' : 'البحث'}
+            </button>
+          </div>
+
+          {/* Search input */}
+          <div className="relative mt-3">
             <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--brand-text-muted)' }} />
             <input
-              value={surahSearch}
-              onChange={e => setSurahSearch(e.target.value)}
-              placeholder={lang === 'fr' ? 'Rechercher une sourate…' : 'ابحث عن سورة…'}
+              value={globalMode ? globalQuery : surahSearch}
+              onChange={e => globalMode ? setGlobalQuery(e.target.value) : setSurahSearch(e.target.value)}
+              placeholder={
+                globalMode
+                  ? (lang === 'fr' ? 'Rechercher dans les 6 236 versets…' : 'ابحث في ٦٢٣٦ آية…')
+                  : (lang === 'fr' ? 'Rechercher une sourate…' : 'ابحث عن سورة…')
+              }
               className="mishkat-input pl-11"
             />
-            {surahSearch && (
-              <button onClick={() => setSurahSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full" style={{ color: 'var(--brand-text-muted)' }}>
+            {(globalMode ? globalQuery : surahSearch) && (
+              <button
+                onClick={() => globalMode ? setGlobalQuery('') : setSurahSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full"
+                style={{ color: 'var(--brand-text-muted)' }}
+              >
                 <X size={13} />
               </button>
             )}
@@ -241,69 +409,114 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         </motion.div>
 
         {/* Surah grid */}
-        <div className="flex-1 overflow-y-auto pr-1 pb-6 custom-scrollbar">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <AnimatePresence mode="popLayout">
-              {filteredSurahs.map((surah, idx) => {
-                const status = userSurahStatus(surah.id);
-                return (
-                  <motion.button
-                    key={surah.id}
-                    layout
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.97 }}
-                    transition={{ delay: Math.min(idx * 0.008, 0.25) }}
-                    whileHover={{ y: -2 }}
-                    onClick={() => openSurah(surah.id)}
-                    className="glass-card p-4 text-left group relative overflow-hidden flex items-center gap-4"
-                  >
-                    <div className="card-accent-bar" />
-
-                    {/* Surah number */}
-                    <div
-                      className="w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center font-black text-sm relative"
-                      style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', color: 'var(--brand-primary)' }}
+        {!globalMode && (
+          <div className="flex-1 overflow-y-auto pr-1 pb-6 custom-scrollbar">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <AnimatePresence mode="popLayout">
+                {filteredSurahs.map((surah, idx) => {
+                  const status = userSurahStatus(surah.id);
+                  return (
+                    <motion.button
+                      key={surah.id}
+                      layout
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.97 }}
+                      transition={{ delay: Math.min(idx * 0.008, 0.25) }}
+                      whileHover={{ y: -2 }}
+                      onClick={() => openSurah(surah.id)}
+                      className="glass-card p-4 text-left group relative overflow-hidden flex items-center gap-4"
                     >
-                      {surah.id}
-                      {status !== 'not_started' && (
-                        <span
-                          className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white"
-                          style={{ background: statusDot[status] }}
-                        />
-                      )}
-                    </div>
-
-                    {/* Names */}
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="text-lg leading-tight font-bold truncate"
-                        style={{ color: 'var(--brand-primary)', fontFamily: 'Amiri, serif', direction: 'rtl' }}
+                      <div className="card-accent-bar" />
+                      <div
+                        className="w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center font-black text-sm relative"
+                        style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', color: 'var(--brand-primary)' }}
                       >
-                        {surah.arabicName}
-                      </p>
-                      <p className="text-[11px] font-semibold truncate mt-0.5" style={{ color: 'var(--brand-secondary)' }}>
-                        {surah.name}
-                      </p>
-                      <p className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color: 'var(--brand-text-muted)' }}>
-                        {surah.verses} {lang === 'fr' ? 'versets' : 'آية'} · Juz {surah.juz}
-                      </p>
-                    </div>
-                  </motion.button>
-                );
-              })}
-            </AnimatePresence>
+                        {surah.id}
+                        {status !== 'not_started' && (
+                          <span
+                            className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white"
+                            style={{ background: statusDot[status] }}
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className="text-lg leading-tight font-bold truncate"
+                          style={{ color: 'var(--brand-primary)', fontFamily: 'Amiri, serif', direction: 'rtl' }}
+                        >
+                          {surah.arabicName}
+                        </p>
+                        <p className="text-[11px] font-semibold truncate mt-0.5" style={{ color: 'var(--brand-secondary)' }}>
+                          {surah.name}
+                        </p>
+                        <p className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color: 'var(--brand-text-muted)' }}>
+                          {surah.verses} {lang === 'fr' ? 'versets' : 'آية'} · Juz {surah.juz}
+                        </p>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </AnimatePresence>
+              {filteredSurahs.length === 0 && (
+                <div className="col-span-full text-center py-20">
+                  <BookOpen size={52} className="mx-auto mb-3 opacity-20" style={{ color: 'var(--brand-primary)' }} />
+                  <p className="text-sm" style={{ color: 'var(--brand-text-muted)' }}>
+                    {lang === 'fr' ? 'Aucune sourate trouvée.' : 'لا توجد سورة.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
-            {filteredSurahs.length === 0 && (
-              <div className="col-span-full text-center py-20">
-                <BookOpen size={52} className="mx-auto mb-3 opacity-20" style={{ color: 'var(--brand-primary)' }} />
-                <p className="text-sm" style={{ color: 'var(--brand-text-muted)' }}>
-                  {lang === 'fr' ? 'Aucune sourate trouvée.' : 'لا توجد سورة.'}
+        {/* Global search results (virtualized) */}
+        {globalMode && (
+          <div ref={globalListContainerRef} style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+            {globalLoading && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 120, gap: 8 }}>
+                <Loader2 size={22} className="animate-spin" style={{ color: 'var(--brand-primary)', opacity: 0.6 }} />
+                <span style={{ fontSize: 11, color: t.inkMute, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                  {lang === 'fr' ? 'Recherche…' : 'جارٍ البحث…'}
+                </span>
+              </div>
+            )}
+            {!globalLoading && !globalSearched && globalQuery.trim().length < 2 && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, gap: 12, textAlign: 'center', padding: '0 24px' }}>
+                <Globe size={44} style={{ color: 'var(--brand-primary)', opacity: 0.18 }} />
+                <p style={{ fontSize: 13, color: t.inkMute, lineHeight: 1.6 }}>
+                  {lang === 'fr'
+                    ? 'Tapez 2 caractères minimum pour chercher dans tout le Coran'
+                    : 'اكتب حرفين على الأقل للبحث في القرآن الكريم'}
                 </p>
               </div>
             )}
+            {!globalLoading && globalSearched && globalResults.length === 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 180, gap: 10 }}>
+                <AlertCircle size={40} style={{ color: 'var(--brand-primary)', opacity: 0.2 }} />
+                <p style={{ fontSize: 13, color: t.inkMute }}>
+                  {lang === 'fr' ? 'Aucun verset trouvé.' : 'لم يُعثر على آية.'}
+                </p>
+              </div>
+            )}
+            {!globalLoading && globalResults.length > 0 && (
+              <>
+                <p style={{ fontSize: 10, color: t.inkMute, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8, paddingRight: 4 }}>
+                  {lang === 'fr'
+                    ? `${globalResults.length} résultat${globalResults.length > 1 ? 's' : ''}${globalResults.length === 200 ? ' (200 max)' : ''}`
+                    : `${toArabicNum(globalResults.length)} نتيجة`}
+                </p>
+                <VirtualList<GlobalRowProps>
+                  style={{ height: Math.max(globalListHeight - 26, 100) }}
+                  rowCount={globalResults.length}
+                  rowHeight={GLOBAL_ITEM_HEIGHT}
+                  rowComponent={GlobalRow}
+                  rowProps={globalRowData}
+                />
+              </>
+            )}
           </div>
-        </div>
+        )}
       </div>
     );
   }
@@ -316,7 +529,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   // ── Verse view ──────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full gap-0 relative" style={readingBg ? { background: readingBg, color: readingInk } : {}}>
-      {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex-shrink-0 pb-5">
         <div className="flex items-start gap-3 flex-wrap">
           <button
@@ -337,7 +549,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
               {selectedSurah?.name} · {selectedSurah?.verses} {lang === 'fr' ? 'versets' : 'آية'} · Juz {selectedSurah?.juz}
             </p>
           </div>
-          {/* Mode toggle */}
+          {/* View mode toggle */}
           <div className="flex-shrink-0 flex gap-1 rounded-xl p-1" style={{ background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)', border: '1px solid var(--border-subtle)' }}>
             {(['list', 'mushaf'] as const).map(mode => (
               <button
@@ -355,17 +567,15 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
               </button>
             ))}
           </div>
-
           {/* Font size */}
           <div className="flex-shrink-0 flex items-center gap-1 rounded-xl p-1" style={{ background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)', border: '1px solid var(--border-subtle)' }}>
             <button onClick={() => setFontSize(s => Math.max(16, s - 2))} className="p-1.5 rounded-lg" style={{ color: 'var(--brand-text-muted)' }}><Minus size={11}/></button>
             <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--brand-primary)', minWidth: 20, textAlign: 'center' }}>{fontSize}</span>
             <button onClick={() => setFontSize(s => Math.min(36, s + 2))} className="p-1.5 rounded-lg" style={{ color: 'var(--brand-text-muted)' }}><Plus size={11}/></button>
           </div>
-
           {/* Reading mode */}
           <div className="flex-shrink-0 flex gap-1 rounded-xl p-1" style={{ background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)', border: '1px solid var(--border-subtle)' }}>
-            {([['default','☀','default'], ['night','🌙','night'], ['flare','✨','flare']] as const).map(([m, icon]) => (
+            {([['default','☀'], ['night','🌙'], ['flare','✨']] as const).map(([m, icon]) => (
               <button
                 key={m}
                 onClick={() => setReadingMode(m)}
@@ -395,10 +605,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         </div>
       </motion.div>
 
-      {/* Verse list / mushaf */}
       <div ref={listRef} className={`flex-1 overflow-y-auto pr-1 pb-6 custom-scrollbar ${viewMode === 'list' ? 'space-y-3' : ''}`}>
-
-        {/* Loading */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <Loader2 size={32} className="animate-spin" style={{ color: 'var(--brand-primary)', opacity: 0.5 }} />
@@ -408,7 +615,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
           </div>
         )}
 
-        {/* DB not seeded yet */}
         {!loading && !dbError && verses.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
             <AlertCircle size={48} className="opacity-30" style={{ color: 'var(--brand-primary)' }} />
@@ -425,7 +631,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
           </div>
         )}
 
-        {/* Error */}
         {!loading && dbError && (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
             <AlertCircle size={48} style={{ color: '#ef4444', opacity: 0.5 }} />
@@ -433,7 +638,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
           </div>
         )}
 
-        {/* ── LIST MODE ─────────────────────────────────────────────── */}
+        {/* LIST MODE */}
         {viewMode === 'list' && !loading && !dbError && filteredVerses.length > 0 && (
           <AnimatePresence mode="popLayout">
             {filteredVerses.map((verse, idx) => {
@@ -450,7 +655,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                   exit={{ opacity: 0, scale: 0.97 }}
                   transition={{ delay: Math.min(idx * 0.008, 0.25) }}
                   whileHover={{ y: -2 }}
-                  onClick={() => setExpandedId(expandedId === verse.id ? null : verse.id)}
+                  onClick={() => { setExpandedId(expandedId === verse.id ? null : verse.id); saveQuranPosition(verse.surah_number, selectedSurah?.name ?? '', verse.ayah_number); }}
                   className="glass-card p-5 cursor-pointer group relative overflow-hidden"
                   style={{ borderLeft: isBookmarked ? '3px solid var(--brand-secondary)' : '3px solid transparent' }}
                 >
@@ -468,16 +673,16 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                      <button onClick={e => playAudio(verse, e)} className="p-1.5 rounded-lg transition-all hover:scale-110" style={{ color: playingId === verse.id ? 'var(--brand-secondary)' : 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }} title={lang === 'fr' ? 'Écouter' : 'استماع'}>
+                      <button onClick={e => playAudio(verse, e)} className="p-1.5 rounded-lg transition-all hover:scale-110" style={{ color: playingId === verse.id ? 'var(--brand-secondary)' : 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}>
                         {playingId === verse.id ? <VolumeX size={12}/> : <Volume2 size={12}/>}
                       </button>
-                      <button onClick={e => copyVerse(verse, e)} className="p-1.5 rounded-lg transition-all hover:scale-110" style={{ color: 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }} title={lang === 'fr' ? 'Copier' : 'نسخ'}>
+                      <button onClick={e => copyVerse(verse, e)} className="p-1.5 rounded-lg transition-all hover:scale-110" style={{ color: 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}>
                         <Copy size={12} />
                       </button>
-                      <button onClick={e => shareVerse(verse, e)} className="p-1.5 rounded-lg transition-all hover:scale-110" style={{ color: 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }} title={lang === 'fr' ? 'Partager' : 'مشاركة'}>
+                      <button onClick={e => shareVerse(verse, e)} className="p-1.5 rounded-lg transition-all hover:scale-110" style={{ color: 'var(--brand-text-muted)', background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}>
                         <Share2 size={12}/>
                       </button>
-                      <button onClick={e => toggleBookmark(verse.surah_number, verse.ayah_number, e)} className="p-1.5 rounded-lg transition-all hover:scale-110" style={{ color: isBookmarked ? 'var(--brand-secondary)' : 'var(--brand-text-muted)', background: isBookmarked ? 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)' : 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }} title={lang === 'fr' ? (isBookmarked ? 'Retirer' : 'Marquer') : (isBookmarked ? 'إزالة' : 'تعليم')}>
+                      <button onClick={e => toggleBookmark(verse.surah_number, verse.ayah_number, e)} className="p-1.5 rounded-lg transition-all hover:scale-110" style={{ color: isBookmarked ? 'var(--brand-secondary)' : 'var(--brand-text-muted)', background: isBookmarked ? 'color-mix(in srgb, var(--brand-secondary) 12%, transparent)' : 'color-mix(in srgb, var(--brand-primary) 6%, transparent)' }}>
                         {isBookmarked ? <BookMarked size={12} /> : <Bookmark size={12} />}
                       </button>
                     </div>
@@ -512,7 +717,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
           </p>
         )}
 
-        {/* ── MUSHAF MODE ───────────────────────────────────────────── */}
+        {/* MUSHAF MODE */}
         {viewMode === 'mushaf' && !loading && !dbError && filteredVerses.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
             <div
@@ -539,8 +744,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                         cursor: 'pointer',
                         color: isSelected ? 'var(--brand-secondary)' : 'var(--brand-primary)',
                         background: isSelected ? 'color-mix(in srgb, var(--brand-secondary) 10%, transparent)' : 'transparent',
-                        borderRadius: 4,
-                        padding: '0 2px',
+                        borderRadius: 4, padding: '0 2px',
                         transition: 'color 0.15s, background 0.15s',
                       }}
                     >
@@ -550,22 +754,12 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                     <span
                       onClick={() => setMushafSelected(isSelected ? null : verse)}
                       style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 28,
-                        height: 28,
-                        borderRadius: '50%',
-                        background: isSelected
-                          ? 'var(--brand-secondary)'
-                          : 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: 28, height: 28, borderRadius: '50%',
+                        background: isSelected ? 'var(--brand-secondary)' : 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
                         color: isSelected ? '#fff' : 'var(--brand-secondary)',
-                        fontSize: 12,
-                        fontFamily: 'Amiri, serif',
-                        verticalAlign: 'middle',
-                        margin: '0 3px',
-                        cursor: 'pointer',
-                        flexShrink: 0,
+                        fontSize: 12, fontFamily: 'Amiri, serif', verticalAlign: 'middle',
+                        margin: '0 3px', cursor: 'pointer', flexShrink: 0,
                         transition: 'background 0.15s, color 0.15s',
                       }}
                     >
@@ -577,7 +771,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
               })}
             </div>
 
-            {/* Translation panel */}
             <AnimatePresence>
               {mushafSelected && (
                 <motion.div
@@ -585,13 +778,9 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 16 }}
                   style={{
-                    position: 'sticky',
-                    bottom: 0,
-                    marginTop: 12,
-                    background: t.card,
-                    border: `1px solid ${t.line}`,
-                    borderRadius: '14px 14px 8px 8px',
-                    padding: '16px 20px 18px',
+                    position: 'sticky', bottom: 0, marginTop: 12,
+                    background: t.card, border: `1px solid ${t.line}`,
+                    borderRadius: '14px 14px 8px 8px', padding: '16px 20px 18px',
                     boxShadow: '0 -6px 24px rgba(0,0,0,0.12)',
                   }}
                 >
@@ -618,15 +807,13 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         )}
       </div>
 
-      {/* Hidden share card for html2canvas */}
+      {/* Hidden share card */}
       <div
         ref={shareRef}
         style={{
           position: 'fixed', top: -9999, left: -9999, zIndex: -1,
           width: 480, padding: '32px 36px',
-          background: readingBg ?? t.card,
-          borderRadius: 20,
-          fontFamily: 'Amiri, serif',
+          background: readingBg ?? t.card, borderRadius: 20, fontFamily: 'Amiri, serif',
         }}
       >
         {mushafSelected && (
@@ -648,7 +835,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         )}
       </div>
 
-      {/* Scroll to top */}
       <motion.button
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
