@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mishkat — Seed Coran</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f0f14;
+      color: #e2e2e6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #1a1a24;
+      border: 1px solid #2e2e42;
+      border-radius: 20px;
+      padding: 36px 28px;
+      max-width: 480px;
+      width: 100%;
+    }
+    h1 { font-size: 1.6rem; color: #8B5CF6; margin-bottom: 4px; }
+    .sub { font-size: .85rem; color: #6b6b88; margin-bottom: 24px; }
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: #8B5CF6;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    #log {
+      margin-top: 20px;
+      background: #0f0f14;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: .78rem;
+      font-family: monospace;
+      line-height: 1.7;
+      max-height: 280px;
+      overflow-y: auto;
+      display: none;
+    }
+    .ok  { color: #4ade80; }
+    .err { color: #f87171; }
+    .inf { color: #94a3b8; }
+    .done { color: #fbbf24; font-weight: bold; }
+    .progress {
+      margin-top: 14px;
+      height: 6px;
+      background: #2e2e42;
+      border-radius: 99px;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-bar {
+      height: 100%;
+      background: #8B5CF6;
+      border-radius: 99px;
+      width: 0%;
+      transition: width .3s;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>مِشْكَاة · Seed Coran</h1>
+    <p class="sub">Importe les 6 236 versets (arabe Uthmani + Hamidullah) dans Supabase.</p>
+    <button id="btn" onclick="run()">Lancer le seed</button>
+    <div class="progress" id="bar"><div class="progress-bar" id="fill"></div></div>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://rcaulmlqcbafmbufuyjw.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_rHlaKo_0IR1GL3nPeokk2A_VzYP0b9x';
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const log   = document.getElementById('log');
+    const btn   = document.getElementById('btn');
+    const bar   = document.getElementById('bar');
+    const fill  = document.getElementById('fill');
+
+    function print(msg, cls = 'inf') {
+      log.style.display = 'block';
+      const line = document.createElement('div');
+      line.className = cls;
+      line.textContent = msg;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function setProgress(pct) {
+      bar.style.display = 'block';
+      fill.style.width = pct + '%';
+    }
+
+    async function run() {
+      btn.disabled = true;
+      btn.textContent = 'En cours…';
+      print('Téléchargement du Coran depuis alquran.cloud…');
+
+      try {
+        const [arabicRes, frenchRes] = await Promise.all([
+          fetch('https://api.alquran.cloud/v1/quran/quran-uthmani'),
+          fetch('https://api.alquran.cloud/v1/quran/fr.hamidullah'),
+        ]);
+
+        if (!arabicRes.ok || !frenchRes.ok) throw new Error('Échec de l\'API alquran.cloud');
+
+        const [arabicJson, frenchJson] = await Promise.all([arabicRes.json(), frenchRes.json()]);
+        const arabicSurahs = arabicJson.data.surahs;
+        const frenchSurahs = frenchJson.data.surahs;
+
+        const rows = [];
+        for (let i = 0; i < arabicSurahs.length; i++) {
+          const ar = arabicSurahs[i];
+          const fr = frenchSurahs[i];
+          for (let j = 0; j < ar.ayahs.length; j++) {
+            rows.push({
+              surah_number: ar.number,
+              ayah_number:  ar.ayahs[j].numberInSurah,
+              arabic_text:  ar.ayahs[j].text,
+              french_text:  fr.ayahs[j].text,
+            });
+          }
+        }
+
+        print(`${rows.length} versets chargés. Insertion en cours…`, 'ok');
+
+        const BATCH = 500;
+        for (let i = 0; i < rows.length; i += BATCH) {
+          const batch = rows.slice(i, i + BATCH);
+          const { error } = await db.from('quran_verses').upsert(batch, {
+            onConflict: 'surah_number,ayah_number',
+          });
+          if (error) throw new Error(error.message);
+          const done = Math.min(i + BATCH, rows.length);
+          setProgress(Math.round(done / rows.length * 100));
+          print(`  ${done} / ${rows.length}`);
+        }
+
+        setProgress(100);
+        print('✓ Seed terminé ! Tu peux fermer cette page.', 'done');
+        btn.textContent = 'Terminé ✓';
+      } catch (e) {
+        print('Erreur : ' + e.message, 'err');
+        btn.disabled = false;
+        btn.textContent = 'Réessayer';
+      }
+    }
+  </script>
+</body>
+</html>

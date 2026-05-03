@@ -11,7 +11,7 @@ import { CalendarSection } from './components/Calendar';
 import { BadgesSection } from './components/Badges';
 import { KanbanSection } from './components/Kanban';
 import { SettingsSection } from './components/Settings';
-import { AlBaqaraSection } from './components/AlBaqara';
+import { QuranSection } from './components/Quran';
 import { AdminSection } from './components/Admin';
 import localforage from 'localforage';
 import { UserData, Badge, generateAllSurahs, checkLoginStreak } from './types';
@@ -420,7 +420,7 @@ export default function App() {
               {activeTab === 'calendar'     && <CalendarSection {...commonProps}/>}
               {activeTab === 'badges'       && <BadgesSection userData={userData} lang={lang} newlyUnlocked={newlyUnlocked}/>}
               {activeTab === 'kanban'       && <KanbanSection {...commonProps}/>}
-              {activeTab === 'albaqara'     && <AlBaqaraSection {...commonProps}/>}
+              {activeTab === 'quran'        && <QuranSection userData={userData!} lang={lang} />}
               {activeTab === 'settings'     && <SettingsSection userData={userData} setUserData={updateUserDataWithBadges} lang={lang} setLang={setLang} onSignOut={!localOnly ? handleSignOut : undefined}/>}
               {activeTab === 'admin'        && userData.settings?.isAdmin && <AdminSection userData={userData} lang={lang}/>}
             </div>

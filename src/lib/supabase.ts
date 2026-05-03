@@ -7,6 +7,14 @@ const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
+export interface QuranVerse {
+  id: number;
+  surah_number: number;
+  ayah_number: number;
+  arabic_text: string;
+  french_text: string;
+}
+
 // Deux emails admin — vérification côté client + RLS côté Supabase
 export const ADMIN_EMAILS = ['dz2607@gmail.com', 'zakaria@residual-labs.fr'];
 export const isAdminEmail = (email?: string | null) =>
