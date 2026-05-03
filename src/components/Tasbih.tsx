@@ -12,6 +12,15 @@ const DHIKR: { ar: string; tr: string; fr: string; target: number }[] = [
   { ar: 'أَسْتَغْفِرُ اللهَ',      tr: 'Astaghfirullāh',  fr: 'Je demande pardon à Allah',   target: 100 },
 ];
 
+const DEFAULT_CUSTOM = { ar: 'الله', tr: 'Allāh', fr: 'Dhikr personnalisé', target: 33 };
+
+function loadCustomDhikr() {
+  try {
+    const raw = localStorage.getItem('mishkat_tasbih_custom');
+    return raw ? JSON.parse(raw) : DEFAULT_CUSTOM;
+  } catch { return DEFAULT_CUSTOM; }
+}
+
 export const TasbihSection = ({
   userData, setUserData, lang
 }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
@@ -23,7 +32,16 @@ export const TasbihSection = ({
   const [count, setCount]   = useState(0);
   const [done, setDone]     = useState(false);
 
-  const dhikr  = DHIKR[idx];
+  // Custom dhikr state
+  const [customDhikr, setCustomDhikr] = useState(loadCustomDhikr);
+  const [editingCustom, setEditingCustom] = useState(false);
+  const [editAr, setEditAr]         = useState(customDhikr.ar);
+  const [editTr, setEditTr]         = useState(customDhikr.tr);
+  const [editFr, setEditFr]         = useState(customDhikr.fr);
+  const [editTarget, setEditTarget] = useState(String(customDhikr.target));
+
+  const allDhikr = [...DHIKR, customDhikr];
+  const dhikr  = allDhikr[idx] ?? allDhikr[0];
   const target = dhikr.target;
   const ticks  = target <= 33 ? 33 : target <= 99 ? 99 : 100;
 
@@ -57,16 +75,46 @@ export const TasbihSection = ({
   const reset = () => { setCount(0); setDone(false); };
 
   const next = () => {
-    setIdx((idx + 1) % DHIKR.length);
+    setIdx((idx + 1) % allDhikr.length);
+    setCount(0); setDone(false);
+  };
+
+  const saveCustom = () => {
+    const updated = {
+      ar: editAr.trim() || DEFAULT_CUSTOM.ar,
+      tr: editTr.trim() || DEFAULT_CUSTOM.tr,
+      fr: editFr.trim() || DEFAULT_CUSTOM.fr,
+      target: Math.max(1, Math.min(10000, parseInt(editTarget) || 33)),
+    };
+    setCustomDhikr(updated);
+    localStorage.setItem('mishkat_tasbih_custom', JSON.stringify(updated));
+    setEditingCustom(false);
+    if (idx === DHIKR.length) { setCount(0); setDone(false); }
+  };
+
+  const openEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditAr(customDhikr.ar);
+    setEditTr(customDhikr.tr);
+    setEditFr(customDhikr.fr);
+    setEditTarget(String(customDhikr.target));
+    setEditingCustom(true);
+    setIdx(DHIKR.length);
     setCount(0); setDone(false);
   };
 
   const card: React.CSSProperties = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 12 };
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '8px 10px', borderRadius: 8,
+    background: t.cardElev, border: `1px solid ${t.line}`,
+    color: t.ink, fontSize: 13, outline: 'none', boxSizing: 'border-box',
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
         <div>
           <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 6 }}>
@@ -88,13 +136,12 @@ export const TasbihSection = ({
         </div>
       </div>
 
-      {/* ── 2-column layout ── */}
+      {/* 2-column layout */}
       <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : '1fr 1fr', gap: 14 }}>
 
-        {/* ── LEFT : Compteur ── */}
+        {/* LEFT: Counter */}
         <div style={{ ...card, minHeight: 520, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '28px 20px', overflow: 'hidden', position: 'relative' }}>
 
-          {/* Phrase actuelle */}
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10 }}>
               {fr ? 'Phrase actuelle' : 'الذكر الحالي'}
@@ -107,16 +154,13 @@ export const TasbihSection = ({
             </div>
           </div>
 
-          {/* Counter ring with tick marks */}
+          {/* Counter ring */}
           <div style={{ position: 'relative', width: svgSize, height: svgSize }}>
             <svg width={svgSize} height={svgSize} style={{ transform: 'rotate(-90deg)' }}>
-              {/* Background track */}
               <circle cx={cx} cy={cy} r={r} stroke={t.line} strokeWidth="2" fill="none"/>
-              {/* Progress arc */}
               <circle cx={cx} cy={cy} r={r} stroke={t.accent} strokeWidth="3" fill="none"
                 strokeDasharray={circ} strokeDashoffset={circ * (1 - count / target)} strokeLinecap="round"
                 style={{ transition: 'stroke-dashoffset 0.2s ease' }}/>
-              {/* Tick marks */}
               {Array.from({ length: Math.min(ticks, 33) }).map((_, i) => {
                 const angle = (i / Math.min(ticks, 33)) * Math.PI * 2;
                 const x1 = cx + Math.cos(angle) * (r + 10);
@@ -127,8 +171,6 @@ export const TasbihSection = ({
                 return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={filled ? t.accent : t.line} strokeWidth="1.5" strokeLinecap="round"/>;
               })}
             </svg>
-
-            {/* Center count */}
             <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 72, color: done ? t.accentBright : t.ink, lineHeight: 1, transition: 'color 0.3s' }}>
                 {count}
@@ -144,7 +186,6 @@ export const TasbihSection = ({
             </div>
           </div>
 
-          {/* Action buttons */}
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <button onClick={reset}
               style={{ width: 40, height: 40, borderRadius: 10, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
@@ -161,7 +202,7 @@ export const TasbihSection = ({
           </div>
         </div>
 
-        {/* ── RIGHT : Stats + Phrases ── */}
+        {/* RIGHT: Stats + Phrases */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           {/* Stats card */}
@@ -190,9 +231,10 @@ export const TasbihSection = ({
               {fr ? 'Phrases' : 'الأذكار'}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {/* Preset dhikr */}
               {DHIKR.map((d, i) => (
-                <button key={i} onClick={() => { setIdx(i); setCount(0); setDone(false); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', borderBottom: i < DHIKR.length - 1 ? `1px solid ${t.line}` : 'none', background: 'transparent', border: 'none', borderBottomWidth: i < DHIKR.length - 1 ? 1 : 0, borderBottomStyle: 'solid', borderBottomColor: t.line, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                <button key={i} onClick={() => { setIdx(i); setCount(0); setDone(false); setEditingCustom(false); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', background: 'transparent', border: 'none', borderBottom: `1px solid ${t.line}`, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
                   <div style={{ width: 22, height: 22, borderRadius: 5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 11,
                     background: i === idx ? t.accent : t.cardElev,
                     border: i === idx ? 'none' : `1px solid ${t.line}`,
@@ -205,7 +247,95 @@ export const TasbihSection = ({
                   <span style={{ fontFamily: 'Amiri Quran, serif', fontSize: 16, color: t.accentBright, flexShrink: 0 }}>{d.ar}</span>
                 </button>
               ))}
+
+              {/* Custom dhikr row */}
+              <button
+                onClick={() => { setIdx(DHIKR.length); setCount(0); setDone(false); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%' }}
+              >
+                <div style={{
+                  width: 22, height: 22, borderRadius: 5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
+                  background: idx === DHIKR.length ? t.accent : t.cardElev,
+                  border: idx === DHIKR.length ? 'none' : `1px solid ${t.line}`,
+                  color: idx === DHIKR.length ? '#1a0f00' : t.inkDim,
+                }}>✦</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, color: t.ink, fontWeight: 500 }}>{customDhikr.tr}</div>
+                  <div style={{ fontSize: 10, color: t.inkMute, marginTop: 1 }}>{fr ? customDhikr.fr : ''} · ×{customDhikr.target}</div>
+                </div>
+                <button
+                  onClick={openEdit}
+                  style={{ padding: '4px 8px', borderRadius: 6, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, fontSize: 10, cursor: 'pointer', flexShrink: 0 }}
+                  title={fr ? 'Modifier' : 'تعديل'}
+                >
+                  ✏️
+                </button>
+              </button>
             </div>
+
+            {/* Inline edit form for custom dhikr */}
+            {editingCustom && (
+              <div style={{ marginTop: 14, padding: '14px', background: t.cardElev, borderRadius: 10, border: `1px solid ${t.line}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 2 }}>
+                  {fr ? 'Dhikr personnalisé' : 'ذِكْر مُخصَّص'}
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
+                    {fr ? 'Texte arabe' : 'النص العربي'}
+                  </label>
+                  <input
+                    value={editAr}
+                    onChange={e => setEditAr(e.target.value)}
+                    placeholder="الله"
+                    style={{ ...inputStyle, direction: 'rtl', fontFamily: 'Amiri Quran, serif', fontSize: 18 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
+                    {fr ? 'Translittération' : 'النطق'}
+                  </label>
+                  <input
+                    value={editTr}
+                    onChange={e => setEditTr(e.target.value)}
+                    placeholder="Allāh"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
+                    {fr ? 'Signification' : 'المعنى'}
+                  </label>
+                  <input
+                    value={editFr}
+                    onChange={e => setEditFr(e.target.value)}
+                    placeholder={fr ? 'Dhikr personnalisé' : 'ذكر مخصص'}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
+                    {fr ? 'Objectif (nombre)' : 'الهدف (عدد)'}
+                  </label>
+                  <input
+                    value={editTarget}
+                    onChange={e => setEditTarget(e.target.value.replace(/\D/g, ''))}
+                    placeholder="33"
+                    inputMode="numeric"
+                    style={{ ...inputStyle, width: '50%' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <button onClick={saveCustom}
+                    style={{ flex: 1, padding: '9px', borderRadius: 8, background: t.accent, color: '#1a0f00', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer' }}>
+                    {fr ? '✓ Enregistrer' : '✓ حفظ'}
+                  </button>
+                  <button onClick={() => setEditingCustom(false)}
+                    style={{ padding: '9px 14px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, fontSize: 12, cursor: 'pointer' }}>
+                    {fr ? 'Annuler' : 'إلغاء'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>
