@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, RotateCcw, ChevronLeft, Loader2, BookOpen, CheckCircle2, XCircle } from 'lucide-react';
+import { Search, X, RotateCcw, ChevronLeft, BookOpen, CheckCircle2, XCircle } from 'lucide-react';
+import { IslamicLoader } from './IslamicLoader';
 import { supabase, QuranVerse } from '../lib/supabase';
 import { SURAH_DATA } from '../types';
 import { useT } from '../lib/theme';

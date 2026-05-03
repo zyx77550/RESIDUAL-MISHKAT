@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import { List as VirtualList } from 'react-window';
+import { usePinch } from '@use-gesture/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, BookOpen, ChevronDown, Copy, X,
-  Bookmark, BookMarked, ChevronLeft, ChevronUp, AlertCircle, Loader2,
+  Bookmark, BookMarked, ChevronLeft, ChevronUp, AlertCircle,
   LayoutList, BookText, Volume2, VolumeX, Share2, Minus, Plus, Globe,
 } from 'lucide-react';
+import { IslamicLoader } from './IslamicLoader';
 import html2canvas from 'html2canvas';
 import toast from 'react-hot-toast';
 import { supabase, QuranVerse } from '../lib/supabase';
@@ -124,6 +126,13 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
   const cache   = useRef<Map<number, QuranVerse[]>>(new Map());
   const listRef = useRef<HTMLDivElement>(null);
+  const baseFontRef = useRef(22);
+
+  // Pinch-to-zoom adjusts Arabic font size
+  const pinchBind = usePinch(({ offset: [scale], first }) => {
+    if (first) baseFontRef.current = fontSize;
+    setFontSize(Math.max(14, Math.min(40, Math.round(baseFontRef.current * scale))));
+  }, { target: listRef, eventOptions: { passive: false } });
 
   const selectedSurah = selectedSurahId != null
     ? SURAH_DATA.find(s => s.id === selectedSurahId) ?? null
@@ -474,11 +483,8 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         {globalMode && (
           <div ref={globalListContainerRef} style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
             {globalLoading && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 120, gap: 8 }}>
-                <Loader2 size={22} className="animate-spin" style={{ color: 'var(--brand-primary)', opacity: 0.6 }} />
-                <span style={{ fontSize: 11, color: t.inkMute, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-                  {lang === 'fr' ? 'Recherche…' : 'جارٍ البحث…'}
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 120 }}>
+                <IslamicLoader size={40} label={lang === 'fr' ? 'Recherche…' : 'جارٍ البحث…'} />
               </div>
             )}
             {!globalLoading && !globalSearched && globalQuery.trim().length < 2 && (
@@ -605,13 +611,10 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         </div>
       </motion.div>
 
-      <div ref={listRef} className={`flex-1 overflow-y-auto pr-1 pb-6 custom-scrollbar ${viewMode === 'list' ? 'space-y-3' : ''}`}>
+      <div ref={listRef} className={`flex-1 overflow-y-auto pr-1 pb-6 custom-scrollbar ${viewMode === 'list' ? 'space-y-3' : ''}`} style={{ touchAction: 'pan-y' }}>
         {loading && (
-          <div className="flex flex-col items-center justify-center py-24 gap-3">
-            <Loader2 size={32} className="animate-spin" style={{ color: 'var(--brand-primary)', opacity: 0.5 }} />
-            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--brand-text-muted)' }}>
-              {lang === 'fr' ? 'Chargement…' : 'جارٍ التحميل…'}
-            </p>
+          <div className="flex flex-col items-center justify-center py-24">
+            <IslamicLoader size={52} label={lang === 'fr' ? 'Chargement…' : 'جارٍ التحميل…'} />
           </div>
         )}
 
