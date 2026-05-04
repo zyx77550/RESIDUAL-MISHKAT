@@ -1,4 +1,5 @@
 {
+  "exclude": ["open-quran-view", "quran-svg", "Quran-PNG", "node_modules"],
   "compilerOptions": {
     "target": "ES2022",
     "experimentalDecorators": true,

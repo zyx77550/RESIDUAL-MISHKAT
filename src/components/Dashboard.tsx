@@ -90,6 +90,7 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
   const [nowTime, setNowTime]         = useState(new Date());
   const [verseLoading, setVerseLoading]       = useState(true);
   const [prayerLoading, setPrayerLoading]     = useState(!!city);
+  const [verseFlipped, setVerseFlipped]       = useState(false);
   const [pullY, setPullY]             = useState(0);
   const [pulling, setPulling]         = useState(false);
   const [refreshing, setRefreshing]   = useState(false);
@@ -217,12 +218,12 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
             { icon: Icons.bookmark, value: `${memorizedCount}/114`,  label: fr ? 'Sourates'          : 'سورة',        color: t.accent,   shimmer: false },
             { icon: Icons.badge,    value: userData.badges?.filter(b => b.unlockedAt).length ?? 0, label: fr ? 'Badges' : 'شارة', color: '#a78bdb', shimmer: false },
           ].map((s, i) => (
-            <div key={i} className={`anim-souffle anim-d${i + 1}`} style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div key={i} className={`anim-souffle anim-d${i + 1}${s.shimmer ? ' anim-shimmer' : ''}`} style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 34, height: 34, borderRadius: 8, background: `${s.color}16`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon d={s.icon} size={15} color={s.color}/>
               </div>
               <div>
-                <div className={s.shimmer ? 'anim-shimmer' : ''} style={{ fontFamily: 'Fraunces, serif', fontSize: 18, color: s.shimmer ? undefined : t.ink, fontWeight: 300, lineHeight: 1, borderRadius: 6, display: 'inline-block' }}>{s.value}</div>
+                <div style={{ fontFamily: 'Fraunces, serif', fontSize: 18, color: t.ink, fontWeight: 300, lineHeight: 1 }}>{s.value}</div>
                 <div style={{ fontSize: 9.5, color: t.inkMute, marginTop: 3, letterSpacing: '0.08em' }}>{s.label}</div>
               </div>
             </div>
@@ -266,7 +267,7 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
                   <div style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase' }}>
                     {inProgressSurah
                       ? (fr ? `À reprendre · ${inProgressSurah.name}` : `للمتابعة · ${inProgressSurah.arabicName}`)
-                      : (fr ? 'Verset du jour — survoler pour traduction' : 'آية اليوم — مرر للترجمة')
+                      : (fr ? 'Verset du jour — cliquer pour la traduction' : 'آية اليوم — انقر للترجمة')
                     }
                   </div>
                   {inProgressSurah && (
@@ -283,19 +284,27 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
                     <div className="skeleton-line sm" style={{ width: '50%' }}/>
                   </div>
                 ) : (
-                  /* Flip card : front = arabe, back = traduction française */
-                  <div className="flip-container">
+                  <div
+                    className={`flip-container${verseFlipped ? ' is-flipped' : ''}`}
+                    onClick={() => setVerseFlipped(f => !f)}
+                    title={verseFlipped ? (fr ? 'Voir l\'arabe' : 'عرض العربية') : (fr ? 'Voir la traduction' : 'عرض الترجمة')}
+                  >
                     <div className="flip-inner">
-                      {/* RECTO — texte arabe (en flux normal → donne sa hauteur au conteneur) */}
+                      {/* RECTO — texte arabe */}
                       <div className="flip-front">
-                        <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 26, color: t.ink, lineHeight: 1.9, direction: 'rtl', textAlign: 'right' }}>
+                        <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 24, color: t.ink, lineHeight: 1.9, direction: 'rtl', textAlign: 'right' }}>
                           {verse?.ar}
                         </div>
-                        <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 8 }}>
-                          {verse?.ref}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                          <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+                            {verse?.ref}
+                          </div>
+                          <div style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.1em' }}>
+                            {fr ? 'Cliquer pour traduction →' : '← انقر للترجمة'}
+                          </div>
                         </div>
                       </div>
-                      {/* VERSO — traduction (superposé via inset:0) */}
+                      {/* VERSO — traduction */}
                       <div className="flip-back">
                         <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 14, color: t.ink, lineHeight: 1.8 }}>
                           « {verse?.fr} »
