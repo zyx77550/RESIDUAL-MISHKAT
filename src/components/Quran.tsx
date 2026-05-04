@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, BookOpen, Copy, X,
   Bookmark, BookMarked, ChevronLeft, ChevronRight, ChevronUp, AlertCircle,
-  LayoutList, BookText, Volume2, VolumeX, Share2, Minus, Plus, Globe,
+  LayoutList, Volume2, VolumeX, Share2, Minus, Plus, Globe,
 } from 'lucide-react';
 import { IslamicLoader } from './IslamicLoader';
 import html2canvas from 'html2canvas';
@@ -36,6 +36,102 @@ const toArabicNum = (n: number) =>
 
 const GLOBAL_ITEM_HEIGHT = 114;
 const VERSES_PER_PAGE = 12;
+
+// ── Islamic SVG icon components ───────────────────────────────────
+
+/** Cercle festonné islamique avec numéro de verset */
+function AyahBadge({ num, active, t, size = 32 }: {
+  num: number; active?: boolean;
+  t: ReturnType<typeof useT>; size?: number;
+}) {
+  const stroke = active ? t.accentBright : t.accent;
+  const bg = active ? `${t.accent}16` : t.card;
+  const fs = num > 99 ? 14 : num > 9 ? 17 : 19;
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width={size} height={size} style={{ flexShrink: 0 }}>
+      <path d="M50 5 C55 15,65 15,70 5 C75 15,85 15,90 20 C85 25,85 35,95 40 C85 45,85 55,95 60 C85 65,85 75,90 80 C85 85,75 85,70 95 C65 85,55 85,50 95 C45 85,35 85,30 95 C25 85,15 85,10 80 C15 75,15 65,5 60 C15 55,15 45,5 40 C15 35,15 25,10 20 C15 15,25 15,30 5 C35 15,45 15,50 5 Z"
+        fill="none" stroke={stroke} strokeWidth="2"/>
+      <circle cx="50" cy="50" r="32" fill={bg} stroke={stroke} strokeWidth="3"/>
+      <circle cx="50" cy="50" r="23" fill="none" stroke={stroke} strokeWidth="0.7" strokeDasharray="2,2.5"/>
+      <text x="50" y="57" fontFamily="Fraunces, serif" fontSize={fs} fill={stroke} textAnchor="middle" fontWeight="300">{num}</text>
+    </svg>
+  );
+}
+
+/** Séparateur décoratif islamique horizontal */
+function OrnamentSeparator({ t }: { t: ReturnType<typeof useT> }) {
+  const a = t.accent;
+  const ab = t.accentBright;
+  const bg = t.card;
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 40" width="100%" height="28"
+      style={{ display: 'block', overflow: 'visible' }} preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="mf-sep-g" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor={a} stopOpacity="0"/>
+          <stop offset="25%" stopColor={a}/>
+          <stop offset="50%" stopColor={ab}/>
+          <stop offset="75%" stopColor={a}/>
+          <stop offset="100%" stopColor={a} stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      <g transform="translate(150,20)">
+        <rect x="-140" y="-1" width="280" height="2" fill="url(#mf-sep-g)"/>
+        <path d="M-20,0 C-10,-11 10,-11 20,0 C10,11 -10,11 -20,0 Z" fill={bg} stroke={a} strokeWidth="1.5"/>
+        <circle cx="0" cy="0" r="3.5" fill={a}/>
+        <path d="M-40,0 L-30,-5 L-25,0 L-30,5 Z" fill={a}/>
+        <path d="M40,0 L30,-5 L25,0 L30,5 Z" fill={a}/>
+        <circle cx="-58" cy="0" r="2" fill={a}/>
+        <circle cx="58" cy="0" r="2" fill={a}/>
+        <circle cx="-74" cy="0" r="1.5" fill={a} opacity="0.55"/>
+        <circle cx="74" cy="0" r="1.5" fill={a} opacity="0.55"/>
+      </g>
+    </svg>
+  );
+}
+
+/** Étoile à 8 branches (Hizb) — ornement de section */
+function HizbStar({ t, size = 28 }: { t: ReturnType<typeof useT>; size?: number }) {
+  const a = t.accent;
+  const bg = t.card;
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width={size} height={size}>
+      <g transform="translate(50,50)">
+        <g stroke={a} strokeWidth="2.5" fill={bg}>
+          <rect x="-30" y="-30" width="60" height="60"/>
+          <rect x="-30" y="-30" width="60" height="60" transform="rotate(45)"/>
+        </g>
+        <g stroke={a} strokeWidth="0.8" fill="none">
+          <rect x="-22" y="-22" width="44" height="44"/>
+          <rect x="-22" y="-22" width="44" height="44" transform="rotate(45)"/>
+        </g>
+        <circle cx="0" cy="0" r="10" fill={a}/>
+        <circle cx="0" cy="0" r="5" fill={bg}/>
+        <circle cx="0" cy="-42" r="3" fill={a}/>
+        <circle cx="0" cy="42" r="3" fill={a}/>
+        <circle cx="-42" cy="0" r="3" fill={a}/>
+        <circle cx="42" cy="0" r="3" fill={a}/>
+      </g>
+    </svg>
+  );
+}
+
+/** Icône Mushaf (livre ouvert sur rehal) */
+function MushabBookIcon({ color, size = 14 }: { color: string; size?: number }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width={size} height={size} style={{ flexShrink: 0 }}>
+      <g transform="translate(50,55)">
+        <path d="M-30,20 L-40,40 L-35,42 L-20,15 Z" fill={color} opacity="0.65"/>
+        <path d="M30,20 L40,40 L35,42 L20,15 Z" fill={color} opacity="0.65"/>
+        <path d="M0,20 C-15,20 -35,5 -40,-10 L-40,-25 C-30,-15 -15,-5 0,10 Z" fill={color} opacity="0.22"/>
+        <path d="M0,20 C15,20 35,5 40,-10 L40,-25 C30,-15 15,-5 0,10 Z" fill={color} opacity="0.22"/>
+        <path d="M-5,5 C-15,-2 -25,-10 -35,-20" stroke={color} strokeWidth="2" fill="none" opacity="0.5"/>
+        <path d="M5,5 C15,-2 25,-10 35,-20" stroke={color} strokeWidth="2" fill="none" opacity="0.5"/>
+        <path d="M0,10 L-5,30 L0,25 L5,30 Z" fill={color}/>
+      </g>
+    </svg>
+  );
+}
 
 // ── GlobalRow ──────────────────────────────────────────────────────
 interface GlobalRowProps {
@@ -665,7 +761,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                 border: 'none', cursor: 'pointer', transition: 'all 0.15s',
                 fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
               }}>
-                {mode === 'list' ? <LayoutList size={12}/> : <BookText size={12}/>}
+                {mode === 'list' ? <LayoutList size={12}/> : <MushabBookIcon color={viewMode === 'mushaf' ? '#1a0f00' : t.inkDim} size={14}/>}
                 {!narrow && <span>{mode === 'list' ? (fr ? 'Liste' : 'قائمة') : 'Mushaf'}</span>}
               </button>
             ))}
@@ -772,10 +868,8 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                   {isSelected && <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: t.accent }}/>}
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14 }}>
-                    {/* Verse number */}
-                    <div style={{ width: 30, height: 30, flexShrink: 0, borderRadius: '50%', border: `1px solid ${isSelected ? t.accent : t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 10, color: isSelected ? t.accentBright : t.inkDim, transition: 'border-color 0.15s, color 0.15s', background: isSelected ? `${t.accent}10` : 'transparent' }}>
-                      {verse.ayah_number}
-                    </div>
+                    {/* Verse number — AyahBadge */}
+                    <AyahBadge num={verse.ayah_number} active={isSelected} t={t} size={32}/>
 
                     {/* Text content */}
                     <div style={{ flex: 1, textAlign: 'right', direction: 'rtl' }}>
@@ -831,8 +925,11 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
               );
             })}
 
-            <div style={{ textAlign: 'center', padding: '14px 0', fontSize: 9, color: t.inkMute, textTransform: 'uppercase', letterSpacing: '0.2em', opacity: 0.5 }}>
-              — {fr ? `Fin · ${filteredVerses.length} versets` : `النهاية · ${filteredVerses.length} آية`} —
+            <div style={{ padding: '8px 24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+              <OrnamentSeparator t={t}/>
+              <span style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.2em', textTransform: 'uppercase', opacity: 0.5 }}>
+                {fr ? `${filteredVerses.length} versets` : `${filteredVerses.length} آية`}
+              </span>
             </div>
           </motion.div>
         )}
@@ -843,9 +940,15 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
             <MushafFrame t={t} page={mushafPage} totalPages={totalMushafPages}>
               {/* Basmala inside frame */}
               {selectedSurahId !== 9 && !verseSearch && mushafPage === 0 && (
-                <div style={{ textAlign: 'center', marginBottom: 20, paddingBottom: 16, borderBottom: `1px solid ${t.line}` }}>
+                <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+                    <HizbStar t={t} size={24}/>
+                  </div>
                   <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: Math.round(fontSize * 1.1), color: t.accentBright, direction: 'rtl', lineHeight: 1.9 }}>
                     بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <OrnamentSeparator t={t}/>
                   </div>
                 </div>
               )}
