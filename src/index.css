@@ -169,8 +169,9 @@ button { cursor: pointer; border: none; background: none; }
   transform: rotateY(180deg);
   background: rgba(212,166,74,.06);
   border: 1px solid var(--brand-primary);
-  border-radius: 12px; padding: 20px 24px;
-  display: flex; flex-direction: column; justify-content: center;
+  border-radius: 12px; padding: 16px 20px;
+  display: flex; flex-direction: column; justify-content: flex-start;
+  overflow: hidden;
 }
 
 /* 6. Pulse scale (bouton audio actif) */

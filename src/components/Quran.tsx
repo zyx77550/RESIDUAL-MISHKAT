@@ -627,7 +627,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   // ── Surah list ────────────────────────────────────────────────────
   if (selectedSurahId === null) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0 }}>
         <div style={{ flexShrink: 0, paddingBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
             <div>
@@ -801,7 +801,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
   // ── Verse view ────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0, overflow: 'hidden', ...(readingBg ? { background: readingBg, color: readingInk } : {}) }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0, ...(readingBg ? { background: readingBg, color: readingInk } : {}) }}>
       <div style={{ flexShrink: 0, paddingBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
           <button
@@ -1125,63 +1125,100 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         {/* ── AUTHENTIC MUSHAF MODE ── */}
         {viewMode === 'authentic' && selectedSurahId !== null && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
-            style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 32 }}>
+
             {/* Surah nameplate */}
             {selectedSurah && (
               <SurahNameplate surahId={selectedSurah.id} surahName={selectedSurah.name} t={t}/>
             )}
-            {/* Page image */}
+
+            {/* Page image — full width, aucune restriction de maxWidth */}
             <div style={{
               position: 'relative', borderRadius: 12, overflow: 'hidden',
-              maxWidth: 453, margin: '0 auto', width: '100%',
+              width: '100%',
               boxShadow: '0 4px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,166,74,0.2)',
             }}>
-              {/* Paper background */}
-              <div style={{ background: '#f5efe0', padding: 4, borderRadius: 12 }}>
+              <div style={{ background: '#f5efe0', borderRadius: 12 }}>
                 <img
                   key={authenticPage}
                   src={mushafSvgUrl(authenticPage)}
                   alt={`Mushaf page ${authenticPage}`}
-                  style={{ width: '100%', display: 'block', borderRadius: 8 }}
-                  loading="lazy"
+                  style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 12 }}
+                  loading="eager"
                 />
               </div>
-              {/* Page number overlay */}
+              {/* Page number */}
               <div style={{
                 position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
-                background: 'rgba(26,15,0,0.75)', borderRadius: 99,
-                padding: '2px 12px', fontSize: 10, color: '#d4a64a',
-                fontFamily: 'Fraunces, serif', letterSpacing: '0.12em',
+                background: 'rgba(26,15,0,0.82)', borderRadius: 99,
+                padding: '3px 14px', fontSize: 11, color: '#d4a64a',
+                fontFamily: 'Fraunces, serif', letterSpacing: '0.14em', whiteSpace: 'nowrap',
               }}>
                 {fr ? `Page ${authenticPage}` : `صفحة ${toArabicNum(authenticPage)}`}
               </div>
             </div>
 
-            {/* Page navigation */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            {/* Navigation page */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
               <button
-                onClick={() => setAuthenticPage(p => Math.max(surahPageStart(selectedSurahId), p - 1))}
+                onClick={() => { setAuthenticPage(p => Math.max(surahPageStart(selectedSurahId), p - 1)); listRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }}
                 disabled={authenticPage <= surahPageStart(selectedSurahId)}
-                style={{ width: 34, height: 34, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: authenticPage <= surahPageStart(selectedSurahId) ? t.inkMute : t.ink, cursor: authenticPage <= surahPageStart(selectedSurahId) ? 'default' : 'pointer', opacity: authenticPage <= surahPageStart(selectedSurahId) ? 0.4 : 1 }}
+                style={{ width: 40, height: 40, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: authenticPage <= surahPageStart(selectedSurahId) ? t.inkMute : t.ink, cursor: authenticPage <= surahPageStart(selectedSurahId) ? 'default' : 'pointer', opacity: authenticPage <= surahPageStart(selectedSurahId) ? 0.35 : 1 }}
               >
-                <ChevronRight size={14}/>
+                <ChevronRight size={16}/>
               </button>
-              <span style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.14em', fontWeight: 700 }}>
-                {authenticPage} / {surahPageEnd(selectedSurahId)}
-              </span>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 13, color: t.accent, fontFamily: 'Fraunces, serif', fontWeight: 300 }}>
+                  {toArabicNum(authenticPage)} / {toArabicNum(surahPageEnd(selectedSurahId))}
+                </div>
+                <div style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.1em', marginTop: 2 }}>
+                  {fr ? 'Complexe du Roi Fahd · Médine' : 'مجمع الملك فهد · المدينة'}
+                </div>
+              </div>
               <button
-                onClick={() => setAuthenticPage(p => Math.min(surahPageEnd(selectedSurahId), p + 1))}
+                onClick={() => { setAuthenticPage(p => Math.min(surahPageEnd(selectedSurahId), p + 1)); listRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }}
                 disabled={authenticPage >= surahPageEnd(selectedSurahId)}
-                style={{ width: 34, height: 34, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: authenticPage >= surahPageEnd(selectedSurahId) ? t.inkMute : t.ink, cursor: authenticPage >= surahPageEnd(selectedSurahId) ? 'default' : 'pointer', opacity: authenticPage >= surahPageEnd(selectedSurahId) ? 0.4 : 1 }}
+                style={{ width: 40, height: 40, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: authenticPage >= surahPageEnd(selectedSurahId) ? t.inkMute : t.ink, cursor: authenticPage >= surahPageEnd(selectedSurahId) ? 'default' : 'pointer', opacity: authenticPage >= surahPageEnd(selectedSurahId) ? 0.35 : 1 }}
               >
-                <ChevronLeft size={14}/>
+                <ChevronLeft size={16}/>
               </button>
             </div>
 
-            {/* Credit */}
-            <div style={{ textAlign: 'center', fontSize: 9, color: t.inkMute, letterSpacing: '0.12em', opacity: 0.6 }}>
-              {fr ? 'Complexe du Roi Fahd · Médine' : 'مجمع الملك فهد · المدينة المنورة'}
-            </div>
+            {/* Versets de la sourate — accessibles depuis ce mode */}
+            {!loading && !dbError && verses.length > 0 && (
+              <div style={{ ...card, overflow: 'hidden' }}>
+                <div style={{ padding: '12px 18px', borderBottom: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+                    {fr ? `${verses.length} versets` : `${toArabicNum(verses.length)} آية`}
+                  </span>
+                  <span style={{ fontFamily: 'Amiri Quran, serif', fontSize: 15, color: t.accentBright }}>
+                    {selectedSurah?.arabicName}
+                  </span>
+                </div>
+                {verses.map((verse, idx) => {
+                  const isExp = expandedId === verse.id;
+                  return (
+                    <div key={verse.id}
+                      onClick={() => setExpandedId(isExp ? null : verse.id)}
+                      style={{ padding: '14px 18px', borderBottom: idx < verses.length - 1 ? `1px solid ${t.lineSoft}` : 'none', cursor: 'pointer', background: isExp ? `${t.accent}06` : 'transparent', transition: 'background 0.15s' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                        <AyahBadge num={verse.ayah_number} active={isExp} t={t} size={28}/>
+                        <div style={{ flex: 1, fontFamily: 'Amiri Quran, serif', fontSize: Math.max(fontSize, 20), color: isExp ? t.accentBright : t.ink, direction: 'rtl', textAlign: 'right', lineHeight: 1.9 }}>
+                          {verse.arabic_text}
+                        </div>
+                      </div>
+                      {isExp && (
+                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${t.lineSoft}` }}>
+                          <p style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 13, color: t.inkDim, lineHeight: 1.75 }}>
+                            {verse.french_text}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </motion.div>
         )}
 

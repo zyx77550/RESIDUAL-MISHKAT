@@ -434,7 +434,7 @@ export default function App() {
               {activeTab === 'dashboard'    && <Dashboard {...commonProps} onNavigate={setActiveTab}/>}
               {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang}/>}
               {!['dashboard','diftar'].includes(activeTab) && (
-                <div style={{ flex: 1, minWidth: 0, padding: isMobile ? '16px 14px 100px' : '26px 28px 36px', display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden' }}>
+                <div style={{ flex: 1, minWidth: 0, padding: isMobile ? '16px 14px 100px' : '26px 28px 36px', display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {activeTab === 'coloring'     && <ColoringGrid {...commonProps}/>}
                   {activeTab === 'goals'        && <GoalsSection {...commonProps}/>}
                   {activeTab === 'tasbih'       && <TasbihSection {...commonProps}/>}
