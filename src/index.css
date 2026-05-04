@@ -153,18 +153,23 @@ button { cursor: pointer; border: none; background: none; }
 }
 .flip-container:hover .flip-inner,
 .flip-container.is-flipped .flip-inner { transform: rotateY(180deg); }
-.flip-face {
-  position: absolute; width: 100%; height: 100%;
+
+/* Recto : dans le flux normal → détermine la hauteur du conteneur */
+.flip-front {
+  position: relative; width: 100%; box-sizing: border-box;
   backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  border-radius: 0; box-sizing: border-box;
-  display: flex; flex-direction: column; justify-content: center;
+  display: flex; flex-direction: column; justify-content: flex-start;
 }
-.flip-front { position: relative; }
+
+/* Verso : superposé exactement sur le recto grâce à inset:0 */
 .flip-back {
-  background: rgba(212,166,74,.06);
+  position: absolute; inset: 0; box-sizing: border-box;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
   transform: rotateY(180deg);
+  background: rgba(212,166,74,.06);
   border: 1px solid var(--brand-primary);
   border-radius: 12px; padding: 20px 24px;
+  display: flex; flex-direction: column; justify-content: center;
 }
 
 /* 6. Pulse scale (bouton audio actif) */

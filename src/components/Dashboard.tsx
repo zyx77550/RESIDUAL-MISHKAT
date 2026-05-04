@@ -284,20 +284,20 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
                   </div>
                 ) : (
                   /* Flip card : front = arabe, back = traduction française */
-                  <div className="flip-container" style={{ minHeight: 110 }}>
-                    <div className="flip-inner" style={{ minHeight: 110 }}>
-                      {/* RECTO — texte arabe */}
-                      <div className="flip-face flip-front" style={{ minHeight: 110 }}>
-                        <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 28, color: t.ink, lineHeight: 1.9, direction: 'rtl', textAlign: 'right' }}>
+                  <div className="flip-container">
+                    <div className="flip-inner">
+                      {/* RECTO — texte arabe (en flux normal → donne sa hauteur au conteneur) */}
+                      <div className="flip-front">
+                        <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 26, color: t.ink, lineHeight: 1.9, direction: 'rtl', textAlign: 'right' }}>
                           {verse?.ar}
                         </div>
-                        <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 6 }}>
+                        <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 8 }}>
                           {verse?.ref}
                         </div>
                       </div>
-                      {/* VERSO — traduction */}
-                      <div className="flip-face flip-back" style={{ minHeight: 110, padding: '18px 22px' }}>
-                        <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 14, color: t.ink, lineHeight: 1.75 }}>
+                      {/* VERSO — traduction (superposé via inset:0) */}
+                      <div className="flip-back">
+                        <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 14, color: t.ink, lineHeight: 1.8 }}>
                           « {verse?.fr} »
                         </div>
                         <div style={{ fontSize: 9.5, color: t.accentBright, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 10 }}>

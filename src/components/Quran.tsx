@@ -771,7 +771,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
             <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 2 }}>
               {selectedSurah?.name} · {selectedSurah?.verses} {fr ? 'v.' : 'آية'} · Juz {selectedSurah?.juz}
             </div>
-            <h2 className="anim-write-rtl" style={{ fontFamily: 'Amiri Quran, serif', fontSize: 28, color: readingInk ?? t.ink, margin: 0, lineHeight: 1.3, direction: 'rtl' }}>
+            <h2 style={{ fontFamily: 'Amiri Quran, serif', fontSize: 28, color: readingInk ?? t.ink, margin: 0, lineHeight: 1.3, direction: 'rtl' }}>
               {selectedSurah?.arabicName}
             </h2>
           </div>
@@ -858,7 +858,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         {/* ── LIST MODE ── */}
         {viewMode === 'list' && !loading && !dbError && filteredVerses.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}
-            className={verseSearch ? 'anim-dissolution' : 'anim-fil-dor'}
             style={{ background: readingBg ?? t.card, border: `1px solid ${t.line}`, borderRadius: 16, overflow: 'hidden', marginBottom: 8 }}
           >
             {/* List header */}
