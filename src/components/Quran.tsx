@@ -14,6 +14,7 @@ import { supabase, QuranVerse } from '../lib/supabase';
 import { SURAH_DATA } from '../types';
 import { UserData } from '../types';
 import { useT } from '../lib/theme';
+import { useIsNarrow } from './ui';
 import { saveQuranPosition } from './Dashboard';
 
 interface QuranProps {
@@ -50,45 +51,33 @@ function GlobalRow({
   const verse = results[index];
   const surah = SURAH_DATA.find(s => s.id === verse.surah_number);
   return (
-    <div style={{ ...style, paddingBottom: 8, paddingRight: 4, boxSizing: 'border-box' }}>
+    <div style={{ ...style, paddingBottom: 8, boxSizing: 'border-box' }}>
       <button
         onClick={() => onOpen(verse.surah_number, verse.ayah_number)}
         style={{
-          width: '100%',
-          height: GLOBAL_ITEM_HEIGHT - 10,
-          background: t.card,
-          border: `1px solid ${t.line}`,
-          borderRadius: 12,
-          padding: '10px 14px',
-          cursor: 'pointer',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 4,
-          overflow: 'hidden',
-          textAlign: 'left',
-          boxSizing: 'border-box',
+          width: '100%', height: GLOBAL_ITEM_HEIGHT - 10,
+          background: t.card, border: `1px solid ${t.line}`, borderRadius: 12,
+          padding: '10px 14px', cursor: 'pointer',
+          display: 'flex', flexDirection: 'column', gap: 4,
+          overflow: 'hidden', textAlign: 'left', boxSizing: 'border-box',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <span style={{ fontSize: 10, color: t.accentBright, fontWeight: 700, letterSpacing: '0.1em' }}>
             {surah?.name} · {lang === 'fr' ? `v.${verse.ayah_number}` : `آية ${toArabicNum(verse.ayah_number)}`}
           </span>
-          <span style={{ fontSize: 12, color: t.ink, fontFamily: 'Amiri, serif' }}>
+          <span style={{ fontSize: 13, color: t.ink, fontFamily: 'Amiri Quran, serif' }}>
             {surah?.arabicName}
           </span>
         </div>
         <p style={{
-          fontFamily: 'Amiri, serif', fontSize: 16, direction: 'rtl', textAlign: 'right',
+          fontFamily: 'Amiri Quran, serif', fontSize: 16, direction: 'rtl', textAlign: 'right',
           color: t.ink, lineHeight: '1.7', overflow: 'hidden',
-          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
-          flex: 1,
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, flex: 1,
         }}>
           {verse.arabic_text}
         </p>
-        <p style={{
-          fontSize: 11, color: t.inkDim, fontStyle: 'italic',
-          overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', flexShrink: 0,
-        }}>
+        <p style={{ fontSize: 11, color: t.inkDim, fontStyle: 'italic', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', flexShrink: 0 }}>
           {verse.french_text}
         </p>
       </button>
@@ -98,6 +87,9 @@ function GlobalRow({
 
 export const QuranSection = ({ userData, lang }: QuranProps) => {
   const t = useT();
+  const narrow = useIsNarrow();
+  const fr = lang === 'fr';
+
   const [selectedSurahId, setSelectedSurahId] = useState<number | null>(null);
   const [verses, setVerses]       = useState<QuranVerse[]>([]);
   const [loading, setLoading]     = useState(false);
@@ -114,7 +106,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const shareRef = useRef<HTMLDivElement | null>(null);
 
-  // Global search
   const [globalMode, setGlobalMode] = useState(false);
   const [globalQuery, setGlobalQuery] = useState('');
   const [globalResults, setGlobalResults] = useState<QuranVerse[]>([]);
@@ -128,7 +119,19 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const listRef = useRef<HTMLDivElement>(null);
   const baseFontRef = useRef(22);
 
-  // Pinch-to-zoom adjusts Arabic font size
+  const card: React.CSSProperties = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 12 };
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '9px 14px 9px 36px',
+    background: t.cardElev, border: `1px solid ${t.line}`,
+    borderRadius: 10, color: t.ink, fontSize: 13, outline: 'none',
+    boxSizing: 'border-box' as const,
+  };
+  const ctrlGroup: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 2,
+    background: t.cardElev, border: `1px solid ${t.line}`,
+    borderRadius: 9, padding: 3, flexShrink: 0,
+  };
+
   const pinchBind = usePinch(({ offset: [scale], first }) => {
     if (first) baseFontRef.current = fontSize;
     setFontSize(Math.max(14, Math.min(40, Math.round(baseFontRef.current * scale))));
@@ -139,97 +142,59 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
     : null;
 
   const fetchVerses = useCallback(async (surahId: number) => {
-    if (cache.current.has(surahId)) {
-      setVerses(cache.current.get(surahId)!);
-      return;
-    }
-    setLoading(true);
-    setDbError(null);
-    const { data, error } = await supabase
-      .from('quran_verses')
-      .select('*')
-      .eq('surah_number', surahId)
-      .order('ayah_number');
+    if (cache.current.has(surahId)) { setVerses(cache.current.get(surahId)!); return; }
+    setLoading(true); setDbError(null);
+    const { data, error } = await supabase.from('quran_verses').select('*').eq('surah_number', surahId).order('ayah_number');
     setLoading(false);
     if (error) { setDbError(error.message); return; }
     cache.current.set(surahId, data ?? []);
     setVerses(data ?? []);
   }, []);
 
-  // Debounced global search
   useEffect(() => {
-    if (!globalMode || globalQuery.trim().length < 2) {
-      setGlobalResults([]);
-      setGlobalSearched(false);
-      return;
-    }
+    if (!globalMode || globalQuery.trim().length < 2) { setGlobalResults([]); setGlobalSearched(false); return; }
     const q = globalQuery.trim();
     const timer = setTimeout(async () => {
       setGlobalLoading(true);
-      const { data, error } = await supabase
-        .from('quran_verses')
-        .select('*')
-        .or(`arabic_text.like.%${q}%,french_text.ilike.%${q}%`)
-        .limit(200);
-      setGlobalLoading(false);
-      setGlobalSearched(true);
+      const { data, error } = await supabase.from('quran_verses').select('*').or(`arabic_text.like.%${q}%,french_text.ilike.%${q}%`).limit(200);
+      setGlobalLoading(false); setGlobalSearched(true);
       if (!error && data) setGlobalResults(data);
     }, 350);
     return () => clearTimeout(timer);
   }, [globalQuery, globalMode]);
 
-  // Measure virtual list container
   useLayoutEffect(() => {
     if (!globalMode) return;
     const el = globalListContainerRef.current;
     if (!el) return;
-    const update = () => {
-      const h = el.getBoundingClientRect().height;
-      if (h > 0) setGlobalListHeight(h);
-    };
+    const update = () => { const h = el.getBoundingClientRect().height; if (h > 0) setGlobalListHeight(h); };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
   }, [globalMode]);
 
-  // Scroll to ayah after surah loads
   useEffect(() => {
     if (loading || scrollToAyah === null || verses.length === 0) return;
     const timer = setTimeout(() => {
       const el = document.getElementById(`verse-${scrollToAyah}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setScrollToAyah(null);
-      }
+      if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); setScrollToAyah(null); }
     }, 200);
     return () => clearTimeout(timer);
   }, [loading, scrollToAyah, verses.length]);
 
   const openSurah = useCallback((id: number) => {
-    setSelectedSurahId(id);
-    setVerseSearch('');
-    setExpandedId(null);
-    setMushafSelected(null);
-    fetchVerses(id);
-    listRef.current?.scrollTo({ top: 0 });
+    setSelectedSurahId(id); setVerseSearch(''); setExpandedId(null); setMushafSelected(null);
+    fetchVerses(id); listRef.current?.scrollTo({ top: 0 });
     const s = SURAH_DATA.find(x => x.id === id);
     if (s) saveQuranPosition(id, s.name, 1);
   }, [fetchVerses]);
 
   const openSurahAtVerse = useCallback((surahId: number, ayahNumber: number) => {
-    setScrollToAyah(ayahNumber);
-    openSurah(surahId);
-    setGlobalMode(false);
-    setGlobalQuery('');
+    setScrollToAyah(ayahNumber); openSurah(surahId); setGlobalMode(false); setGlobalQuery('');
   }, [openSurah]);
 
-  const goBack = () => {
-    setSelectedSurahId(null);
-    setVerses([]);
-    setDbError(null);
-    setVerseSearch('');
-  };
+  const goBack = () => { setSelectedSurahId(null); setVerses([]); setDbError(null); setVerseSearch(''); };
 
   const toggleBookmark = (surahNum: number, ayahNum: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -244,24 +209,15 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
   const copyVerse = async (v: QuranVerse, e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(`${v.arabic_text}\n\n${v.french_text}`);
-      toast.success(lang === 'fr' ? 'Verset copié !' : 'تم نسخ الآية!');
-    } catch {}
+    try { await navigator.clipboard.writeText(`${v.arabic_text}\n\n${v.french_text}`); toast.success(fr ? 'Verset copié !' : 'تم نسخ الآية!'); } catch {}
   };
 
   const playAudio = (v: QuranVerse, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (playingId === v.id) {
-      audioRef.current?.pause();
-      setPlayingId(null);
-      return;
-    }
+    if (playingId === v.id) { audioRef.current?.pause(); setPlayingId(null); return; }
     if (audioRef.current) audioRef.current.pause();
-    const prevVerses = SURAH_DATA.slice(0, v.surah_number - 1).reduce((acc, s) => acc + s.verses, 0);
-    const globalNum = prevVerses + v.ayah_number;
-    const url = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${globalNum}.mp3`;
-    const audio = new Audio(url);
+    const prev = SURAH_DATA.slice(0, v.surah_number - 1).reduce((acc, s) => acc + s.verses, 0);
+    const audio = new Audio(`https://cdn.islamic.network/quran/audio/128/ar.alafasy/${prev + v.ayah_number}.mp3`);
     audioRef.current = audio;
     audio.play().then(() => setPlayingId(v.id)).catch(() => toast.error('Audio indisponible'));
     audio.onended = () => setPlayingId(null);
@@ -276,239 +232,179 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
       const canvas = await html2canvas(shareRef.current, { scale: 2, useCORS: true, backgroundColor: null });
       canvas.toBlob(blob => {
         if (!blob) return;
-        if (navigator.share) {
-          navigator.share({ files: [new File([blob], 'verse.png', { type: 'image/png' })] }).catch(() => {});
-        } else {
-          const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-          a.download = 'verse-mishkat.png'; a.click();
-        }
+        if (navigator.share) { navigator.share({ files: [new File([blob], 'verse.png', { type: 'image/png' })] }).catch(() => {}); }
+        else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'verse-mishkat.png'; a.click(); }
       });
-      toast.success(lang === 'fr' ? 'Image générée !' : 'تم إنشاء الصورة!');
+      toast.success(fr ? 'Image générée !' : 'تم إنشاء الصورة!');
     } catch { toast.error('Erreur génération'); }
   };
 
   const filteredSurahs = useMemo(() => {
     if (!surahSearch.trim()) return SURAH_DATA;
     const q = surahSearch.toLowerCase();
-    return SURAH_DATA.filter(s =>
-      s.name.toLowerCase().includes(q) ||
-      s.arabicName.includes(surahSearch) ||
-      s.id.toString() === q
-    );
+    return SURAH_DATA.filter(s => s.name.toLowerCase().includes(q) || s.arabicName.includes(surahSearch) || s.id.toString() === q);
   }, [surahSearch]);
 
   const filteredVerses = useMemo(() => {
     if (!verseSearch.trim()) return verses;
     const q = verseSearch.toLowerCase();
-    return verses.filter(v =>
-      v.arabic_text.includes(verseSearch) ||
-      v.french_text.toLowerCase().includes(q) ||
-      v.ayah_number.toString() === q
-    );
+    return verses.filter(v => v.arabic_text.includes(verseSearch) || v.french_text.toLowerCase().includes(q) || v.ayah_number.toString() === q);
   }, [verseSearch, verses]);
 
   const globalRowData = useMemo<GlobalRowProps>(() => ({
-    results: globalResults,
-    lang,
-    t,
-    onOpen: openSurahAtVerse,
+    results: globalResults, lang, t, onOpen: openSurahAtVerse,
   }), [globalResults, lang, t, openSurahAtVerse]);
 
   const bookmarkCount = bookmarks.size;
-  const userSurahStatus = (id: number) =>
-    userData.surahs.find(s => s.id === id)?.status ?? 'not_started';
-
-  const statusDot: Record<string, string> = {
-    memorized:    'var(--brand-primary)',
-    review:       'var(--brand-secondary)',
-    in_progress:  'var(--brand-accent)',
-    not_started:  'transparent',
+  const userSurahStatus = (id: number) => userData.surahs.find(s => s.id === id)?.status ?? 'not_started';
+  const statusColor: Record<string, string> = {
+    memorized: t.accent, review: t.accentBright, in_progress: t.accentSoft, not_started: 'transparent',
   };
 
-  // ── Surah list ──────────────────────────────────────────────────
+  // ── Surah list ────────────────────────────────────────────────
   if (selectedSurahId === null) {
     return (
-      <div className="flex flex-col h-full gap-0 relative">
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex-shrink-0 pb-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0 }}>
+        <div style={{ flexShrink: 0, paddingBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
             <div>
-              <h2
-                className="text-4xl sm:text-5xl leading-tight"
-                style={{ color: 'var(--brand-primary)', fontFamily: 'Amiri, serif' }}
-              >
-                القرآن الكريم
-              </h2>
-              <p className="text-sm font-bold mt-1" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-                {lang === 'fr' ? '114 sourates · Traduction Hamidullah' : '١١٤ سورة · ترجمة حميد الله'}
-              </p>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <div className="glass-card px-4 py-2.5 text-center flex-shrink-0">
-                <p className="text-xl font-black text-gradient leading-none">{bookmarkCount}</p>
-                <p className="text-[8px] uppercase tracking-widest font-bold mt-0.5" style={{ color: 'var(--brand-text-muted)' }}>
-                  {lang === 'fr' ? 'signets' : 'علامات'}
-                </p>
+              <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 6 }}>
+                {fr ? '114 sourates · Hamidullah' : '١١٤ سورة · حميد الله'}
               </div>
-              <div className="glass-card px-4 py-2.5 text-center flex-shrink-0">
-                <p className="text-xl font-black text-gradient leading-none">
+              <h1 style={{ fontFamily: 'Amiri Quran, serif', fontSize: 38, color: t.ink, margin: 0, lineHeight: 1.2, direction: 'rtl' }}>
+                القرآن الكريم
+              </h1>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <div style={{ ...card, padding: '10px 14px', textAlign: 'center' }}>
+                <div style={{ fontFamily: 'Fraunces, serif', fontSize: 20, color: t.accent, fontWeight: 300, lineHeight: 1 }}>{bookmarkCount}</div>
+                <div style={{ fontSize: 9, color: t.inkMute, textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: 3 }}>{fr ? 'signets' : 'علامات'}</div>
+              </div>
+              <div style={{ ...card, padding: '10px 14px', textAlign: 'center' }}>
+                <div style={{ fontFamily: 'Fraunces, serif', fontSize: 20, color: t.accent, fontWeight: 300, lineHeight: 1 }}>
                   {userData.surahs.filter(s => s.status === 'memorized').length}
-                </p>
-                <p className="text-[8px] uppercase tracking-widest font-bold mt-0.5" style={{ color: 'var(--brand-text-muted)' }}>
-                  {lang === 'fr' ? 'mémorisées' : 'محفوظ'}
-                </p>
+                </div>
+                <div style={{ fontSize: 9, color: t.inkMute, textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: 3 }}>{fr ? 'mémorisées' : 'محفوظ'}</div>
               </div>
             </div>
           </div>
 
           {/* Mode tabs */}
-          <div style={{ display: 'flex', gap: 6, marginTop: 14, background: t.cardElev, borderRadius: 12, padding: 4 }}>
-            <button
-              onClick={() => setGlobalMode(false)}
-              style={{
-                flex: 1, padding: '8px 12px', borderRadius: 9, fontSize: 11, fontWeight: 700,
-                letterSpacing: '0.1em', textTransform: 'uppercase',
-                background: !globalMode ? 'var(--brand-primary)' : 'transparent',
-                color: !globalMode ? '#fff' : t.inkDim,
+          <div style={{ display: 'flex', gap: 4, background: t.cardElev, borderRadius: 10, padding: 3, marginBottom: 10 }}>
+            {[
+              { mode: false, icon: <BookOpen size={11}/>, label: fr ? 'Sourates' : 'السور' },
+              { mode: true,  icon: <Globe size={11}/>,    label: fr ? 'Rechercher' : 'البحث' },
+            ].map(({ mode, icon, label }) => (
+              <button key={String(mode)} onClick={() => setGlobalMode(mode)} style={{
+                flex: 1, padding: '8px 10px', borderRadius: 8,
+                background: globalMode === mode ? t.accent : 'transparent',
+                color: globalMode === mode ? '#1a0f00' : t.inkDim,
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                 border: 'none', cursor: 'pointer', transition: 'all 0.15s',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              }}
-            >
-              <BookOpen size={11} />
-              {lang === 'fr' ? 'Sourates' : 'السور'}
-            </button>
-            <button
-              onClick={() => setGlobalMode(true)}
-              style={{
-                flex: 1, padding: '8px 12px', borderRadius: 9, fontSize: 11, fontWeight: 700,
-                letterSpacing: '0.1em', textTransform: 'uppercase',
-                background: globalMode ? 'var(--brand-primary)' : 'transparent',
-                color: globalMode ? '#fff' : t.inkDim,
-                border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              }}
-            >
-              <Globe size={11} />
-              {lang === 'fr' ? 'Rechercher' : 'البحث'}
-            </button>
+              }}>
+                {icon} {label}
+              </button>
+            ))}
           </div>
 
-          {/* Search input */}
-          <div className="relative mt-3">
-            <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--brand-text-muted)' }} />
+          {/* Search */}
+          <div style={{ position: 'relative' }}>
+            <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: t.inkMute, pointerEvents: 'none' }}/>
             <input
               value={globalMode ? globalQuery : surahSearch}
               onChange={e => globalMode ? setGlobalQuery(e.target.value) : setSurahSearch(e.target.value)}
-              placeholder={
-                globalMode
-                  ? (lang === 'fr' ? 'Rechercher dans les 6 236 versets…' : 'ابحث في ٦٢٣٦ آية…')
-                  : (lang === 'fr' ? 'Rechercher une sourate…' : 'ابحث عن سورة…')
-              }
-              className="mishkat-input pl-11"
+              placeholder={globalMode
+                ? (fr ? 'Rechercher dans les 6 236 versets…' : 'ابحث في ٦٢٣٦ آية…')
+                : (fr ? 'Rechercher une sourate…' : 'ابحث عن سورة…')}
+              style={inputStyle}
             />
             {(globalMode ? globalQuery : surahSearch) && (
-              <button
-                onClick={() => globalMode ? setGlobalQuery('') : setSurahSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full"
-                style={{ color: 'var(--brand-text-muted)' }}
-              >
-                <X size={13} />
+              <button onClick={() => globalMode ? setGlobalQuery('') : setSurahSearch('')}
+                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: t.inkMute, cursor: 'pointer', padding: 4 }}>
+                <X size={12}/>
               </button>
             )}
           </div>
-        </motion.div>
+        </div>
 
         {/* Surah grid */}
         {!globalMode && (
-          <div className="flex-1 overflow-y-auto pr-1 pb-6 custom-scrollbar">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <AnimatePresence mode="popLayout">
-                {filteredSurahs.map((surah, idx) => {
-                  const status = userSurahStatus(surah.id);
-                  return (
-                    <motion.button
-                      key={surah.id}
-                      layout
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.97 }}
-                      transition={{ delay: Math.min(idx * 0.008, 0.25) }}
-                      whileHover={{ y: -2 }}
-                      onClick={() => openSurah(surah.id)}
-                      className="glass-card p-4 text-left group relative overflow-hidden flex items-center gap-4"
-                    >
-                      <div className="card-accent-bar" />
-                      <div
-                        className="w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center font-black text-sm relative"
-                        style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', color: 'var(--brand-primary)' }}
-                      >
-                        {surah.id}
-                        {status !== 'not_started' && (
-                          <span
-                            className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white"
-                            style={{ background: statusDot[status] }}
-                          />
-                        )}
+          <div style={{ flex: 1, overflowY: 'auto' }} className="no-scrollbar">
+            <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 8, paddingBottom: 24 }}>
+              {filteredSurahs.map(surah => {
+                const status = userSurahStatus(surah.id);
+                return (
+                  <button
+                    key={surah.id}
+                    onClick={() => openSurah(surah.id)}
+                    style={{
+                      ...card, padding: '12px 14px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+                      position: 'relative', overflow: 'hidden', transition: 'background 0.15s',
+                    }}
+                  >
+                    {status !== 'not_started' && (
+                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: statusColor[status] }}/>
+                    )}
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontFamily: 'Fraunces, serif', fontSize: 12, fontWeight: 300,
+                      background: `${t.accent}14`, color: t.accent,
+                    }}>
+                      {surah.id}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 16, color: t.ink, direction: 'rtl', textAlign: 'right', lineHeight: 1.4 }}>
+                        {surah.arabicName}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className="text-lg leading-tight font-bold truncate"
-                          style={{ color: 'var(--brand-primary)', fontFamily: 'Amiri, serif', direction: 'rtl' }}
-                        >
-                          {surah.arabicName}
-                        </p>
-                        <p className="text-[11px] font-semibold truncate mt-0.5" style={{ color: 'var(--brand-secondary)' }}>
-                          {surah.name}
-                        </p>
-                        <p className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color: 'var(--brand-text-muted)' }}>
-                          {surah.verses} {lang === 'fr' ? 'versets' : 'آية'} · Juz {surah.juz}
-                        </p>
+                      <div style={{ fontSize: 10, color: t.accentBright, fontWeight: 600, marginTop: 1 }}>
+                        {surah.name}
                       </div>
-                    </motion.button>
-                  );
-                })}
-              </AnimatePresence>
+                      <div style={{ fontSize: 9, color: t.inkMute, marginTop: 1 }}>
+                        {surah.verses} {fr ? 'v.' : 'آية'} · Juz {surah.juz}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
               {filteredSurahs.length === 0 && (
-                <div className="col-span-full text-center py-20">
-                  <BookOpen size={52} className="mx-auto mb-3 opacity-20" style={{ color: 'var(--brand-primary)' }} />
-                  <p className="text-sm" style={{ color: 'var(--brand-text-muted)' }}>
-                    {lang === 'fr' ? 'Aucune sourate trouvée.' : 'لا توجد سورة.'}
-                  </p>
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 0' }}>
+                  <BookOpen size={40} style={{ color: t.accent, opacity: 0.2, margin: '0 auto 12px', display: 'block' }}/>
+                  <p style={{ fontSize: 13, color: t.inkMute }}>{fr ? 'Aucune sourate.' : 'لا توجد سورة.'}</p>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Global search results (virtualized) */}
+        {/* Global search */}
         {globalMode && (
           <div ref={globalListContainerRef} style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
             {globalLoading && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 120 }}>
-                <IslamicLoader size={40} label={lang === 'fr' ? 'Recherche…' : 'جارٍ البحث…'} />
+                <IslamicLoader size={40} label={fr ? 'Recherche…' : 'جارٍ البحث…'} />
               </div>
             )}
             {!globalLoading && !globalSearched && globalQuery.trim().length < 2 && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, gap: 12, textAlign: 'center', padding: '0 24px' }}>
-                <Globe size={44} style={{ color: 'var(--brand-primary)', opacity: 0.18 }} />
+                <Globe size={44} style={{ color: t.accent, opacity: 0.18 }} />
                 <p style={{ fontSize: 13, color: t.inkMute, lineHeight: 1.6 }}>
-                  {lang === 'fr'
-                    ? 'Tapez 2 caractères minimum pour chercher dans tout le Coran'
-                    : 'اكتب حرفين على الأقل للبحث في القرآن الكريم'}
+                  {fr ? 'Tapez 2 caractères minimum pour chercher dans tout le Coran' : 'اكتب حرفين على الأقل للبحث في القرآن الكريم'}
                 </p>
               </div>
             )}
             {!globalLoading && globalSearched && globalResults.length === 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 180, gap: 10 }}>
-                <AlertCircle size={40} style={{ color: 'var(--brand-primary)', opacity: 0.2 }} />
-                <p style={{ fontSize: 13, color: t.inkMute }}>
-                  {lang === 'fr' ? 'Aucun verset trouvé.' : 'لم يُعثر على آية.'}
-                </p>
+                <AlertCircle size={40} style={{ color: t.accent, opacity: 0.2 }} />
+                <p style={{ fontSize: 13, color: t.inkMute }}>{fr ? 'Aucun verset trouvé.' : 'لم يُعثر على آية.'}</p>
               </div>
             )}
             {!globalLoading && globalResults.length > 0 && (
               <>
-                <p style={{ fontSize: 10, color: t.inkMute, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8, paddingRight: 4 }}>
-                  {lang === 'fr'
+                <p style={{ fontSize: 10, color: t.inkMute, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  {fr
                     ? `${globalResults.length} résultat${globalResults.length > 1 ? 's' : ''}${globalResults.length === 200 ? ' (200 max)' : ''}`
                     : `${toArabicNum(globalResults.length)} نتيجة`}
                 </p>
@@ -527,161 +423,125 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
     );
   }
 
-  // ── Reading mode colours ────────────────────────────────────────
+  // ── Reading mode colours ─────────────────────────────────────
   const readingBg    = readingMode === 'night' ? '#0d0b08' : readingMode === 'flare' ? '#fff8ee' : undefined;
   const readingInk   = readingMode === 'night' ? '#e8d8a0' : readingMode === 'flare' ? '#2a1800' : undefined;
   const readingMuted = readingMode === 'night' ? '#8a7a5a' : readingMode === 'flare' ? '#7a5830' : undefined;
 
-  // ── Verse view ──────────────────────────────────────────────────
+  // ── Verse view ────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full gap-0 relative" style={readingBg ? { background: readingBg, color: readingInk } : {}}>
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex-shrink-0 pb-5">
-        <div className="flex items-start gap-3 flex-wrap">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0, ...(readingBg ? { background: readingBg, color: readingInk } : {}) }}>
+      <div style={{ flexShrink: 0, paddingBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
           <button
             onClick={goBack}
-            className="p-2.5 rounded-xl flex-shrink-0 mt-1 transition-all hover:scale-105"
-            style={{ background: 'color-mix(in srgb, var(--brand-primary) 8%, transparent)', color: 'var(--brand-primary)' }}
+            style={{ width: 34, height: 34, borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={16}/>
           </button>
-          <div className="flex-1">
-            <h2
-              className="text-4xl sm:text-5xl leading-tight"
-              style={{ color: 'var(--brand-primary)', fontFamily: 'Amiri, serif' }}
-            >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 2 }}>
+              {selectedSurah?.name} · {selectedSurah?.verses} {fr ? 'v.' : 'آية'} · Juz {selectedSurah?.juz}
+            </div>
+            <h2 style={{ fontFamily: 'Amiri Quran, serif', fontSize: 28, color: readingInk ?? t.ink, margin: 0, lineHeight: 1.3, direction: 'rtl' }}>
               {selectedSurah?.arabicName}
             </h2>
-            <p className="text-sm font-bold mt-1" style={{ color: 'var(--brand-secondary)', opacity: 0.7 }}>
-              {selectedSurah?.name} · {selectedSurah?.verses} {lang === 'fr' ? 'versets' : 'آية'} · Juz {selectedSurah?.juz}
-            </p>
           </div>
-          {/* View mode toggle */}
-          <div className="flex-shrink-0 flex gap-1 rounded-xl p-1" style={{ background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)', border: '1px solid var(--border-subtle)' }}>
+
+          {/* View mode */}
+          <div style={ctrlGroup}>
             {(['list', 'mushaf'] as const).map(mode => (
-              <button
-                key={mode}
-                onClick={() => { setViewMode(mode); setMushafSelected(null); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all"
-                style={{
-                  background: viewMode === mode ? 'var(--brand-primary)' : 'transparent',
-                  color: viewMode === mode ? '#fff' : 'var(--brand-text-muted)',
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                }}
-              >
-                {mode === 'list' ? <LayoutList size={13}/> : <BookText size={13}/>}
-                <span className="hidden sm:inline">{mode === 'list' ? (lang === 'fr' ? 'Liste' : 'قائمة') : 'Mushaf'}</span>
+              <button key={mode} onClick={() => { setViewMode(mode); setMushafSelected(null); }} style={{
+                display: 'flex', alignItems: 'center', gap: 4, padding: '5px 9px', borderRadius: 7,
+                background: viewMode === mode ? t.accent : 'transparent',
+                color: viewMode === mode ? '#1a0f00' : t.inkDim,
+                border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+              }}>
+                {mode === 'list' ? <LayoutList size={12}/> : <BookText size={12}/>}
+                {!narrow && <span>{mode === 'list' ? (fr ? 'Liste' : 'قائمة') : 'Mushaf'}</span>}
               </button>
             ))}
           </div>
+
           {/* Font size */}
-          <div className="flex-shrink-0 flex items-center gap-1 rounded-xl p-1" style={{ background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)', border: '1px solid var(--border-subtle)' }}>
-            <button onClick={() => setFontSize(s => Math.max(16, s - 2))} className="p-1.5 rounded-lg" style={{ color: 'var(--brand-text-muted)' }}><Minus size={11}/></button>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--brand-primary)', minWidth: 20, textAlign: 'center' }}>{fontSize}</span>
-            <button onClick={() => setFontSize(s => Math.min(36, s + 2))} className="p-1.5 rounded-lg" style={{ color: 'var(--brand-text-muted)' }}><Plus size={11}/></button>
+          <div style={ctrlGroup}>
+            <button onClick={() => setFontSize(s => Math.max(16, s - 2))} style={{ padding: '4px 6px', background: 'transparent', border: 'none', color: t.inkDim, cursor: 'pointer', display: 'flex' }}><Minus size={11}/></button>
+            <span style={{ fontSize: 10, fontWeight: 700, color: t.accent, minWidth: 18, textAlign: 'center' }}>{fontSize}</span>
+            <button onClick={() => setFontSize(s => Math.min(36, s + 2))} style={{ padding: '4px 6px', background: 'transparent', border: 'none', color: t.inkDim, cursor: 'pointer', display: 'flex' }}><Plus size={11}/></button>
           </div>
+
           {/* Reading mode */}
-          <div className="flex-shrink-0 flex gap-1 rounded-xl p-1" style={{ background: 'color-mix(in srgb, var(--brand-primary) 6%, transparent)', border: '1px solid var(--border-subtle)' }}>
+          <div style={ctrlGroup}>
             {([['default','☀'], ['night','🌙'], ['flare','✨']] as const).map(([m, icon]) => (
-              <button
-                key={m}
-                onClick={() => setReadingMode(m)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all text-sm"
-                style={{ background: readingMode === m ? 'var(--brand-primary)' : 'transparent' }}
-                title={m}
-              >
-                {icon}
-              </button>
+              <button key={m} onClick={() => setReadingMode(m)} style={{
+                width: 26, height: 26, borderRadius: 6,
+                background: readingMode === m ? t.accent : 'transparent',
+                border: 'none', cursor: 'pointer', fontSize: 12,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.15s',
+              }} title={m}>{icon}</button>
             ))}
           </div>
         </div>
 
-        <div className="relative mt-4">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--brand-text-muted)' }} />
-          <input
-            value={verseSearch}
-            onChange={e => setVerseSearch(e.target.value)}
-            placeholder={lang === 'fr' ? 'Rechercher un verset, une traduction…' : 'ابحث في الآيات…'}
-            className="mishkat-input pl-11"
-          />
+        <div style={{ position: 'relative' }}>
+          <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: t.inkMute, pointerEvents: 'none' }}/>
+          <input value={verseSearch} onChange={e => setVerseSearch(e.target.value)}
+            placeholder={fr ? 'Rechercher un verset, une traduction…' : 'ابحث في الآيات…'}
+            style={inputStyle}/>
           {verseSearch && (
-            <button onClick={() => setVerseSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full" style={{ color: 'var(--brand-text-muted)' }}>
-              <X size={13} />
+            <button onClick={() => setVerseSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: t.inkMute, cursor: 'pointer', padding: 4 }}>
+              <X size={12}/>
             </button>
           )}
         </div>
-      </motion.div>
+      </div>
 
-      <div ref={listRef} className="flex-1 overflow-y-auto pb-6" style={{ touchAction: 'pan-y' }}>
+      <div ref={listRef} className="flex-1 overflow-y-auto pb-6 no-scrollbar" style={{ touchAction: 'pan-y' }}>
         {loading && (
-          <div className="flex flex-col items-center justify-center py-24">
-            <IslamicLoader size={52} label={lang === 'fr' ? 'Chargement…' : 'جارٍ التحميل…'} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
+            <IslamicLoader size={52} label={fr ? 'Chargement…' : 'جارٍ التحميل…'} />
           </div>
         )}
-
         {!loading && !dbError && verses.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-            <AlertCircle size={48} className="opacity-30" style={{ color: 'var(--brand-primary)' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 12, textAlign: 'center' }}>
+            <AlertCircle size={44} style={{ color: t.accent, opacity: 0.3 }}/>
             <div>
-              <p className="text-sm font-bold" style={{ color: 'var(--brand-primary)' }}>
-                {lang === 'fr' ? 'Base de données vide' : 'قاعدة البيانات فارغة'}
-              </p>
-              <p className="text-xs mt-1" style={{ color: 'var(--brand-text-muted)' }}>
-                {lang === 'fr'
-                  ? 'Lance npm run seed pour importer le Coran.'
-                  : 'شغّل npm run seed لاستيراد القرآن.'}
-              </p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: t.ink }}>{fr ? 'Base de données vide' : 'قاعدة البيانات فارغة'}</p>
+              <p style={{ fontSize: 11, color: t.inkMute, marginTop: 4 }}>{fr ? 'Lance npm run seed pour importer le Coran.' : 'شغّل npm run seed لاستيراد القرآن.'}</p>
             </div>
           </div>
         )}
-
         {!loading && dbError && (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-            <AlertCircle size={48} style={{ color: '#ef4444', opacity: 0.5 }} />
-            <p className="text-xs" style={{ color: '#ef4444' }}>{dbError}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 10 }}>
+            <AlertCircle size={44} style={{ color: '#ef4444', opacity: 0.5 }}/>
+            <p style={{ fontSize: 12, color: '#ef4444' }}>{dbError}</p>
           </div>
         )}
 
-        {/* LIST MODE — Al-Baqara reference design */}
+        {/* LIST MODE */}
         {viewMode === 'list' && !loading && !dbError && filteredVerses.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
-            style={{
-              background: t.card,
-              border: `1px solid ${t.line}`,
-              borderRadius: 16,
-              overflow: 'hidden',
-              marginBottom: 24,
-            }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}
+            style={{ background: readingBg ?? t.card, border: `1px solid ${t.line}`, borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}
           >
-            {/* Progress header */}
-            <div style={{
-              padding: '16px 24px',
-              borderBottom: `1px solid ${t.line}`,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              background: `linear-gradient(180deg, ${t.accent}08, transparent)`,
-            }}>
-              <span style={{ fontFamily: 'Fraunces, serif', fontSize: 18, color: t.ink, fontWeight: 300 }}>
+            <div style={{ padding: '14px 22px', borderBottom: `1px solid ${t.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: `linear-gradient(180deg, ${t.accent}08, transparent)` }}>
+              <span style={{ fontFamily: 'Fraunces, serif', fontSize: 17, color: readingInk ?? t.ink, fontWeight: 300 }}>
                 {verseSearch
-                  ? (lang === 'fr' ? `${filteredVerses.length} résultat${filteredVerses.length > 1 ? 's' : ''}` : `${filteredVerses.length} نتيجة`)
-                  : (lang === 'fr' ? `${filteredVerses.length} versets` : `${filteredVerses.length} آية`)}
+                  ? (fr ? `${filteredVerses.length} résultat${filteredVerses.length > 1 ? 's' : ''}` : `${filteredVerses.length} نتيجة`)
+                  : (fr ? `${filteredVerses.length} versets` : `${filteredVerses.length} آية`)}
               </span>
-              <span style={{ fontSize: 11, color: t.inkDim }}>· Juz {selectedSurah?.juz}</span>
+              <span style={{ fontSize: 11, color: readingMuted ?? t.inkDim }}>Juz {selectedSurah?.juz}</span>
             </div>
 
-            {/* Bismillah (surah ≠ 9, not filtering) */}
             {selectedSurahId !== 9 && !verseSearch && (
-              <div style={{ padding: '22px 40px 16px', textAlign: 'center', borderBottom: `1px solid ${t.line}` }}>
+              <div style={{ padding: '20px 36px 14px', textAlign: 'center', borderBottom: `1px solid ${t.line}` }}>
                 <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 26, color: t.accentBright, direction: 'rtl' }}>
                   بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                 </div>
               </div>
             )}
 
-            {/* Verse rows */}
             {filteredVerses.map(verse => {
               const key: BookmarkKey = `${verse.surah_number}:${verse.ayah_number}`;
               const isBookmarked = bookmarks.has(key);
@@ -690,93 +550,26 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                 <div
                   id={`verse-${verse.ayah_number}`}
                   key={verse.id}
-                  onClick={() => {
-                    setExpandedId(isSelected ? null : verse.id);
-                    saveQuranPosition(verse.surah_number, selectedSurah?.name ?? '', verse.ayah_number);
-                  }}
-                  style={{
-                    padding: '20px 20px 20px 26px',
-                    borderBottom: `1px solid ${t.lineSoft}`,
-                    background: isSelected ? `${t.accent}08` : 'transparent',
-                    position: 'relative',
-                    cursor: 'pointer',
-                    transition: 'background 0.15s',
-                  }}
+                  onClick={() => { setExpandedId(isSelected ? null : verse.id); saveQuranPosition(verse.surah_number, selectedSurah?.name ?? '', verse.ayah_number); }}
+                  style={{ padding: '18px 18px 18px 24px', borderBottom: `1px solid ${t.lineSoft}`, background: isSelected ? `${t.accent}08` : 'transparent', position: 'relative', cursor: 'pointer', transition: 'background 0.15s' }}
                 >
-                  {/* Left accent bar */}
-                  {isSelected && (
-                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: t.accent }} />
-                  )}
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14 }}>
-                    {/* Circle verse number */}
-                    <div style={{
-                      width: 30, height: 30, flexShrink: 0,
-                      borderRadius: '50%',
-                      border: `1px solid ${isSelected ? t.accent : t.line}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontFamily: 'Fraunces, serif', fontSize: 11,
-                      color: isSelected ? t.accentBright : t.inkDim,
-                      transition: 'border-color 0.15s, color 0.15s',
-                    }}>
+                  {isSelected && <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: t.accent }}/>}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{ width: 28, height: 28, flexShrink: 0, borderRadius: '50%', border: `1px solid ${isSelected ? t.accent : t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 10, color: isSelected ? t.accentBright : t.inkDim, transition: 'border-color 0.15s, color 0.15s' }}>
                       {verse.ayah_number}
                     </div>
-
-                    {/* Arabic + French */}
                     <div style={{ flex: 1, textAlign: 'right', direction: 'rtl' }}>
-                      <div style={{
-                        fontFamily: 'Amiri Quran, serif',
-                        fontSize: fontSize,
-                        lineHeight: 2,
-                        color: readingInk ?? t.ink,
-                      }}>
-                        {verse.arabic_text}
-                      </div>
-                      <div style={{
-                        fontFamily: 'Fraunces, serif',
-                        fontStyle: 'italic',
-                        fontWeight: 300,
-                        fontSize: 13,
-                        color: readingMuted ?? t.inkDim,
-                        marginTop: 8,
-                        lineHeight: 1.6,
-                        direction: 'ltr',
-                        textAlign: 'left',
-                      }}>
-                        {verse.french_text}
-                      </div>
+                      <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: fontSize, lineHeight: 2, color: readingInk ?? t.ink }}>{verse.arabic_text}</div>
+                      <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 13, color: readingMuted ?? t.inkDim, marginTop: 8, lineHeight: 1.6, direction: 'ltr', textAlign: 'left' }}>{verse.french_text}</div>
                     </div>
-
-                    {/* Right action icons */}
-                    <div style={{
-                      display: 'flex', flexDirection: 'column', gap: 6,
-                      opacity: isSelected ? 1 : (isBookmarked ? 0.5 : 0.22),
-                      transition: 'opacity 0.15s',
-                      flexShrink: 0,
-                    }}>
-                      <button
-                        onClick={e => playAudio(verse, e)}
-                        style={{ padding: 4, color: playingId === verse.id ? t.accentBright : t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}
-                      >
-                        {playingId === verse.id ? <VolumeX size={13}/> : <Volume2 size={13}/>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, opacity: isSelected ? 1 : (isBookmarked ? 0.55 : 0.2), transition: 'opacity 0.15s', flexShrink: 0 }}>
+                      <button onClick={e => playAudio(verse, e)} style={{ padding: 3, color: playingId === verse.id ? t.accentBright : t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                        {playingId === verse.id ? <VolumeX size={12}/> : <Volume2 size={12}/>}
                       </button>
-                      <button
-                        onClick={e => copyVerse(verse, e)}
-                        style={{ padding: 4, color: t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}
-                      >
-                        <Copy size={13}/>
-                      </button>
-                      <button
-                        onClick={e => shareVerse(verse, e)}
-                        style={{ padding: 4, color: t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}
-                      >
-                        <Share2 size={13}/>
-                      </button>
-                      <button
-                        onClick={e => toggleBookmark(verse.surah_number, verse.ayah_number, e)}
-                        style={{ padding: 4, color: isBookmarked ? t.accentBright : t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}
-                      >
-                        {isBookmarked ? <BookMarked size={13}/> : <Bookmark size={13}/>}
+                      <button onClick={e => copyVerse(verse, e)} style={{ padding: 3, color: t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}><Copy size={12}/></button>
+                      <button onClick={e => shareVerse(verse, e)} style={{ padding: 3, color: t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}><Share2 size={12}/></button>
+                      <button onClick={e => toggleBookmark(verse.surah_number, verse.ayah_number, e)} style={{ padding: 3, color: isBookmarked ? t.accentBright : t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                        {isBookmarked ? <BookMarked size={12}/> : <Bookmark size={12}/>}
                       </button>
                     </div>
                   </div>
@@ -784,9 +577,8 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
               );
             })}
 
-            {/* End footer */}
-            <div style={{ textAlign: 'center', padding: '14px 0', fontSize: 9, color: t.inkMute, textTransform: 'uppercase', letterSpacing: '0.2em', opacity: 0.5 }}>
-              — {lang === 'fr' ? `Fin · ${filteredVerses.length} versets` : `النهاية · ${filteredVerses.length} آية`} —
+            <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 9, color: t.inkMute, textTransform: 'uppercase', letterSpacing: '0.2em', opacity: 0.5 }}>
+              — {fr ? `Fin · ${filteredVerses.length} versets` : `النهاية · ${filteredVerses.length} آية`} —
             </div>
           </motion.div>
         )}
@@ -794,49 +586,20 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         {/* MUSHAF MODE */}
         {viewMode === 'mushaf' && !loading && !dbError && filteredVerses.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-            <div
-              style={{
-                direction: 'rtl',
-                fontFamily: 'Amiri, serif',
-                fontSize: fontSize,
-                lineHeight: '3',
-                color: 'var(--brand-primary)',
-                textAlign: 'justify',
-                padding: '28px 20px',
-                borderRadius: 14,
-                background: 'color-mix(in srgb, var(--brand-primary) 3%, var(--brand-bg-soft, var(--brand-bg)))',
-                border: '1px solid var(--border-subtle)',
-              }}
-            >
+            <div style={{
+              direction: 'rtl', fontFamily: 'Amiri Quran, serif', fontSize: fontSize, lineHeight: '3',
+              color: readingInk ?? t.ink, textAlign: 'justify', padding: '28px 20px', borderRadius: 14,
+              background: readingBg ?? `${t.accent}06`, border: `1px solid ${t.line}`,
+            }}>
               {filteredVerses.map(verse => {
                 const isSelected = mushafSelected?.id === verse.id;
                 return (
                   <React.Fragment key={verse.id}>
-                    <span
-                      onClick={() => setMushafSelected(isSelected ? null : verse)}
-                      style={{
-                        cursor: 'pointer',
-                        color: isSelected ? 'var(--brand-secondary)' : 'var(--brand-primary)',
-                        background: isSelected ? 'color-mix(in srgb, var(--brand-secondary) 10%, transparent)' : 'transparent',
-                        borderRadius: 4, padding: '0 2px',
-                        transition: 'color 0.15s, background 0.15s',
-                      }}
-                    >
+                    <span onClick={() => setMushafSelected(isSelected ? null : verse)} style={{ cursor: 'pointer', color: isSelected ? t.accentBright : (readingInk ?? t.ink), background: isSelected ? `${t.accent}14` : 'transparent', borderRadius: 4, padding: '0 2px', transition: 'color 0.15s, background 0.15s' }}>
                       {verse.arabic_text}
                     </span>
                     {'‏ '}
-                    <span
-                      onClick={() => setMushafSelected(isSelected ? null : verse)}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        width: 28, height: 28, borderRadius: '50%',
-                        background: isSelected ? 'var(--brand-secondary)' : 'color-mix(in srgb, var(--brand-primary) 12%, transparent)',
-                        color: isSelected ? '#fff' : 'var(--brand-secondary)',
-                        fontSize: 12, fontFamily: 'Amiri, serif', verticalAlign: 'middle',
-                        margin: '0 3px', cursor: 'pointer', flexShrink: 0,
-                        transition: 'background 0.15s, color 0.15s',
-                      }}
-                    >
+                    <span onClick={() => setMushafSelected(isSelected ? null : verse)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', background: isSelected ? t.accent : `${t.accent}18`, color: isSelected ? '#1a0f00' : t.accentBright, fontSize: 11, fontFamily: 'Amiri Quran, serif', verticalAlign: 'middle', margin: '0 3px', cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}>
                       {toArabicNum(verse.ayah_number)}
                     </span>
                     {' '}
@@ -847,33 +610,17 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
             <AnimatePresence>
               {mushafSelected && (
-                <motion.div
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 16 }}
-                  style={{
-                    position: 'sticky', bottom: 0, marginTop: 12,
-                    background: t.card, border: `1px solid ${t.line}`,
-                    borderRadius: '14px 14px 8px 8px', padding: '16px 20px 18px',
-                    boxShadow: '0 -6px 24px rgba(0,0,0,0.12)',
-                  }}
+                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
+                  style={{ position: 'sticky', bottom: 0, marginTop: 12, background: t.card, border: `1px solid ${t.line}`, borderRadius: '14px 14px 8px 8px', padding: '16px 20px 18px', boxShadow: '0 -6px 24px rgba(0,0,0,0.12)' }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                     <span style={{ fontSize: 10, color: t.accentBright, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-                      {lang === 'fr'
-                        ? `${selectedSurah?.name} · Verset ${mushafSelected.ayah_number}`
-                        : `${selectedSurah?.arabicName} · آية ${toArabicNum(mushafSelected.ayah_number)}`}
+                      {fr ? `${selectedSurah?.name} · Verset ${mushafSelected.ayah_number}` : `${selectedSurah?.arabicName} · آية ${toArabicNum(mushafSelected.ayah_number)}`}
                     </span>
-                    <button onClick={() => setMushafSelected(null)} style={{ color: t.inkMute, background: 'transparent', padding: 4 }}>
-                      <X size={13}/>
-                    </button>
+                    <button onClick={() => setMushafSelected(null)} style={{ color: t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', padding: 4 }}><X size={13}/></button>
                   </div>
-                  <p style={{ fontSize: 18, fontFamily: 'Amiri, serif', direction: 'rtl', color: 'var(--brand-primary)', lineHeight: '2', marginBottom: 10 }}>
-                    {mushafSelected.arabic_text}
-                  </p>
-                  <p style={{ fontSize: 13, color: t.inkDim, lineHeight: '1.7', fontStyle: 'italic' }}>
-                    {mushafSelected.french_text}
-                  </p>
+                  <p style={{ fontSize: 18, fontFamily: 'Amiri Quran, serif', direction: 'rtl', color: t.ink, lineHeight: '2', marginBottom: 10 }}>{mushafSelected.arabic_text}</p>
+                  <p style={{ fontSize: 13, color: t.inkDim, lineHeight: '1.7', fontStyle: 'italic', fontFamily: 'Fraunces, serif' }}>{mushafSelected.french_text}</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -882,44 +629,30 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
       </div>
 
       {/* Hidden share card */}
-      <div
-        ref={shareRef}
-        style={{
-          position: 'fixed', top: -9999, left: -9999, zIndex: -1,
-          width: 480, padding: '32px 36px',
-          background: readingBg ?? t.card, borderRadius: 20, fontFamily: 'Amiri, serif',
-        }}
-      >
+      <div ref={shareRef} style={{ position: 'fixed', top: -9999, left: -9999, zIndex: -1, width: 480, padding: '32px 36px', background: readingBg ?? t.card, borderRadius: 20, fontFamily: 'Amiri Quran, serif' }}>
         {mushafSelected && (
           <>
             <p style={{ fontSize: 11, color: t.accentBright, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 16, fontFamily: 'Inter, sans-serif' }}>
-              {selectedSurah?.name} · {lang === 'fr' ? `Verset ${mushafSelected.ayah_number}` : `آية ${toArabicNum(mushafSelected.ayah_number)}`}
+              {selectedSurah?.name} · {fr ? `Verset ${mushafSelected.ayah_number}` : `آية ${toArabicNum(mushafSelected.ayah_number)}`}
             </p>
-            <p style={{ fontSize: 26, direction: 'rtl', textAlign: 'right', color: readingInk ?? t.ink, lineHeight: '2.2', marginBottom: 20 }}>
-              {mushafSelected.arabic_text}
-            </p>
-            <p style={{ fontSize: 14, color: readingMuted ?? t.inkDim, lineHeight: '1.7', fontStyle: 'italic', fontFamily: 'Fraunces, serif' }}>
-              « {mushafSelected.french_text} »
-            </p>
+            <p style={{ fontSize: 26, direction: 'rtl', textAlign: 'right', color: readingInk ?? t.ink, lineHeight: '2.2', marginBottom: 20 }}>{mushafSelected.arabic_text}</p>
+            <p style={{ fontSize: 14, color: readingMuted ?? t.inkDim, lineHeight: '1.7', fontStyle: 'italic', fontFamily: 'Fraunces, serif' }}>« {mushafSelected.french_text} »</p>
             <div style={{ marginTop: 24, paddingTop: 14, borderTop: `1px solid ${t.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 10, color: t.inkMute, fontFamily: 'Inter, sans-serif', letterSpacing: '0.15em' }}>مِشْكَاة · mishkat</span>
-              <span style={{ fontSize: 14, color: t.accent, fontFamily: 'Amiri, serif' }}>القرآن الكريم</span>
+              <span style={{ fontSize: 14, color: t.accent, fontFamily: 'Amiri Quran, serif' }}>القرآن الكريم</span>
             </div>
           </>
         )}
       </div>
 
       <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         onClick={() => listRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="fixed bottom-24 md:bottom-8 right-4 z-40 w-10 h-10 rounded-full shadow-xl flex items-center justify-center"
-        style={{ background: 'var(--brand-primary)', color: '#fff' }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        title={lang === 'fr' ? 'Haut de page' : 'أعلى الصفحة'}
+        style={{ position: 'fixed', bottom: 84, right: 14, zIndex: 40, width: 36, height: 36, borderRadius: '50%', background: t.accent, color: '#1a0f00', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.18)' }}
+        whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+        title={fr ? 'Haut de page' : 'أعلى الصفحة'}
       >
-        <ChevronUp size={18} />
+        <ChevronUp size={16}/>
       </motion.button>
     </div>
   );
