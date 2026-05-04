@@ -35,7 +35,7 @@ const toArabicNum = (n: number) =>
   n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[+d]);
 
 const GLOBAL_ITEM_HEIGHT = 114;
-const VERSES_PER_PAGE = 12;
+const VERSES_PER_PAGE = 8;
 
 // ── Islamic SVG icon components ───────────────────────────────────
 
@@ -210,7 +210,7 @@ function MushafFrame({ children, t, page, totalPages }: {
   const pgNum = page !== undefined ? page + 1 : undefined;
 
   return (
-    <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', minHeight: 200 }}>
+    <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', height: narrow ? 'min(75vh, 560px)' : 'min(80vh, 680px)' }}>
       {/* SVG frame — preserveAspectRatio="none" stretches to fill any container */}
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -313,30 +313,33 @@ function MushafFrame({ children, t, page, totalPages }: {
         <use href="#mfr-med" transform="translate(760,600)"/>
         <use href="#mfr-med" transform="translate(40,600) scale(-1,1)"/>
 
-        {/* Cartouche supérieur (décoratif) */}
-        <g transform="translate(0,15)">
-          <path d="M180,160 L620,160 L650,200 L620,240 L180,240 L150,200 Z" fill={bg} stroke={a} strokeWidth="3.5"/>
-          <path d="M184,166 L616,166 L642,200 L616,234 L184,234 L158,200 Z" fill="none" stroke={a} strokeWidth="1.2"/>
-          <circle cx="170" cy="200" r="4" fill={a}/>
-          <circle cx="630" cy="200" r="4" fill={a}/>
-        </g>
+        {/* Cartouche supérieur — dans la bande décorative (y=60-120) */}
+        <path d="M200,75 L600,75 L626,90 L600,105 L200,105 L174,90 Z" fill={bg} stroke={a} strokeWidth="2.5"/>
+        <path d="M204,79 L596,79 L618,90 L596,101 L204,101 L182,90 Z" fill="none" stroke={a} strokeWidth="0.8"/>
+        <circle cx="192" cy="90" r="3.5" fill={a}/>
+        <circle cx="608" cy="90" r="3.5" fill={a}/>
 
-        {/* Cartouche inférieur — numéro de page */}
-        <g>
-          <path d="M320,1020 L480,1020 L500,1040 L480,1060 L320,1060 L300,1040 Z" fill={bg} stroke={a} strokeWidth="2.5"/>
-          <path d="M324,1024 L476,1024 L492,1040 L476,1056 L324,1056 L308,1040 Z" fill="none" stroke={a} strokeWidth="0.8"/>
-          {pgNum !== undefined && (
-            <text x="400" y="1047" fontFamily="Fraunces, serif" fontSize="18" fill={a} textAnchor="middle" fontWeight="300">
-              {totalPages ? `${pgNum} / ${totalPages}` : String(pgNum)}
-            </text>
-          )}
-        </g>
+        {/* Cartouche inférieur — dans la bande décorative (y=1080-1140), numéro de page */}
+        <path d="M320,1095 L480,1095 L500,1110 L480,1125 L320,1125 L300,1110 Z" fill={bg} stroke={a} strokeWidth="2.5"/>
+        <path d="M324,1099 L476,1099 L492,1110 L476,1121 L324,1121 L308,1110 Z" fill="none" stroke={a} strokeWidth="0.8"/>
+        {pgNum !== undefined && (
+          <text x="400" y="1115" fontFamily="Fraunces, serif" fontSize="20" fill={a} textAnchor="middle" fontWeight="300">
+            {totalPages ? `${pgNum} / ${totalPages}` : String(pgNum)}
+          </text>
+        )}
       </svg>
 
-      {/* Contenu — padding calibré sur l'espace intérieur du cadre */}
+      {/* Contenu — positionné en absolu dans la zone utile du cadre SVG.
+          Les % sont calés sur l'innermost rect (x=114,y=134 → x=686,y=1066 dans viewBox 800×1200).
+          overflow:hidden empêche tout débordement hors cadre. */}
       <div style={{
-        position: 'relative', zIndex: 1,
-        padding: narrow ? '44px 24px 40px' : '52px 70px 48px',
+        position: 'absolute',
+        top: '13%',
+        bottom: '13%',
+        left: narrow ? '13%' : '16%',
+        right: narrow ? '13%' : '16%',
+        overflow: 'hidden',
+        zIndex: 1,
       }}>
         {children}
       </div>
@@ -968,7 +971,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
               {/* Verse text — continuous justified */}
               <div style={{
-                direction: 'rtl', fontFamily: 'Amiri Quran, serif', fontSize: fontSize, lineHeight: '3.2',
+                direction: 'rtl', fontFamily: 'Amiri Quran, serif', fontSize: fontSize, lineHeight: '2.2',
                 color: readingInk ?? t.ink, textAlign: 'justify',
               }}>
                 {mushafPageVerses.map(verse => {
