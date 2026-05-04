@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { UserData } from '../types';
 import { useT } from '../lib/theme';
-import { Icon, Icons, useIsNarrow } from './ui';
+import { Icon, Icons, useIsNarrow, useIsMobile } from './ui';
 import { Skeleton, SkeletonCard } from './Skeleton';
 
 const RESUME_KEY = 'mishkat_quran_last';
@@ -75,6 +75,7 @@ const Ring = ({ pct, size = 100, stroke = 5, color }: { pct: number; size?: numb
 export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; lang: string; onNavigate?: (section: string) => void }) => {
   const t = useT();
   const narrow = useIsNarrow();
+  const isMobile = useIsMobile();
   const fr = lang === 'fr';
 
   const memorizedCount  = userData.surahs.filter(s => s.status === 'memorized').length;
@@ -183,7 +184,7 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
           <div style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${t.accent}`, borderTopColor: 'transparent', animation: refreshing ? 'spin 0.7s linear infinite' : 'none', transform: `rotate(${pullY * 3}deg)`, transition: 'transform 0.05s' }}/>
         </div>
       )}
-      <div style={{ padding: narrow ? '16px 14px 100px' : '26px 28px 24px', display: 'flex', flexDirection: 'column', gap: 20, minHeight: '100%' }}>
+      <div style={{ padding: isMobile ? '16px 14px 100px' : narrow ? '16px 16px 24px' : '26px 28px 24px', display: 'flex', flexDirection: 'column', gap: 20, minHeight: '100%' }}>
 
         {/* ── Header ─────────────────────────────────────── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>

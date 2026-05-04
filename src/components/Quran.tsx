@@ -627,7 +627,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   // ── Surah list ────────────────────────────────────────────────────
   if (selectedSurahId === null) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0, overflow: 'hidden' }}>
         <div style={{ flexShrink: 0, paddingBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
             <div>
@@ -801,7 +801,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
   // ── Verse view ────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0, ...(readingBg ? { background: readingBg, color: readingInk } : {}) }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0, overflow: 'hidden', ...(readingBg ? { background: readingBg, color: readingInk } : {}) }}>
       <div style={{ flexShrink: 0, paddingBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
           <button

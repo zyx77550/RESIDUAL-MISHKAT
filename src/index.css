@@ -13,9 +13,16 @@ html, body, #root {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  /* Jamais de débordement horizontal — le layout ne peut pas se déformer */
+  max-width: 100vw;
   background: #0c0a08;
   font-family: 'Inter', system-ui, sans-serif;
 }
+
+/* Les images restent dans leur conteneur — jamais de débordement */
+img, video, canvas { max-width: 100%; height: auto; }
+/* SVG en tant qu'image (dans un <img>) restent contenues */
+img[src$=".svg"] { width: 100%; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }

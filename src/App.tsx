@@ -421,7 +421,7 @@ export default function App() {
         </div>
 
         {/* Main content */}
-        <main style={{ flex: 1, overflowY: 'auto', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
+        <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }} className="no-scrollbar">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={activeTab}
@@ -434,7 +434,7 @@ export default function App() {
               {activeTab === 'dashboard'    && <Dashboard {...commonProps} onNavigate={setActiveTab}/>}
               {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang}/>}
               {!['dashboard','diftar'].includes(activeTab) && (
-                <div style={{ flex: 1, padding: isMobile ? '16px 14px 100px' : '26px 28px 36px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+                <div style={{ flex: 1, minWidth: 0, padding: isMobile ? '16px 14px 100px' : '26px 28px 36px', display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden' }}>
                   {activeTab === 'coloring'     && <ColoringGrid {...commonProps}/>}
                   {activeTab === 'goals'        && <GoalsSection {...commonProps}/>}
                   {activeTab === 'tasbih'       && <TasbihSection {...commonProps}/>}
