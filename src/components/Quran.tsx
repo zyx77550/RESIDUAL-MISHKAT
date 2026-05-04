@@ -210,7 +210,7 @@ function MushafFrame({ children, t, page, totalPages }: {
   const pgNum = page !== undefined ? page + 1 : undefined;
 
   return (
-    <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', height: narrow ? 'min(75vh, 560px)' : 'min(80vh, 680px)' }}>
+    <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', width: '100%', maxWidth: narrow ? 373 : 453, margin: '0 auto', aspectRatio: '2/3' }}>
       {/* SVG frame — preserveAspectRatio="none" stretches to fill any container */}
       <svg
         xmlns="http://www.w3.org/2000/svg"
