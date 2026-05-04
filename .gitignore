@@ -3,3 +3,8 @@ dist
 .env
 .env.local
 .env.*.local
+
+# Repos clonés à titre de référence (non versionnés)
+open-quran-view/
+Quran-PNG/
+quran-svg/
