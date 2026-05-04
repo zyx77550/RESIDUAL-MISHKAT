@@ -4,7 +4,7 @@ import { usePinch } from '@use-gesture/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, BookOpen, Copy, X,
-  Bookmark, BookMarked, ChevronLeft, ChevronUp, AlertCircle,
+  Bookmark, BookMarked, ChevronLeft, ChevronRight, ChevronUp, AlertCircle,
   LayoutList, BookText, Volume2, VolumeX, Share2, Minus, Plus, Globe,
 } from 'lucide-react';
 import { IslamicLoader } from './IslamicLoader';
@@ -28,16 +28,16 @@ function loadBookmarks(): Set<BookmarkKey> {
   try {
     const raw = localStorage.getItem('mishkat_quran_bookmarks');
     return raw ? new Set(JSON.parse(raw)) : new Set();
-  } catch {
-    return new Set();
-  }
+  } catch { return new Set(); }
 }
 
 const toArabicNum = (n: number) =>
   n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[+d]);
 
 const GLOBAL_ITEM_HEIGHT = 114;
+const VERSES_PER_PAGE = 12;
 
+// ── GlobalRow ──────────────────────────────────────────────────────
 interface GlobalRowProps {
   results: QuranVerse[];
   lang: 'fr' | 'ar';
@@ -85,6 +85,104 @@ function GlobalRow({
   );
 }
 
+// ── Corner ornament SVG ────────────────────────────────────────────
+function CornerDecor({ pos, color }: { pos: 'tl' | 'tr' | 'bl' | 'br'; color: string }) {
+  const positions: Record<string, React.CSSProperties> = {
+    tl: { top: 4, left: 4 },
+    tr: { top: 4, right: 4 },
+    bl: { bottom: 4, left: 4 },
+    br: { bottom: 4, right: 4 },
+  };
+  const rotations = { tl: 0, tr: 90, bl: 270, br: 180 };
+  return (
+    <svg
+      width="20" height="20" viewBox="0 0 20 20"
+      style={{
+        position: 'absolute', ...positions[pos], pointerEvents: 'none', opacity: 0.45,
+        transform: `rotate(${rotations[pos]}deg)`, transformOrigin: '10px 10px',
+      }}
+    >
+      {/* Outer L-bracket */}
+      <path d="M2 18 L2 2 L18 2" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      {/* Inner L-bracket */}
+      <path d="M5 15 L5 5 L15 5" fill="none" stroke={color} strokeWidth="0.7" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.55"/>
+      {/* Diamond at corner */}
+      <rect x="0.2" y="0.2" width="3.2" height="3.2" rx="0.5" fill={color} transform="rotate(45 1.8 1.8)"/>
+    </svg>
+  );
+}
+
+// ── Mushaf decorative double-border frame ─────────────────────────
+function MushafFrame({ children, t }: { children: React.ReactNode; t: ReturnType<typeof useT> }) {
+  return (
+    <div style={{ position: 'relative', border: `1px solid ${t.line}`, borderRadius: 16, padding: 7, background: t.card }}>
+      {/* Corner ornaments */}
+      <CornerDecor pos="tl" color={t.accent}/>
+      <CornerDecor pos="tr" color={t.accent}/>
+      <CornerDecor pos="bl" color={t.accent}/>
+      <CornerDecor pos="br" color={t.accent}/>
+      {/* Center accent marks on each edge */}
+      <div style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', width: 28, height: 2, background: t.accent, opacity: 0.38, borderRadius: 1 }}/>
+      <div style={{ position: 'absolute', bottom: -1, left: '50%', transform: 'translateX(-50%)', width: 28, height: 2, background: t.accent, opacity: 0.38, borderRadius: 1 }}/>
+      <div style={{ position: 'absolute', left: -1, top: '50%', transform: 'translateY(-50%)', width: 2, height: 28, background: t.accent, opacity: 0.38, borderRadius: 1 }}/>
+      <div style={{ position: 'absolute', right: -1, top: '50%', transform: 'translateY(-50%)', width: 2, height: 28, background: t.accent, opacity: 0.38, borderRadius: 1 }}/>
+      {/* Inner border */}
+      <div style={{ border: `1px solid ${t.line}`, borderRadius: 10, padding: '28px 22px', position: 'relative' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Surah prev / next navigation ─────────────────────────────────
+function VerseNav({ currentSurahId, onNavigate, fr, t }: {
+  currentSurahId: number;
+  onNavigate: (id: number) => void;
+  fr: boolean;
+  t: ReturnType<typeof useT>;
+}) {
+  const prev = SURAH_DATA.find(s => s.id === currentSurahId - 1);
+  const next = SURAH_DATA.find(s => s.id === currentSurahId + 1);
+  if (!prev && !next) return null;
+  const btnBase: React.CSSProperties = {
+    flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+    padding: '10px 14px', borderRadius: 999,
+    background: 'transparent', border: `1px solid ${t.line}`,
+    cursor: 'pointer',
+  };
+  return (
+    <div style={{ display: 'flex', gap: 8, paddingTop: 14 }}>
+      {prev ? (
+        <button onClick={() => onNavigate(prev.id)} style={btnBase}>
+          <ChevronLeft size={13} style={{ color: t.accent, flexShrink: 0 }}/>
+          <div style={{ minWidth: 0, textAlign: 'left' }}>
+            <div style={{ fontSize: 8.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 1 }}>
+              {fr ? 'Précédent' : 'السابق'}
+            </div>
+            <div style={{ fontSize: 11, color: t.ink, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {prev.name}
+            </div>
+          </div>
+        </button>
+      ) : <div style={{ flex: 1 }}/>}
+      {next ? (
+        <button onClick={() => onNavigate(next.id)} style={{ ...btnBase, justifyContent: 'flex-end' }}>
+          <div style={{ minWidth: 0, textAlign: 'right' }}>
+            <div style={{ fontSize: 8.5, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 1 }}>
+              {fr ? 'Suivant' : 'التالي'}
+            </div>
+            <div style={{ fontSize: 11, color: t.ink, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {next.name}
+            </div>
+          </div>
+          <ChevronRight size={13} style={{ color: t.accent, flexShrink: 0 }}/>
+        </button>
+      ) : <div style={{ flex: 1 }}/>}
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────
 export const QuranSection = ({ userData, lang }: QuranProps) => {
   const t = useT();
   const narrow = useIsNarrow();
@@ -100,8 +198,9 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const [bookmarks, setBookmarks] = useState<Set<BookmarkKey>>(loadBookmarks);
   const [viewMode, setViewMode]   = useState<'list' | 'mushaf'>('list');
   const [mushafSelected, setMushafSelected] = useState<QuranVerse | null>(null);
+  const [mushafPage, setMushafPage] = useState(0);
   const [readingMode, setReadingMode] = useState<'default' | 'night' | 'flare'>('default');
-  const [fontSize, setFontSize]   = useState(22);
+  const [fontSize, setFontSize]   = useState(24);
   const [playingId, setPlayingId] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const shareRef = useRef<HTMLDivElement | null>(null);
@@ -117,7 +216,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
   const cache   = useRef<Map<number, QuranVerse[]>>(new Map());
   const listRef = useRef<HTMLDivElement>(null);
-  const baseFontRef = useRef(22);
+  const baseFontRef = useRef(24);
 
   const card: React.CSSProperties = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 12 };
   const inputStyle: React.CSSProperties = {
@@ -134,7 +233,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
   const pinchBind = usePinch(({ offset: [scale], first }) => {
     if (first) baseFontRef.current = fontSize;
-    setFontSize(Math.max(14, Math.min(40, Math.round(baseFontRef.current * scale))));
+    setFontSize(Math.max(16, Math.min(42, Math.round(baseFontRef.current * scale))));
   }, { target: listRef, eventOptions: { passive: false } });
 
   const selectedSurah = selectedSurahId != null
@@ -184,7 +283,8 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   }, [loading, scrollToAyah, verses.length]);
 
   const openSurah = useCallback((id: number) => {
-    setSelectedSurahId(id); setVerseSearch(''); setExpandedId(null); setMushafSelected(null);
+    setSelectedSurahId(id); setVerseSearch(''); setExpandedId(null);
+    setMushafSelected(null); setMushafPage(0);
     fetchVerses(id); listRef.current?.scrollTo({ top: 0 });
     const s = SURAH_DATA.find(x => x.id === id);
     if (s) saveQuranPosition(id, s.name, 1);
@@ -251,6 +351,12 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
     return verses.filter(v => v.arabic_text.includes(verseSearch) || v.french_text.toLowerCase().includes(q) || v.ayah_number.toString() === q);
   }, [verseSearch, verses]);
 
+  const mushafPageVerses = useMemo(() => {
+    const start = mushafPage * VERSES_PER_PAGE;
+    return filteredVerses.slice(start, start + VERSES_PER_PAGE);
+  }, [filteredVerses, mushafPage]);
+  const totalMushafPages = Math.ceil(filteredVerses.length / VERSES_PER_PAGE);
+
   const globalRowData = useMemo<GlobalRowProps>(() => ({
     results: globalResults, lang, t, onOpen: openSurahAtVerse,
   }), [globalResults, lang, t, openSurahAtVerse]);
@@ -261,7 +367,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
     memorized: t.accent, review: t.accentBright, in_progress: t.accentSoft, not_started: 'transparent',
   };
 
-  // ── Surah list ────────────────────────────────────────────────
+  // ── Surah list ────────────────────────────────────────────────────
   if (selectedSurahId === null) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0 }}>
@@ -423,12 +529,12 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
     );
   }
 
-  // ── Reading mode colours ─────────────────────────────────────
+  // ── Reading mode colours ──────────────────────────────────────────
   const readingBg    = readingMode === 'night' ? '#0d0b08' : readingMode === 'flare' ? '#fff8ee' : undefined;
   const readingInk   = readingMode === 'night' ? '#e8d8a0' : readingMode === 'flare' ? '#2a1800' : undefined;
   const readingMuted = readingMode === 'night' ? '#8a7a5a' : readingMode === 'flare' ? '#7a5830' : undefined;
 
-  // ── Verse view ────────────────────────────────────────────────
+  // ── Verse view ────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0, ...(readingBg ? { background: readingBg, color: readingInk } : {}) }}>
       <div style={{ flexShrink: 0, paddingBottom: 14 }}>
@@ -451,7 +557,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
           {/* View mode */}
           <div style={ctrlGroup}>
             {(['list', 'mushaf'] as const).map(mode => (
-              <button key={mode} onClick={() => { setViewMode(mode); setMushafSelected(null); }} style={{
+              <button key={mode} onClick={() => { setViewMode(mode); setMushafSelected(null); setMushafPage(0); }} style={{
                 display: 'flex', alignItems: 'center', gap: 4, padding: '5px 9px', borderRadius: 7,
                 background: viewMode === mode ? t.accent : 'transparent',
                 color: viewMode === mode ? '#1a0f00' : t.inkDim,
@@ -468,7 +574,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
           <div style={ctrlGroup}>
             <button onClick={() => setFontSize(s => Math.max(16, s - 2))} style={{ padding: '4px 6px', background: 'transparent', border: 'none', color: t.inkDim, cursor: 'pointer', display: 'flex' }}><Minus size={11}/></button>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.accent, minWidth: 18, textAlign: 'center' }}>{fontSize}</span>
-            <button onClick={() => setFontSize(s => Math.min(36, s + 2))} style={{ padding: '4px 6px', background: 'transparent', border: 'none', color: t.inkDim, cursor: 'pointer', display: 'flex' }}><Plus size={11}/></button>
+            <button onClick={() => setFontSize(s => Math.min(42, s + 2))} style={{ padding: '4px 6px', background: 'transparent', border: 'none', color: t.inkDim, cursor: 'pointer', display: 'flex' }}><Plus size={11}/></button>
           </div>
 
           {/* Reading mode */}
@@ -498,7 +604,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         </div>
       </div>
 
-      <div ref={listRef} className="flex-1 overflow-y-auto pb-6 no-scrollbar" style={{ touchAction: 'pan-y' }}>
+      <div ref={listRef} style={{ flex: 1, overflowY: 'auto', paddingBottom: 24, touchAction: 'pan-y' }} className="no-scrollbar">
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
             <IslamicLoader size={52} label={fr ? 'Chargement…' : 'جارٍ التحميل…'} />
@@ -520,11 +626,12 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
           </div>
         )}
 
-        {/* LIST MODE */}
+        {/* ── LIST MODE ── */}
         {viewMode === 'list' && !loading && !dbError && filteredVerses.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}
-            style={{ background: readingBg ?? t.card, border: `1px solid ${t.line}`, borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}
+            style={{ background: readingBg ?? t.card, border: `1px solid ${t.line}`, borderRadius: 16, overflow: 'hidden', marginBottom: 8 }}
           >
+            {/* List header */}
             <div style={{ padding: '14px 22px', borderBottom: `1px solid ${t.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: `linear-gradient(180deg, ${t.accent}08, transparent)` }}>
               <span style={{ fontFamily: 'Fraunces, serif', fontSize: 17, color: readingInk ?? t.ink, fontWeight: 300 }}>
                 {verseSearch
@@ -534,10 +641,17 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
               <span style={{ fontSize: 11, color: readingMuted ?? t.inkDim }}>Juz {selectedSurah?.juz}</span>
             </div>
 
+            {/* Basmala */}
             {selectedSurahId !== 9 && !verseSearch && (
-              <div style={{ padding: '20px 36px 14px', textAlign: 'center', borderBottom: `1px solid ${t.line}` }}>
-                <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 26, color: t.accentBright, direction: 'rtl' }}>
-                  بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+              <div style={{ padding: '20px 36px 16px', textAlign: 'center', borderBottom: `1px solid ${t.line}` }}>
+                <div style={{
+                  display: 'inline-block', padding: '10px 28px',
+                  border: `1px solid ${t.line}`, borderRadius: 10,
+                  background: `${t.accent}07`,
+                }}>
+                  <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 26, color: t.accentBright, direction: 'rtl', lineHeight: 1.8 }}>
+                    بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                  </div>
                 </div>
               </div>
             )}
@@ -551,63 +665,143 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                   id={`verse-${verse.ayah_number}`}
                   key={verse.id}
                   onClick={() => { setExpandedId(isSelected ? null : verse.id); saveQuranPosition(verse.surah_number, selectedSurah?.name ?? '', verse.ayah_number); }}
-                  style={{ padding: '18px 18px 18px 24px', borderBottom: `1px solid ${t.lineSoft}`, background: isSelected ? `${t.accent}08` : 'transparent', position: 'relative', cursor: 'pointer', transition: 'background 0.15s' }}
+                  style={{ padding: '20px 20px 20px 26px', borderBottom: `1px solid ${t.lineSoft}`, background: isSelected ? `${t.accent}07` : 'transparent', position: 'relative', cursor: 'pointer', transition: 'background 0.15s' }}
                 >
+                  {/* Selected left bar */}
                   {isSelected && <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: t.accent }}/>}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                    <div style={{ width: 28, height: 28, flexShrink: 0, borderRadius: '50%', border: `1px solid ${isSelected ? t.accent : t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 10, color: isSelected ? t.accentBright : t.inkDim, transition: 'border-color 0.15s, color 0.15s' }}>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14 }}>
+                    {/* Verse number */}
+                    <div style={{ width: 30, height: 30, flexShrink: 0, borderRadius: '50%', border: `1px solid ${isSelected ? t.accent : t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 10, color: isSelected ? t.accentBright : t.inkDim, transition: 'border-color 0.15s, color 0.15s', background: isSelected ? `${t.accent}10` : 'transparent' }}>
                       {verse.ayah_number}
                     </div>
+
+                    {/* Text content */}
                     <div style={{ flex: 1, textAlign: 'right', direction: 'rtl' }}>
-                      <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: fontSize, lineHeight: 2, color: readingInk ?? t.ink }}>{verse.arabic_text}</div>
-                      <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 13, color: readingMuted ?? t.inkDim, marginTop: 8, lineHeight: 1.6, direction: 'ltr', textAlign: 'left' }}>{verse.french_text}</div>
+                      <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: fontSize, lineHeight: 2.2, color: readingInk ?? t.ink }}>
+                        {verse.arabic_text}
+                      </div>
+                      {isSelected && (
+                        <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 13, color: readingMuted ?? t.inkDim, marginTop: 10, lineHeight: 1.7, direction: 'ltr', textAlign: 'left' }}>
+                          {verse.french_text}
+                        </div>
+                      )}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, opacity: isSelected ? 1 : (isBookmarked ? 0.55 : 0.2), transition: 'opacity 0.15s', flexShrink: 0 }}>
-                      <button onClick={e => playAudio(verse, e)} style={{ padding: 3, color: playingId === verse.id ? t.accentBright : t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}>
-                        {playingId === verse.id ? <VolumeX size={12}/> : <Volume2 size={12}/>}
-                      </button>
-                      <button onClick={e => copyVerse(verse, e)} style={{ padding: 3, color: t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}><Copy size={12}/></button>
-                      <button onClick={e => shareVerse(verse, e)} style={{ padding: 3, color: t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}><Share2 size={12}/></button>
-                      <button onClick={e => toggleBookmark(verse.surah_number, verse.ayah_number, e)} style={{ padding: 3, color: isBookmarked ? t.accentBright : t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}>
-                        {isBookmarked ? <BookMarked size={12}/> : <Bookmark size={12}/>}
-                      </button>
-                    </div>
+
+                    {/* Bookmark indicator (always) */}
+                    {!isSelected && (
+                      <div style={{ opacity: isBookmarked ? 0.55 : 0, transition: 'opacity 0.15s', flexShrink: 0, paddingTop: 4 }}>
+                        <BookMarked size={12} style={{ color: t.accentBright }}/>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Action pills — shown only when selected */}
+                  {isSelected && (
+                    <div style={{ display: 'flex', gap: 6, marginTop: 14, paddingTop: 12, borderTop: `1px solid ${t.lineSoft}` }}>
+                      {([
+                        { icon: playingId === verse.id ? <VolumeX size={13}/> : <Volume2 size={13}/>, fn: (e: React.MouseEvent) => playAudio(verse, e), active: playingId === verse.id },
+                        { icon: <Copy size={13}/>, fn: (e: React.MouseEvent) => copyVerse(verse, e), active: false },
+                        { icon: <Share2 size={13}/>, fn: (e: React.MouseEvent) => shareVerse(verse, e), active: false },
+                        { icon: isBookmarked ? <BookMarked size={13}/> : <Bookmark size={13}/>, fn: (e: React.MouseEvent) => toggleBookmark(verse.surah_number, verse.ayah_number, e), active: isBookmarked },
+                      ] as const).map((btn, i) => (
+                        <button
+                          key={i}
+                          onClick={btn.fn}
+                          style={{
+                            width: 34, height: 34, borderRadius: 999, flexShrink: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: btn.active ? `${t.accent}18` : t.cardElev,
+                            border: `1px solid ${btn.active ? t.accent : t.line}`,
+                            color: btn.active ? t.accent : t.inkDim,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {btn.icon}
+                        </button>
+                      ))}
+                      <div style={{ flex: 1 }}/>
+                      <span style={{ fontSize: 9.5, color: t.inkMute, alignSelf: 'center', letterSpacing: '0.1em' }}>
+                        {selectedSurah?.name} · {fr ? `v.${verse.ayah_number}` : `آية ${toArabicNum(verse.ayah_number)}`}
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}
 
-            <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 9, color: t.inkMute, textTransform: 'uppercase', letterSpacing: '0.2em', opacity: 0.5 }}>
+            <div style={{ textAlign: 'center', padding: '14px 0', fontSize: 9, color: t.inkMute, textTransform: 'uppercase', letterSpacing: '0.2em', opacity: 0.5 }}>
               — {fr ? `Fin · ${filteredVerses.length} versets` : `النهاية · ${filteredVerses.length} آية`} —
             </div>
           </motion.div>
         )}
 
-        {/* MUSHAF MODE */}
+        {/* ── MUSHAF MODE ── */}
         {viewMode === 'mushaf' && !loading && !dbError && filteredVerses.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-            <div style={{
-              direction: 'rtl', fontFamily: 'Amiri Quran, serif', fontSize: fontSize, lineHeight: '3',
-              color: readingInk ?? t.ink, textAlign: 'justify', padding: '28px 20px', borderRadius: 14,
-              background: readingBg ?? `${t.accent}06`, border: `1px solid ${t.line}`,
-            }}>
-              {filteredVerses.map(verse => {
-                const isSelected = mushafSelected?.id === verse.id;
-                return (
-                  <React.Fragment key={verse.id}>
-                    <span onClick={() => setMushafSelected(isSelected ? null : verse)} style={{ cursor: 'pointer', color: isSelected ? t.accentBright : (readingInk ?? t.ink), background: isSelected ? `${t.accent}14` : 'transparent', borderRadius: 4, padding: '0 2px', transition: 'color 0.15s, background 0.15s' }}>
-                      {verse.arabic_text}
-                    </span>
-                    {'‏ '}
-                    <span onClick={() => setMushafSelected(isSelected ? null : verse)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', background: isSelected ? t.accent : `${t.accent}18`, color: isSelected ? '#1a0f00' : t.accentBright, fontSize: 11, fontFamily: 'Amiri Quran, serif', verticalAlign: 'middle', margin: '0 3px', cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}>
-                      {toArabicNum(verse.ayah_number)}
-                    </span>
-                    {' '}
-                  </React.Fragment>
-                );
-              })}
-            </div>
+            <MushafFrame t={t}>
+              {/* Basmala inside frame */}
+              {selectedSurahId !== 9 && !verseSearch && mushafPage === 0 && (
+                <div style={{ textAlign: 'center', marginBottom: 20, paddingBottom: 16, borderBottom: `1px solid ${t.line}` }}>
+                  <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: Math.round(fontSize * 1.1), color: t.accentBright, direction: 'rtl', lineHeight: 1.9 }}>
+                    بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                  </div>
+                </div>
+              )}
 
+              {/* Verse text — continuous justified */}
+              <div style={{
+                direction: 'rtl', fontFamily: 'Amiri Quran, serif', fontSize: fontSize, lineHeight: '3.2',
+                color: readingInk ?? t.ink, textAlign: 'justify',
+              }}>
+                {mushafPageVerses.map(verse => {
+                  const isSelected = mushafSelected?.id === verse.id;
+                  return (
+                    <React.Fragment key={verse.id}>
+                      <span
+                        onClick={() => setMushafSelected(isSelected ? null : verse)}
+                        style={{ cursor: 'pointer', color: isSelected ? t.accentBright : (readingInk ?? t.ink), background: isSelected ? `${t.accent}16` : 'transparent', borderRadius: 4, padding: '0 2px', transition: 'color 0.15s, background 0.15s' }}
+                      >
+                        {verse.arabic_text}
+                      </span>
+                      {'‏ '}
+                      <span
+                        onClick={() => setMushafSelected(isSelected ? null : verse)}
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', background: isSelected ? t.accent : `${t.accent}18`, color: isSelected ? '#1a0f00' : t.accentBright, fontSize: 11, fontFamily: 'Amiri Quran, serif', verticalAlign: 'middle', margin: '0 3px', cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}
+                      >
+                        {toArabicNum(verse.ayah_number)}
+                      </span>
+                      {' '}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </MushafFrame>
+
+            {/* Mushaf pagination */}
+            {totalMushafPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 0 8px' }}>
+                <button
+                  onClick={() => { setMushafPage(p => Math.max(0, p - 1)); setMushafSelected(null); listRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  disabled={mushafPage === 0}
+                  style={{ width: 34, height: 34, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: mushafPage === 0 ? t.inkMute : t.ink, cursor: mushafPage === 0 ? 'default' : 'pointer', opacity: mushafPage === 0 ? 0.4 : 1 }}
+                >
+                  <ChevronRight size={14}/>
+                </button>
+                <span style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.14em', fontWeight: 700 }}>
+                  {fr ? `${mushafPage + 1} / ${totalMushafPages}` : `${toArabicNum(totalMushafPages)} / ${toArabicNum(mushafPage + 1)}`}
+                </span>
+                <button
+                  onClick={() => { setMushafPage(p => Math.min(totalMushafPages - 1, p + 1)); setMushafSelected(null); listRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  disabled={mushafPage >= totalMushafPages - 1}
+                  style={{ width: 34, height: 34, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: mushafPage >= totalMushafPages - 1 ? t.inkMute : t.ink, cursor: mushafPage >= totalMushafPages - 1 ? 'default' : 'pointer', opacity: mushafPage >= totalMushafPages - 1 ? 0.4 : 1 }}
+                >
+                  <ChevronLeft size={14}/>
+                </button>
+              </div>
+            )}
+
+            {/* Selected verse detail panel */}
             <AnimatePresence>
               {mushafSelected && (
                 <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
@@ -617,14 +811,36 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                     <span style={{ fontSize: 10, color: t.accentBright, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
                       {fr ? `${selectedSurah?.name} · Verset ${mushafSelected.ayah_number}` : `${selectedSurah?.arabicName} · آية ${toArabicNum(mushafSelected.ayah_number)}`}
                     </span>
-                    <button onClick={() => setMushafSelected(null)} style={{ color: t.inkMute, background: 'transparent', border: 'none', cursor: 'pointer', padding: 4 }}><X size={13}/></button>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {/* Action pills in panel */}
+                      {[
+                        { icon: playingId === mushafSelected.id ? <VolumeX size={12}/> : <Volume2 size={12}/>, fn: (e: React.MouseEvent) => playAudio(mushafSelected, e), active: playingId === mushafSelected.id },
+                        { icon: <Copy size={12}/>, fn: (e: React.MouseEvent) => copyVerse(mushafSelected, e), active: false },
+                        { icon: bookmarks.has(`${mushafSelected.surah_number}:${mushafSelected.ayah_number}` as BookmarkKey) ? <BookMarked size={12}/> : <Bookmark size={12}/>, fn: (e: React.MouseEvent) => toggleBookmark(mushafSelected.surah_number, mushafSelected.ayah_number, e), active: bookmarks.has(`${mushafSelected.surah_number}:${mushafSelected.ayah_number}` as BookmarkKey) },
+                      ].map((btn, i) => (
+                        <button key={i} onClick={btn.fn} style={{ width: 30, height: 30, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: btn.active ? `${t.accent}18` : t.cardElev, border: `1px solid ${btn.active ? t.accent : t.line}`, color: btn.active ? t.accent : t.inkDim, cursor: 'pointer' }}>
+                          {btn.icon}
+                        </button>
+                      ))}
+                      <button onClick={() => setMushafSelected(null)} style={{ width: 30, height: 30, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkMute, cursor: 'pointer' }}><X size={13}/></button>
+                    </div>
                   </div>
-                  <p style={{ fontSize: 18, fontFamily: 'Amiri Quran, serif', direction: 'rtl', color: t.ink, lineHeight: '2', marginBottom: 10 }}>{mushafSelected.arabic_text}</p>
+                  <p style={{ fontSize: 20, fontFamily: 'Amiri Quran, serif', direction: 'rtl', color: t.ink, lineHeight: '2.2', marginBottom: 10 }}>{mushafSelected.arabic_text}</p>
                   <p style={{ fontSize: 13, color: t.inkDim, lineHeight: '1.7', fontStyle: 'italic', fontFamily: 'Fraunces, serif' }}>{mushafSelected.french_text}</p>
                 </motion.div>
               )}
             </AnimatePresence>
           </motion.div>
+        )}
+
+        {/* Surah navigation */}
+        {!loading && !dbError && selectedSurahId !== null && (
+          <VerseNav
+            currentSurahId={selectedSurahId}
+            onNavigate={openSurah}
+            fr={fr}
+            t={t}
+          />
         )}
       </div>
 
