@@ -37,6 +37,12 @@ const toArabicNum = (n: number) =>
 const GLOBAL_ITEM_HEIGHT = 114;
 const VERSES_PER_PAGE = 8;
 
+// Page de début dans le mushaf Madinah pour chaque sourate (1-114)
+const SURAH_PAGES = [1, 2, 50, 77, 106, 128, 151, 177, 187, 208, 221, 235, 249, 255, 262, 267, 282, 293, 305, 312, 322, 332, 342, 350, 359, 367, 377, 385, 396, 404, 411, 415, 418, 428, 434, 440, 446, 453, 458, 467, 477, 483, 489, 496, 499, 502, 507, 511, 515, 518, 520, 523, 526, 528, 531, 534, 537, 542, 545, 549, 551, 553, 554, 556, 558, 560, 562, 564, 566, 568, 570, 572, 574, 575, 577, 578, 580, 582, 583, 585, 586, 587, 587, 589, 590, 591, 591, 592, 593, 594, 595, 595, 596, 596, 597, 597, 598, 598, 599, 599, 600, 600, 601, 601, 601, 602, 602, 602, 603, 603, 603, 604, 604, 604];
+const surahPageStart = (id: number) => SURAH_PAGES[id - 1] ?? 1;
+const surahPageEnd   = (id: number) => (id < 114 ? SURAH_PAGES[id] - 1 : 604);
+const mushafSvgUrl   = (page: number) => `https://cdn.jsdelivr.net/gh/batoulapps/quran-svg@master/svg/${String(page).padStart(3, '0')}.svg`;
+
 // ── Islamic SVG icon components ───────────────────────────────────
 
 /** Marqueur de verset style étoile islamique à 8 branches — comme Quran.com / Tarteel */
@@ -409,7 +415,8 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const [verseSearch, setVerseSearch] = useState('');
   const [expandedId, setExpandedId]   = useState<number | null>(null);
   const [bookmarks, setBookmarks] = useState<Set<BookmarkKey>>(loadBookmarks);
-  const [viewMode, setViewMode]   = useState<'list' | 'mushaf'>('list');
+  const [viewMode, setViewMode]   = useState<'list' | 'mushaf' | 'authentic'>('list');
+  const [authenticPage, setAuthenticPage] = useState(1);
   const [readProgress, setReadProgress] = useState(0);
   const [mushafSelected, setMushafSelected] = useState<QuranVerse | null>(null);
   const [mushafPage, setMushafPage] = useState(0);
@@ -498,7 +505,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
   const openSurah = useCallback((id: number) => {
     setSelectedSurahId(id); setVerseSearch(''); setExpandedId(null);
-    setMushafSelected(null); setMushafPage(0);
+    setMushafSelected(null); setMushafPage(0); setAuthenticPage(surahPageStart(id));
     fetchVerses(id); listRef.current?.scrollTo({ top: 0 });
     const s = SURAH_DATA.find(x => x.id === id);
     if (s) saveQuranPosition(id, s.name, 1);
@@ -778,16 +785,23 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
           {/* View mode */}
           <div style={ctrlGroup}>
-            {(['list', 'mushaf'] as const).map(mode => (
-              <button key={mode} onClick={() => { setViewMode(mode); setMushafSelected(null); setMushafPage(0); }} style={{
+            {([
+              { mode: 'list',      label: fr ? 'Liste' : 'قائمة', icon: <LayoutList size={12}/> },
+              { mode: 'mushaf',    label: 'Mushaf',                icon: <MushabBookIcon color={viewMode === 'mushaf' ? '#1a0f00' : t.inkDim} size={14}/> },
+              { mode: 'authentic', label: fr ? 'Pages' : 'مصحف',  icon: <BookOpen size={12}/> },
+            ] as const).map(({ mode, label, icon }) => (
+              <button key={mode} onClick={() => {
+                setViewMode(mode); setMushafSelected(null); setMushafPage(0);
+                if (mode === 'authentic' && selectedSurahId) setAuthenticPage(surahPageStart(selectedSurahId));
+              }} style={{
                 display: 'flex', alignItems: 'center', gap: 4, padding: '5px 9px', borderRadius: 7,
                 background: viewMode === mode ? t.accent : 'transparent',
                 color: viewMode === mode ? '#1a0f00' : t.inkDim,
                 border: 'none', cursor: 'pointer', transition: 'all 0.15s',
                 fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
               }}>
-                {mode === 'list' ? <LayoutList size={12}/> : <MushabBookIcon color={viewMode === 'mushaf' ? '#1a0f00' : t.inkDim} size={14}/>}
-                {!narrow && <span>{mode === 'list' ? (fr ? 'Liste' : 'قائمة') : 'Mushaf'}</span>}
+                {icon}
+                {!narrow && <span>{label}</span>}
               </button>
             ))}
           </div>
@@ -1069,6 +1083,65 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                 </motion.div>
               )}
             </AnimatePresence>
+          </motion.div>
+        )}
+
+        {/* ── AUTHENTIC MUSHAF MODE ── */}
+        {viewMode === 'authentic' && selectedSurahId !== null && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Page image */}
+            <div style={{
+              position: 'relative', borderRadius: 12, overflow: 'hidden',
+              maxWidth: 453, margin: '0 auto', width: '100%',
+              boxShadow: '0 4px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,166,74,0.2)',
+            }}>
+              {/* Paper background */}
+              <div style={{ background: '#f5efe0', padding: 4, borderRadius: 12 }}>
+                <img
+                  key={authenticPage}
+                  src={mushafSvgUrl(authenticPage)}
+                  alt={`Mushaf page ${authenticPage}`}
+                  style={{ width: '100%', display: 'block', borderRadius: 8 }}
+                  loading="lazy"
+                />
+              </div>
+              {/* Page number overlay */}
+              <div style={{
+                position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
+                background: 'rgba(26,15,0,0.75)', borderRadius: 99,
+                padding: '2px 12px', fontSize: 10, color: '#d4a64a',
+                fontFamily: 'Fraunces, serif', letterSpacing: '0.12em',
+              }}>
+                {fr ? `Page ${authenticPage}` : `صفحة ${toArabicNum(authenticPage)}`}
+              </div>
+            </div>
+
+            {/* Page navigation */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <button
+                onClick={() => setAuthenticPage(p => Math.max(surahPageStart(selectedSurahId), p - 1))}
+                disabled={authenticPage <= surahPageStart(selectedSurahId)}
+                style={{ width: 34, height: 34, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: authenticPage <= surahPageStart(selectedSurahId) ? t.inkMute : t.ink, cursor: authenticPage <= surahPageStart(selectedSurahId) ? 'default' : 'pointer', opacity: authenticPage <= surahPageStart(selectedSurahId) ? 0.4 : 1 }}
+              >
+                <ChevronRight size={14}/>
+              </button>
+              <span style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.14em', fontWeight: 700 }}>
+                {authenticPage} / {surahPageEnd(selectedSurahId)}
+              </span>
+              <button
+                onClick={() => setAuthenticPage(p => Math.min(surahPageEnd(selectedSurahId), p + 1))}
+                disabled={authenticPage >= surahPageEnd(selectedSurahId)}
+                style={{ width: 34, height: 34, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: authenticPage >= surahPageEnd(selectedSurahId) ? t.inkMute : t.ink, cursor: authenticPage >= surahPageEnd(selectedSurahId) ? 'default' : 'pointer', opacity: authenticPage >= surahPageEnd(selectedSurahId) ? 0.4 : 1 }}
+              >
+                <ChevronLeft size={14}/>
+              </button>
+            </div>
+
+            {/* Credit */}
+            <div style={{ textAlign: 'center', fontSize: 9, color: t.inkMute, letterSpacing: '0.12em', opacity: 0.6 }}>
+              {fr ? 'Complexe du Roi Fahd · Médine' : 'مجمع الملك فهد · المدينة المنورة'}
+            </div>
           </motion.div>
         )}
 
