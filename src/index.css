@@ -80,3 +80,221 @@ button { cursor: pointer; border: none; background: none; }
 }
 .mishkat-input:focus { border-color: var(--brand-primary); }
 .mishkat-input::placeholder { color: var(--brand-text-muted); opacity: 1; }
+
+/* ═══════════════════════════════════════════════════
+   MISHKAT — Animations & micro-interactions
+   Couleurs via CSS vars injectées par App.tsx root
+   ═══════════════════════════════════════════════════ */
+
+/* 1. Ripple doré (Tasbih tap) */
+@keyframes ripple-gold {
+  0%   { box-shadow: 0 0 0 0 rgba(212,166,74,.65); }
+  70%  { box-shadow: 0 0 0 22px rgba(212,166,74,0); }
+  100% { box-shadow: 0 0 0 0 rgba(212,166,74,0); }
+}
+.anim-ripple { animation: ripple-gold 0.9s ease-out; }
+
+/* 2. Bordure dorée dessinée au hover */
+.anim-border-draw { position: relative; border-radius: 8px; cursor: pointer; }
+.anim-border-draw::before,
+.anim-border-draw::after {
+  content: ''; position: absolute;
+  width: 100%; height: 100%; top: 0; left: 0;
+  border: 1px solid transparent; border-radius: inherit; box-sizing: border-box; pointer-events: none;
+}
+@keyframes draw-border-1 {
+  0%   { width: 0; height: 0; border-top-color: var(--brand-primary); border-right-color: transparent; }
+  50%  { width: 100%; height: 0; border-top-color: var(--brand-primary); border-right-color: var(--brand-primary); }
+  100% { width: 100%; height: 100%; border-top-color: var(--brand-primary); border-right-color: var(--brand-primary); }
+}
+@keyframes draw-border-2 {
+  0%   { width: 0; height: 0; border-bottom-color: var(--brand-primary); border-left-color: transparent; }
+  50%  { width: 100%; height: 0; border-bottom-color: var(--brand-primary); border-left-color: var(--brand-primary); }
+  100% { width: 100%; height: 100%; border-bottom-color: var(--brand-primary); border-left-color: var(--brand-primary); }
+}
+.anim-border-draw:hover::before { animation: draw-border-1 0.45s forwards; }
+.anim-border-draw:hover::after  { bottom: 0; right: 0; top: auto; left: auto; animation: draw-border-2 0.45s forwards; }
+
+/* 3. Shimmer doré (badge, streak) */
+@keyframes shimmer-gold {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.anim-shimmer {
+  background: linear-gradient(110deg,
+    var(--brand-bg-soft) 20%, rgba(212,166,74,.18) 40%,
+    var(--brand-secondary) 50%, rgba(212,166,74,.18) 60%,
+    var(--brand-bg-soft) 80%);
+  background-size: 200% auto;
+  animation: shimmer-gold 3s linear infinite;
+}
+
+/* 4. Texte arabe gradient animé (Basmala) */
+@keyframes rtl-reading {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+.anim-reading {
+  background: linear-gradient(to right,
+    var(--brand-text-muted) 20%, var(--brand-secondary) 50%, var(--brand-text-muted) 80%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: rtl-reading 3.5s linear infinite;
+  display: inline-block;
+}
+
+/* 5. Card flip (Verset du Jour — recto/verso) */
+.flip-container { perspective: 1000px; width: 100%; }
+.flip-inner {
+  position: relative; width: 100%;
+  transition: transform 0.65s cubic-bezier(.4,.2,.2,1);
+  transform-style: preserve-3d; cursor: pointer;
+}
+.flip-container:hover .flip-inner,
+.flip-container.is-flipped .flip-inner { transform: rotateY(180deg); }
+.flip-face {
+  position: absolute; width: 100%; height: 100%;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  border-radius: 0; box-sizing: border-box;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.flip-front { position: relative; }
+.flip-back {
+  background: rgba(212,166,74,.06);
+  transform: rotateY(180deg);
+  border: 1px solid var(--brand-primary);
+  border-radius: 12px; padding: 20px 24px;
+}
+
+/* 6. Pulse scale (bouton audio actif) */
+@keyframes pulse-scale {
+  0%   { box-shadow: 0 0 0 0 rgba(212,166,74,.45); }
+  70%  { box-shadow: 0 0 0 9px rgba(212,166,74,0); }
+  100% { box-shadow: 0 0 0 0 rgba(212,166,74,0); }
+}
+.anim-pulse { animation: pulse-scale 1.8s ease-in-out infinite; }
+
+/* 7. Souffle (apparition de section) */
+@keyframes le-souffle {
+  0%   { opacity: 0; transform: scale(.97); filter: brightness(.6); }
+  100% { opacity: 1; transform: scale(1);   filter: brightness(1); }
+}
+.anim-souffle { animation: le-souffle .7s cubic-bezier(.22,1,.36,1) both; }
+
+/* 8. Fil d'or (révélation contenu) */
+@keyframes fil-dor {
+  0%   { clip-path: polygon(50% 49%,50% 51%,50% 51%,50% 49%); opacity: 0; }
+  40%  { clip-path: polygon(0 49%,100% 49%,100% 51%,0 51%); opacity: 1; }
+  100% { clip-path: polygon(0 0,100% 0,100% 100%,0 100%); opacity: 1; }
+}
+.anim-fil-dor { animation: fil-dor .85s cubic-bezier(.4,0,.2,1) both; }
+
+/* 9. Aura (objectif atteint) */
+@keyframes aura-rise {
+  0%   { box-shadow: 0 0 0 transparent; }
+  50%  { box-shadow: 0 0 48px rgba(212,166,74,.28); }
+  100% { box-shadow: 0 8px 28px rgba(0,0,0,.35); }
+}
+.anim-aura { animation: aura-rise 1.1s ease-out both; }
+
+/* 10. Matérialisation (versets, éléments en cascade) */
+@keyframes materialisation {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.anim-materialise { animation: materialisation .6s cubic-bezier(.2,.8,.2,1) both; }
+
+/* 11. Voile doré (transition contenu) */
+@keyframes slide-veil {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(101%); }
+}
+.anim-voile { position: relative; overflow: hidden; }
+.anim-voile::after {
+  content: ""; position: absolute; inset: 0;
+  background: var(--brand-bg);
+  border-right: 2px solid var(--brand-primary);
+  animation: slide-veil .65s cubic-bezier(.8,0,.2,1) forwards;
+  pointer-events: none; z-index: 10;
+}
+
+/* 12. Dissolution (résultats de recherche) */
+@keyframes dissolution {
+  0%   { opacity: 0; filter: blur(10px); }
+  100% { opacity: 1; filter: blur(0); }
+}
+.anim-dissolution { animation: dissolution .8s cubic-bezier(.2,.8,.2,1) both; }
+
+/* 13. Focus — surbrillance d'une ligne dans une liste */
+.focus-container .focus-line {
+  transition: opacity .28s ease, filter .28s ease, transform .28s ease, color .28s ease;
+}
+.focus-container:hover .focus-line          { opacity: .3; filter: blur(1px); }
+.focus-container .focus-line:hover          { opacity: 1 !important; filter: blur(0) !important; transform: scale(1.01); }
+
+/* 14. Skeleton breathing */
+@keyframes skeleton-breathe {
+  0%,100% { opacity: .22; }
+  50%      { opacity: .55; }
+}
+.skeleton-line {
+  height: 14px; border-radius: 4px; margin-bottom: 9px;
+  background: linear-gradient(90deg, var(--brand-bg-soft), rgba(212,166,74,.07), var(--brand-bg-soft));
+  background-size: 200% 100%;
+  animation: skeleton-breathe 2s ease-in-out infinite;
+}
+.skeleton-line.sm { height: 10px; }
+.skeleton-line.lg { height: 22px; }
+
+/* 15. Écriture de droite à gauche */
+@keyframes write-rtl {
+  0%   { clip-path: polygon(100% 0,100% 0,100% 100%,100% 100%); }
+  100% { clip-path: polygon(0 0,100% 0,100% 100%,0 100%); }
+}
+.anim-write-rtl { animation: write-rtl 1.1s cubic-bezier(.25,1,.5,1) both; }
+
+/* 16. Enluminure — soulignement doré de droite à gauche */
+.anim-enluminure { position: relative; display: inline-block; padding-bottom: 2px; transition: color .3s ease; }
+.anim-enluminure::after {
+  content: ''; position: absolute; bottom: 0; right: 0;
+  height: 1px; background: var(--brand-primary); width: 0;
+  transition: width .45s cubic-bezier(.16,1,.3,1);
+}
+.anim-enluminure:hover,
+.anim-enluminure.active        { color: var(--brand-secondary); }
+.anim-enluminure:hover::after,
+.anim-enluminure.active::after { width: 100%; }
+
+/* 17. Guide de lecture — barre de progression verticale */
+.anim-guide-track {
+  width: 2px; background: var(--border-subtle);
+  border-radius: 2px; position: relative; flex-shrink: 0;
+}
+.anim-guide-fill {
+  position: absolute; top: 0; left: 0; width: 100%;
+  background: var(--brand-secondary); border-radius: 2px;
+  box-shadow: 0 0 6px rgba(212,166,74,.2);
+  transition: height .35s ease-out;
+}
+
+/* 18. Boussole (Tasbih) */
+@keyframes pop-compass {
+  0%   { transform: scale(.5); opacity: 0; }
+  100% { transform: scale(1);  opacity: 1; }
+}
+@keyframes oscillate-compass {
+  0%   { transform: rotate(-7deg); }
+  50%  { transform: rotate(5deg); }
+  100% { transform: rotate(-7deg); }
+}
+.anim-compass  { animation: pop-compass .55s cubic-bezier(.16,1,.3,1) both; }
+.compass-needle { animation: oscillate-compass 2.8s ease-in-out infinite; transform-origin: bottom center; }
+
+/* Délais cascade */
+.anim-d1 { animation-delay: .05s; }
+.anim-d2 { animation-delay: .10s; }
+.anim-d3 { animation-delay: .15s; }
+.anim-d4 { animation-delay: .20s; }
+.anim-d5 { animation-delay: .25s; }
+.anim-d6 { animation-delay: .30s; }

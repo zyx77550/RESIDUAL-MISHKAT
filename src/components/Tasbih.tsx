@@ -31,6 +31,7 @@ export const TasbihSection = ({
   const [idx, setIdx]       = useState(0);
   const [count, setCount]   = useState(0);
   const [done, setDone]     = useState(false);
+  const [tapKey, setTapKey] = useState(0);
 
   // Custom dhikr state
   const [customDhikr, setCustomDhikr] = useState(loadCustomDhikr);
@@ -55,6 +56,7 @@ export const TasbihSection = ({
   const increment = useCallback(() => {
     vibrate();
     playTasbihTap();
+    setTapKey(k => k + 1);
     if (count >= target) {
       setCount(0); setDone(false); return;
     }
@@ -116,13 +118,32 @@ export const TasbihSection = ({
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
-        <div>
-          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 6 }}>
-            {fr ? 'Dhikr & contemplation' : 'ذِكْر وتأمل'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* Compass décoratif — boussole du cœur */}
+          <svg className="anim-compass" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true">
+            <circle cx="18" cy="18" r="16" fill="none" stroke={t.accent} strokeWidth="1.2" opacity="0.4"/>
+            <circle cx="18" cy="18" r="11" fill="none" stroke={t.accent} strokeWidth="0.6" opacity="0.3"/>
+            {[0,90,180,270].map(deg => (
+              <text key={deg} x="18" y="18" textAnchor="middle" dominantBaseline="middle"
+                fontFamily="Inter, sans-serif" fontSize="5" fill={t.accent} opacity="0.5"
+                transform={`rotate(${deg} 18 18) translate(0 -12.5)`}>
+                {['N','E','S','O'][deg/90]}
+              </text>
+            ))}
+            <g className="compass-needle" style={{ transformOrigin: '18px 18px' }}>
+              <polygon points="18,5 20,18 18,22 16,18" fill={t.accentBright}/>
+              <polygon points="18,22 20,18 18,31 16,18" fill={t.inkMute} opacity="0.5"/>
+            </g>
+            <circle cx="18" cy="18" r="2" fill={t.accent}/>
+          </svg>
+          <div>
+            <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 6 }}>
+              {fr ? 'Dhikr & contemplation' : 'ذِكْر وتأمل'}
+            </div>
+            <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, margin: 0, color: t.ink, letterSpacing: '-0.02em', lineHeight: 1 }}>
+              {fr ? 'Tasbih' : 'تَسْبِيح'}
+            </h1>
           </div>
-          <h1 style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 32, margin: 0, color: t.ink, letterSpacing: '-0.02em', lineHeight: 1 }}>
-            {fr ? 'Tasbih' : 'تَسْبِيح'}
-          </h1>
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
           <button onClick={reset}
@@ -140,7 +161,7 @@ export const TasbihSection = ({
       <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : '1fr 1fr', gap: 14 }}>
 
         {/* LEFT: Counter */}
-        <div style={{ ...card, minHeight: 520, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '28px 20px', overflow: 'hidden', position: 'relative' }}>
+        <div className={done ? 'anim-aura' : ''} style={{ ...card, minHeight: 520, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: '28px 20px', overflow: 'hidden', position: 'relative' }}>
 
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10 }}>
@@ -191,7 +212,8 @@ export const TasbihSection = ({
               style={{ width: 40, height: 40, borderRadius: 10, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
               <Icon d={Icons.rotate} size={14}/>
             </button>
-            <button onClick={increment}
+            <button key={tapKey} onClick={increment}
+              className="anim-ripple"
               style={{ padding: '14px 36px', borderRadius: 12, background: t.accent, color: '#1a0f00', fontWeight: 700, fontSize: 14, cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon d={Icons.plus} size={16} color="#1a0f00"/> {fr ? 'Tap' : 'نقر'}
             </button>

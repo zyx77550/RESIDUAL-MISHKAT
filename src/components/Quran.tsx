@@ -410,6 +410,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const [expandedId, setExpandedId]   = useState<number | null>(null);
   const [bookmarks, setBookmarks] = useState<Set<BookmarkKey>>(loadBookmarks);
   const [viewMode, setViewMode]   = useState<'list' | 'mushaf'>('list');
+  const [readProgress, setReadProgress] = useState(0);
   const [mushafSelected, setMushafSelected] = useState<QuranVerse | null>(null);
   const [mushafPage, setMushafPage] = useState(0);
   const [readingMode, setReadingMode] = useState<'default' | 'night' | 'flare'>('default');
@@ -650,13 +651,14 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         {/* Surah grid */}
         {!globalMode && (
           <div style={{ flex: 1, overflowY: 'auto' }} className="no-scrollbar">
-            <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 8, paddingBottom: 24 }}>
+            <div className="focus-container" style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 8, paddingBottom: 24 }}>
               {filteredSurahs.map(surah => {
                 const status = userSurahStatus(surah.id);
                 return (
                   <button
                     key={surah.id}
                     onClick={() => openSurah(surah.id)}
+                    className="anim-border-draw focus-line"
                     style={{
                       ...card, padding: '12px 14px', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
@@ -747,6 +749,13 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const readingInk   = readingMode === 'night' ? '#e8d8a0' : readingMode === 'flare' ? '#2a1800' : undefined;
   const readingMuted = readingMode === 'night' ? '#8a7a5a' : readingMode === 'flare' ? '#7a5830' : undefined;
 
+  const onListScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const pct = el.scrollHeight > el.clientHeight
+      ? (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100 : 100;
+    setReadProgress(Math.round(pct));
+  };
+
   // ── Verse view ────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0, ...(readingBg ? { background: readingBg, color: readingInk } : {}) }}>
@@ -762,7 +771,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
             <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 2 }}>
               {selectedSurah?.name} · {selectedSurah?.verses} {fr ? 'v.' : 'آية'} · Juz {selectedSurah?.juz}
             </div>
-            <h2 style={{ fontFamily: 'Amiri Quran, serif', fontSize: 28, color: readingInk ?? t.ink, margin: 0, lineHeight: 1.3, direction: 'rtl' }}>
+            <h2 className="anim-write-rtl" style={{ fontFamily: 'Amiri Quran, serif', fontSize: 28, color: readingInk ?? t.ink, margin: 0, lineHeight: 1.3, direction: 'rtl' }}>
               {selectedSurah?.arabicName}
             </h2>
           </div>
@@ -817,7 +826,14 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         </div>
       </div>
 
-      <div ref={listRef} style={{ flex: 1, overflowY: 'auto', paddingBottom: 24, touchAction: 'pan-y' }} className="no-scrollbar">
+      {/* Guide de lecture + liste des versets */}
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, gap: 8 }}>
+        {/* Barre de progression verticale */}
+        <div className="anim-guide-track" style={{ height: 'auto', alignSelf: 'stretch', margin: '6px 0' }}>
+          <div className="anim-guide-fill" style={{ height: `${readProgress}%` }}/>
+        </div>
+
+      <div ref={listRef} onScroll={onListScroll} style={{ flex: 1, overflowY: 'auto', paddingBottom: 24, touchAction: 'pan-y' }} className="no-scrollbar">
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
             <IslamicLoader size={52} label={fr ? 'Chargement…' : 'جارٍ التحميل…'} />
@@ -842,6 +858,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         {/* ── LIST MODE ── */}
         {viewMode === 'list' && !loading && !dbError && filteredVerses.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}
+            className={verseSearch ? 'anim-dissolution' : 'anim-fil-dor'}
             style={{ background: readingBg ?? t.card, border: `1px solid ${t.line}`, borderRadius: 16, overflow: 'hidden', marginBottom: 8 }}
           >
             {/* List header */}
@@ -862,21 +879,23 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                   border: `1px solid ${t.line}`, borderRadius: 10,
                   background: `${t.accent}07`,
                 }}>
-                  <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 26, color: t.accentBright, direction: 'rtl', lineHeight: 1.8 }}>
+                  <div className="anim-reading" style={{ fontFamily: 'Amiri Quran, serif', fontSize: 26, direction: 'rtl', lineHeight: 1.8 }}>
                     بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                   </div>
                 </div>
               </div>
             )}
 
-            {filteredVerses.map(verse => {
+            {filteredVerses.map((verse, vIdx) => {
               const key: BookmarkKey = `${verse.surah_number}:${verse.ayah_number}`;
               const isBookmarked = bookmarks.has(key);
               const isSelected = expandedId === verse.id;
+              const delayClass = vIdx < 6 ? `anim-d${vIdx + 1}` : '';
               return (
                 <div
                   id={`verse-${verse.ayah_number}`}
                   key={verse.id}
+                  className={`anim-materialise ${delayClass}`}
                   onClick={() => { setExpandedId(isSelected ? null : verse.id); saveQuranPosition(verse.surah_number, selectedSurah?.name ?? '', verse.ayah_number); }}
                   style={{ padding: '20px 20px 20px 26px', borderBottom: `1px solid ${t.lineSoft}`, background: isSelected ? `${t.accent}07` : 'transparent', position: 'relative', cursor: 'pointer', transition: 'background 0.15s' }}
                 >
@@ -919,6 +938,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                         <button
                           key={i}
                           onClick={btn.fn}
+                          className={btn.active && i === 0 ? 'anim-pulse' : ''}
                           style={{
                             width: 34, height: 34, borderRadius: 999, flexShrink: 0,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1062,6 +1082,8 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
             t={t}
           />
         )}
+      </div>
+      {/* Fin guide-track + listRef wrapper */}
       </div>
 
       {/* Hidden share card */}
