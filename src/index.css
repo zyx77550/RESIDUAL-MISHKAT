@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Surah name decorative calligraphy font (from quran.com / open-quran-view) */
+@font-face {
+  font-family: 'SurahNameFont';
+  src: url('/fonts/surah-name.woff2') format('woff2');
+  font-display: swap;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body, #root {

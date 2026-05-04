@@ -200,6 +200,42 @@ function GlobalRow({
   );
 }
 
+// ── Surah nameplate using authentic frame SVG + decorative font ──
+function SurahNameplate({ surahId, surahName, t }: {
+  surahId: number; surahName: string; t: ReturnType<typeof useT>;
+}) {
+  const fontCode = `surah${String(surahId).padStart(3, '0')}`;
+  return (
+    <div style={{ position: 'relative', width: '100%', marginBottom: 10 }}>
+      <img
+        src="/surah-frame.svg"
+        alt=""
+        aria-hidden="true"
+        style={{
+          width: '100%', display: 'block',
+          filter: 'invert(1) sepia(1) saturate(3) hue-rotate(3deg) brightness(0.85)',
+          mixBlendMode: 'screen',
+          opacity: 0.88,
+        }}
+      />
+      <div style={{
+        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 1,
+      }}>
+        <div style={{
+          fontFamily: '"SurahNameFont", "Amiri Quran", serif',
+          fontSize: 28, color: t.accentBright, lineHeight: 1,
+        }}>
+          {fontCode}
+        </div>
+        <div style={{ fontSize: 8.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+          {surahName}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Mushaf decorative SVG frame ──────────────────────────────────
 function MushafFrame({ children, t, page, totalPages }: {
   children: React.ReactNode;
@@ -987,16 +1023,16 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         {viewMode === 'mushaf' && !loading && !dbError && filteredVerses.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
             <MushafFrame t={t} page={mushafPage} totalPages={totalMushafPages}>
-              {/* Basmala inside frame */}
-              {selectedSurahId !== 9 && !verseSearch && mushafPage === 0 && (
-                <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-                    <HizbStar t={t} size={24}/>
-                  </div>
-                  <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: Math.round(fontSize * 1.1), color: t.accentBright, direction: 'rtl', lineHeight: 1.9 }}>
-                    بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-                  </div>
-                  <div style={{ marginTop: 12 }}>
+              {/* Surah nameplate + basmala on first page */}
+              {!verseSearch && mushafPage === 0 && selectedSurah && (
+                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                  <SurahNameplate surahId={selectedSurah.id} surahName={selectedSurah.name} t={t}/>
+                  {selectedSurahId !== 9 && (
+                    <div className="anim-reading" style={{ fontFamily: 'Amiri Quran, serif', fontSize: Math.round(fontSize * 1.05), color: t.accentBright, direction: 'rtl', lineHeight: 1.9, marginTop: 4 }}>
+                      بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                    </div>
+                  )}
+                  <div style={{ marginTop: 10 }}>
                     <OrnamentSeparator t={t}/>
                   </div>
                 </div>
@@ -1090,6 +1126,10 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         {viewMode === 'authentic' && selectedSurahId !== null && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
             style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Surah nameplate */}
+            {selectedSurah && (
+              <SurahNameplate surahId={selectedSurah.id} surahName={selectedSurah.name} t={t}/>
+            )}
             {/* Page image */}
             <div style={{
               position: 'relative', borderRadius: 12, overflow: 'hidden',
