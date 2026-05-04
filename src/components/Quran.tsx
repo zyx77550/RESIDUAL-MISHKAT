@@ -39,21 +39,34 @@ const VERSES_PER_PAGE = 12;
 
 // ── Islamic SVG icon components ───────────────────────────────────
 
-/** Cercle festonné islamique avec numéro de verset */
-function AyahBadge({ num, active, t, size = 32 }: {
+/** Marqueur de verset style étoile islamique à 8 branches — comme Quran.com / Tarteel */
+function AyahBadge({ num, active, t, size = 34 }: {
   num: number; active?: boolean;
   t: ReturnType<typeof useT>; size?: number;
 }) {
-  const stroke = active ? t.accentBright : t.accent;
-  const bg = active ? `${t.accent}16` : t.card;
-  const fs = num > 99 ? 14 : num > 9 ? 17 : 19;
+  // 8-pointed star polygon: two overlapping squares, r=46 outer, r=33 inner
+  const pts = Array.from({ length: 16 }, (_, i) => {
+    const angle = (i * Math.PI) / 8 - Math.PI / 2;
+    const r = i % 2 === 0 ? 46 : 33;
+    return `${50 + r * Math.cos(angle)},${50 + r * Math.sin(angle)}`;
+  }).join(' ');
+  const fill = active ? t.accent : 'none';
+  const stroke = t.accent;
+  const textColor = active ? '#1a0f00' : t.accent;
+  const fs = num > 99 ? 22 : num > 9 ? 26 : 30;
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width={size} height={size} style={{ flexShrink: 0 }}>
-      <path d="M50 5 C55 15,65 15,70 5 C75 15,85 15,90 20 C85 25,85 35,95 40 C85 45,85 55,95 60 C85 65,85 75,90 80 C85 85,75 85,70 95 C65 85,55 85,50 95 C45 85,35 85,30 95 C25 85,15 85,10 80 C15 75,15 65,5 60 C15 55,15 45,5 40 C15 35,15 25,10 20 C15 15,25 15,30 5 C35 15,45 15,50 5 Z"
-        fill="none" stroke={stroke} strokeWidth="2"/>
-      <circle cx="50" cy="50" r="32" fill={bg} stroke={stroke} strokeWidth="3"/>
-      <circle cx="50" cy="50" r="23" fill="none" stroke={stroke} strokeWidth="0.7" strokeDasharray="2,2.5"/>
-      <text x="50" y="57" fontFamily="Fraunces, serif" fontSize={fs} fill={stroke} textAnchor="middle" fontWeight="300">{num}</text>
+      <polygon points={pts} fill={fill} stroke={stroke} strokeWidth="3" strokeLinejoin="round"/>
+      <text
+        x="50" y="56"
+        fontFamily="Amiri Quran, serif"
+        fontSize={fs}
+        fill={textColor}
+        textAnchor="middle"
+        dominantBaseline="middle"
+      >
+        {toArabicNum(num)}
+      </text>
     </svg>
   );
 }
