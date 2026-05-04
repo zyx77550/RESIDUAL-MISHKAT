@@ -5,6 +5,7 @@ import { IslamicLoader } from './IslamicLoader';
 import { supabase, QuranVerse } from '../lib/supabase';
 import { SURAH_DATA } from '../types';
 import { useT } from '../lib/theme';
+import { useIsNarrow } from './ui';
 
 interface QuizProps {
   lang: 'fr' | 'ar';
@@ -29,6 +30,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 export const QuizSection = ({ lang }: QuizProps) => {
   const t = useT();
+  const narrow = useIsNarrow();
   const fr = lang === 'fr';
 
   const [phase, setPhase] = useState<'select' | 'quiz' | 'done'>('select');
@@ -40,6 +42,14 @@ export const QuizSection = ({ lang }: QuizProps) => {
   const [flipped, setFlipped] = useState(false);
   const [results, setResults] = useState<CardResult[]>([]);
   const [surahSearch, setSurahSearch] = useState('');
+
+  const card: React.CSSProperties = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 12 };
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '9px 14px 9px 36px',
+    background: t.cardElev, border: `1px solid ${t.line}`,
+    borderRadius: 10, color: t.ink, fontSize: 13, outline: 'none',
+    boxSizing: 'border-box' as const,
+  };
 
   const filteredSurahs = useMemo(() => {
     if (!surahSearch.trim()) return SURAH_DATA;
@@ -101,8 +111,9 @@ export const QuizSection = ({ lang }: QuizProps) => {
   // ── Select phase ─────────────────────────────────────────────
   if (phase === 'select') {
     return (
-      <div className="flex flex-col h-full gap-0">
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex-shrink-0 pb-5">
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          style={{ flexShrink: 0, paddingBottom: 16 }}>
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 6 }}>
               {fr ? 'Mémorisation' : 'حفظ'}
@@ -113,13 +124,13 @@ export const QuizSection = ({ lang }: QuizProps) => {
           </div>
 
           {/* Mode selector */}
-          <div style={{ display: 'flex', gap: 6, background: t.cardElev, borderRadius: 12, padding: 4, marginBottom: 14 }}>
+          <div style={{ display: 'flex', gap: 4, background: t.cardElev, borderRadius: 10, padding: 3, marginBottom: 14 }}>
             {([['ar_to_fr', fr ? 'Arabe → Français' : 'عربي → فرنسي'], ['fr_to_ar', fr ? 'Français → Arabe' : 'فرنسي → عربي']] as const).map(([m, label]) => (
               <button key={m} onClick={() => setMode(m)} style={{
-                flex: 1, padding: '8px 10px', borderRadius: 9, fontSize: 11, fontWeight: 700,
-                letterSpacing: '0.08em',
-                background: mode === m ? 'var(--brand-primary)' : 'transparent',
-                color: mode === m ? '#fff' : t.inkDim,
+                flex: 1, padding: '8px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                letterSpacing: '0.08em', textTransform: 'uppercase' as const,
+                background: mode === m ? t.accent : 'transparent',
+                color: mode === m ? '#1a0f00' : t.inkDim,
                 border: 'none', cursor: 'pointer', transition: 'all 0.15s',
               }}>
                 {label}
@@ -134,49 +145,62 @@ export const QuizSection = ({ lang }: QuizProps) => {
             </div>
           )}
 
-          <div className="relative">
-            <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: t.inkMute }} />
+          <div style={{ position: 'relative' }}>
+            <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: t.inkMute, pointerEvents: 'none' }} />
             <input
               value={surahSearch}
               onChange={e => setSurahSearch(e.target.value)}
               placeholder={fr ? 'Choisir une sourate…' : 'اختر سورة…'}
-              className="mishkat-input pl-11"
+              style={inputStyle}
             />
             {surahSearch && (
-              <button onClick={() => setSurahSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1">
-                <X size={13} style={{ color: t.inkMute }} />
+              <button onClick={() => setSurahSearch('')}
+                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: t.inkMute, cursor: 'pointer', padding: 4 }}>
+                <X size={12} />
               </button>
             )}
           </div>
         </motion.div>
 
-        <div className="flex-1 overflow-y-auto pr-1 pb-6 custom-scrollbar">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 24 }} className="no-scrollbar">
+          <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 8 }}>
             {filteredSurahs.map(s => (
-              <motion.button
+              <button
                 key={s.id}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.98 }}
                 onClick={() => startQuiz(s.id)}
-                className="glass-card p-4 text-left flex items-center gap-4 group relative overflow-hidden"
+                style={{
+                  ...card, padding: '12px 14px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+                  position: 'relative', overflow: 'hidden', transition: 'background 0.15s',
+                }}
               >
-                <div className="card-accent-bar" />
-                <div
-                  className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center font-black text-sm"
-                  style={{ background: 'color-mix(in srgb, var(--brand-primary) 10%, transparent)', color: 'var(--brand-primary)' }}
-                >
+                <div style={{
+                  width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'Fraunces, serif', fontSize: 12, fontWeight: 300,
+                  background: `${t.accent}14`, color: t.accent,
+                }}>
                   {s.id}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-base font-bold truncate" style={{ color: 'var(--brand-primary)', fontFamily: 'Amiri, serif', direction: 'rtl' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: 16, color: t.ink, direction: 'rtl', textAlign: 'right', lineHeight: 1.4 }}>
                     {s.arabicName}
-                  </p>
-                  <p className="text-[10px] font-semibold mt-0.5" style={{ color: 'var(--brand-secondary)' }}>
-                    {s.name} · {s.verses} {fr ? 'v.' : 'آية'}
-                  </p>
+                  </div>
+                  <div style={{ fontSize: 10, color: t.accentBright, fontWeight: 600, marginTop: 1 }}>
+                    {s.name}
+                  </div>
+                  <div style={{ fontSize: 9, color: t.inkMute, marginTop: 1 }}>
+                    {s.verses} {fr ? 'v.' : 'آية'}
+                  </div>
                 </div>
-              </motion.button>
+              </button>
             ))}
+            {filteredSurahs.length === 0 && (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 0' }}>
+                <BookOpen size={40} style={{ color: t.accent, opacity: 0.2, margin: '0 auto 12px', display: 'block' }} />
+                <p style={{ fontSize: 13, color: t.inkMute }}>{fr ? 'Aucune sourate.' : 'لا توجد سورة.'}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -188,11 +212,12 @@ export const QuizSection = ({ lang }: QuizProps) => {
     const total = results.length;
     const pct = Math.round((knownCount / total) * 100);
     return (
-      <div className="flex flex-col h-full items-center justify-center gap-6 text-center px-4">
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center', justifyContent: 'center', gap: 24, textAlign: 'center', padding: '0 16px' }}>
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', duration: 0.5 }}>
           <div style={{
             width: 96, height: 96, borderRadius: '50%',
-            background: pct >= 80 ? t.accentBright : pct >= 50 ? t.accent : t.cardElev,
+            background: pct >= 80 ? t.accentBright : pct >= 50 ? `${t.accent}22` : t.cardElev,
+            border: `1px solid ${pct >= 80 ? t.accentBright : t.line}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 40, margin: '0 auto',
           }}>
@@ -212,34 +237,34 @@ export const QuizSection = ({ lang }: QuizProps) => {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={restart} style={{
-            padding: '12px 24px', borderRadius: 12, background: 'var(--brand-primary)',
-            color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer',
+            padding: '12px 24px', borderRadius: 9, background: t.accent,
+            color: '#1a0f00', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
-            <RotateCcw size={16}/> {fr ? 'Rejouer' : 'إعادة'}
+            <RotateCcw size={15} /> {fr ? 'Rejouer' : 'إعادة'}
           </button>
           <button onClick={goToSelect} style={{
-            padding: '12px 24px', borderRadius: 12, background: t.cardElev,
-            border: `1px solid ${t.line}`, color: t.inkDim, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+            padding: '12px 24px', borderRadius: 9, background: t.cardElev,
+            border: `1px solid ${t.line}`, color: t.inkDim, fontWeight: 600, fontSize: 13, cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
-            <ChevronLeft size={16}/> {fr ? 'Sourates' : 'السور'}
+            <ChevronLeft size={15} /> {fr ? 'Sourates' : 'السور'}
           </button>
         </div>
 
         {/* Review list */}
-        <div style={{ width: '100%', maxWidth: 480, maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ width: '100%', maxWidth: 480, maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }} className="no-scrollbar">
           {results.map(({ verse, result }, i) => (
             <div key={i} style={{
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '8px 12px', borderRadius: 10,
-              background: result === 'known' ? `color-mix(in srgb, var(--brand-primary) 8%, transparent)` : t.cardElev,
-              border: `1px solid ${result === 'known' ? 'var(--brand-primary)' : t.line}`,
+              background: result === 'known' ? `${t.accent}0d` : t.cardElev,
+              border: `1px solid ${result === 'known' ? `${t.accent}33` : t.line}`,
             }}>
               {result === 'known'
-                ? <CheckCircle2 size={14} style={{ color: 'var(--brand-primary)', flexShrink: 0 }} />
+                ? <CheckCircle2 size={14} style={{ color: t.accent, flexShrink: 0 }} />
                 : <XCircle size={14} style={{ color: t.inkMute, flexShrink: 0 }} />}
-              <span style={{ fontSize: 13, fontFamily: 'Amiri, serif', direction: 'rtl', color: t.inkDim, flex: 1, textAlign: 'right', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+              <span style={{ fontSize: 13, fontFamily: 'Amiri Quran, serif', direction: 'rtl', color: t.inkDim, flex: 1, textAlign: 'right', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                 {verse.arabic_text.slice(0, 40)}…
               </span>
               <span style={{ fontSize: 10, color: t.inkMute, flexShrink: 0 }}>
@@ -261,14 +286,14 @@ export const QuizSection = ({ lang }: QuizProps) => {
   const progress = (cardIdx / cards.length) * 100;
 
   return (
-    <div className="flex flex-col h-full gap-0">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
-      <div className="flex-shrink-0 pb-4">
-        <div className="flex items-center gap-3 mb-3">
-          <button onClick={goToSelect} style={{ padding: '8px', borderRadius: 10, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, cursor: 'pointer' }}>
-            <ChevronLeft size={16}/>
+      <div style={{ flexShrink: 0, paddingBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <button onClick={goToSelect} style={{ width: 34, height: 34, borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ChevronLeft size={16} />
           </button>
-          <div className="flex-1">
+          <div style={{ flex: 1 }}>
             <p style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', margin: 0 }}>
               {surah?.name} · {fr ? `${cardIdx + 1} / ${cards.length}` : `${cards.length} / ${cardIdx + 1}`}
             </p>
@@ -278,12 +303,12 @@ export const QuizSection = ({ lang }: QuizProps) => {
           </span>
         </div>
         <div style={{ height: 4, background: t.cardElev, borderRadius: 99, overflow: 'hidden' }}>
-          <div style={{ height: '100%', background: 'var(--brand-primary)', borderRadius: 99, width: `${progress}%`, transition: 'width 0.3s ease' }} />
+          <div style={{ height: '100%', background: `linear-gradient(90deg, ${t.accent}, ${t.accentBright})`, borderRadius: 99, width: `${progress}%`, transition: 'width 0.3s ease' }} />
         </div>
       </div>
 
       {/* Flashcard */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-6">
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={cardIdx}
@@ -296,30 +321,22 @@ export const QuizSection = ({ lang }: QuizProps) => {
             <div
               onClick={() => !flipped && setFlipped(true)}
               style={{
-                background: t.card,
-                border: `1px solid ${t.line}`,
-                borderRadius: 20,
-                padding: '36px 28px',
-                minHeight: 280,
+                background: t.card, border: `1px solid ${t.line}`, borderRadius: 20,
+                padding: '36px 28px', minHeight: 280,
                 cursor: flipped ? 'default' : 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 16,
-                position: 'relative',
-                overflow: 'hidden',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: 16, position: 'relative', overflow: 'hidden',
               }}
             >
-              <div style={{ position: 'absolute', inset: 0, background: 'color-mix(in srgb, var(--brand-primary) 2%, transparent)', borderRadius: 20 }} />
+              <div style={{ position: 'absolute', inset: 0, background: `${t.accent}05`, borderRadius: 20, pointerEvents: 'none' }} />
 
               {/* Question */}
-              <div style={{ width: '100%', textAlign: questionIsAr ? 'right' : 'left' }}>
+              <div style={{ width: '100%', textAlign: questionIsAr ? 'right' : 'left', position: 'relative' }}>
                 <p style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>
                   {fr ? 'Question' : 'السؤال'}
                 </p>
                 <p style={{
-                  fontFamily: questionIsAr ? 'Amiri, serif' : 'Fraunces, serif',
+                  fontFamily: questionIsAr ? 'Amiri Quran, serif' : 'Fraunces, serif',
                   fontSize: questionIsAr ? 26 : 18,
                   direction: questionIsAr ? 'rtl' : 'ltr',
                   color: t.ink,
@@ -338,14 +355,14 @@ export const QuizSection = ({ lang }: QuizProps) => {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    style={{ width: '100%', overflow: 'hidden' }}
+                    style={{ width: '100%', overflow: 'hidden', position: 'relative' }}
                   >
                     <div style={{ height: 1, background: t.line, margin: '8px 0 16px' }} />
                     <p style={{ fontSize: 9, color: t.accentBright, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>
                       {fr ? 'Réponse' : 'الجواب'}
                     </p>
                     <p style={{
-                      fontFamily: !questionIsAr ? 'Amiri, serif' : 'Fraunces, serif',
+                      fontFamily: !questionIsAr ? 'Amiri Quran, serif' : 'Fraunces, serif',
                       fontSize: !questionIsAr ? 24 : 16,
                       direction: !questionIsAr ? 'rtl' : 'ltr',
                       color: t.accentBright,
@@ -385,24 +402,24 @@ export const QuizSection = ({ lang }: QuizProps) => {
               <button
                 onClick={() => answer('again')}
                 style={{
-                  flex: 1, padding: '14px', borderRadius: 14,
+                  flex: 1, padding: '14px', borderRadius: 12,
                   background: t.cardElev, border: `1px solid ${t.line}`,
-                  color: t.inkDim, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                  color: t.inkDim, fontWeight: 700, fontSize: 13, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}
               >
-                <RotateCcw size={16}/> {fr ? 'À revoir' : 'مراجعة'}
+                <RotateCcw size={15} /> {fr ? 'À revoir' : 'مراجعة'}
               </button>
               <button
                 onClick={() => answer('known')}
                 style={{
-                  flex: 1, padding: '14px', borderRadius: 14,
-                  background: 'var(--brand-primary)',
-                  color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', border: 'none',
+                  flex: 1, padding: '14px', borderRadius: 12,
+                  background: t.accent, color: '#1a0f00',
+                  fontWeight: 700, fontSize: 13, cursor: 'pointer', border: 'none',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}
               >
-                <CheckCircle2 size={16}/> {fr ? 'Je sais' : 'أعرفه'}
+                <CheckCircle2 size={15} /> {fr ? 'Je sais' : 'أعرفه'}
               </button>
             </motion.div>
           )}

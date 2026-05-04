@@ -228,8 +228,8 @@ export const AdhkarSection = ({ lang }: AdhkarProps) => {
             <button key={s} onClick={() => switchSession(s)} style={{
               flex: 1, padding: '9px 12px', borderRadius: 9, fontSize: 11, fontWeight: 700,
               letterSpacing: '0.1em', textTransform: 'uppercase',
-              background: session === s ? 'var(--brand-primary)' : 'transparent',
-              color: session === s ? '#fff' : t.inkDim,
+              background: session === s ? t.accent : 'transparent',
+              color: session === s ? '#1a0f00' : t.inkDim,
               border: 'none', cursor: 'pointer', transition: 'all 0.15s',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
@@ -243,7 +243,7 @@ export const AdhkarSection = ({ lang }: AdhkarProps) => {
         <div style={{ marginTop: 12, height: 4, background: t.cardElev, borderRadius: 99, overflow: 'hidden' }}>
           <div style={{
             height: '100%',
-            background: 'var(--brand-primary)',
+            background: `linear-gradient(90deg, ${t.accent}, ${t.accentBright})`,
             borderRadius: 99,
             width: `${(completed / list.length) * 100}%`,
             transition: 'width 0.4s ease',
@@ -328,7 +328,7 @@ function DhikrCard({ dhikr, tapped, done, fr, t, onTap, index, total }: DhikrCar
       {done && (
         <div style={{
           position: 'absolute', inset: 0, borderRadius: 20,
-          background: `radial-gradient(ellipse at center, color-mix(in srgb, var(--brand-primary) 6%, transparent) 0%, transparent 70%)`,
+          background: `radial-gradient(ellipse at center, ${t.accent}0f 0%, transparent 70%)`,
           pointerEvents: 'none',
         }} />
       )}
@@ -347,7 +347,7 @@ function DhikrCard({ dhikr, tapped, done, fr, t, onTap, index, total }: DhikrCar
 
       {/* Arabic text */}
       <p style={{
-        fontFamily: 'Amiri, serif',
+        fontFamily: 'Amiri Quran, serif',
         fontSize: 22,
         direction: 'rtl',
         textAlign: 'right',
@@ -381,7 +381,7 @@ function DhikrCard({ dhikr, tapped, done, fr, t, onTap, index, total }: DhikrCar
           <div style={{ height: 5, background: t.cardElev, borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
             <div style={{
               height: '100%',
-              background: done ? t.accentBright : 'var(--brand-primary)',
+              background: done ? t.accentBright : t.accent,
               borderRadius: 99,
               width: `${pct * 100}%`,
               transition: 'width 0.2s ease',
@@ -389,7 +389,7 @@ function DhikrCard({ dhikr, tapped, done, fr, t, onTap, index, total }: DhikrCar
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: t.inkMute }}>
             <span>{tapped} / {dhikr.count}</span>
-            <span style={{ fontFamily: 'Amiri, serif', fontSize: 12 }}>×{dhikr.count}</span>
+            <span style={{ fontFamily: 'Amiri Quran, serif', fontSize: 12 }}>×{dhikr.count}</span>
           </div>
         </div>
       )}
@@ -403,10 +403,8 @@ function DhikrCard({ dhikr, tapped, done, fr, t, onTap, index, total }: DhikrCar
           padding: '14px',
           borderRadius: 14,
           border: 'none',
-          background: done
-            ? `color-mix(in srgb, var(--brand-primary) 10%, transparent)`
-            : 'var(--brand-primary)',
-          color: done ? t.inkDim : '#fff',
+          background: done ? `${t.accent}18` : t.accent,
+          color: done ? t.inkMute : '#1a0f00',
           fontWeight: 700,
           fontSize: 15,
           cursor: done ? 'default' : 'pointer',
