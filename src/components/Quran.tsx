@@ -85,49 +85,150 @@ function GlobalRow({
   );
 }
 
-// ── Corner ornament SVG ────────────────────────────────────────────
-function CornerDecor({ pos, color }: { pos: 'tl' | 'tr' | 'bl' | 'br'; color: string }) {
-  const positions: Record<string, React.CSSProperties> = {
-    tl: { top: 4, left: 4 },
-    tr: { top: 4, right: 4 },
-    bl: { bottom: 4, left: 4 },
-    br: { bottom: 4, right: 4 },
-  };
-  const rotations = { tl: 0, tr: 90, bl: 270, br: 180 };
-  return (
-    <svg
-      width="20" height="20" viewBox="0 0 20 20"
-      style={{
-        position: 'absolute', ...positions[pos], pointerEvents: 'none', opacity: 0.45,
-        transform: `rotate(${rotations[pos]}deg)`, transformOrigin: '10px 10px',
-      }}
-    >
-      {/* Outer L-bracket */}
-      <path d="M2 18 L2 2 L18 2" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      {/* Inner L-bracket */}
-      <path d="M5 15 L5 5 L15 5" fill="none" stroke={color} strokeWidth="0.7" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.55"/>
-      {/* Diamond at corner */}
-      <rect x="0.2" y="0.2" width="3.2" height="3.2" rx="0.5" fill={color} transform="rotate(45 1.8 1.8)"/>
-    </svg>
-  );
-}
+// ── Mushaf decorative SVG frame ──────────────────────────────────
+function MushafFrame({ children, t, page, totalPages }: {
+  children: React.ReactNode;
+  t: ReturnType<typeof useT>;
+  page?: number;
+  totalPages?: number;
+}) {
+  const narrow = useIsNarrow();
+  const a = t.accent;
+  const ab = t.accentBright;
+  const as_ = t.accentSoft;
+  const bg = t.card;
+  const ln = t.line;
+  const pgNum = page !== undefined ? page + 1 : undefined;
 
-// ── Mushaf decorative double-border frame ─────────────────────────
-function MushafFrame({ children, t }: { children: React.ReactNode; t: ReturnType<typeof useT> }) {
   return (
-    <div style={{ position: 'relative', border: `1px solid ${t.line}`, borderRadius: 16, padding: 7, background: t.card }}>
-      {/* Corner ornaments */}
-      <CornerDecor pos="tl" color={t.accent}/>
-      <CornerDecor pos="tr" color={t.accent}/>
-      <CornerDecor pos="bl" color={t.accent}/>
-      <CornerDecor pos="br" color={t.accent}/>
-      {/* Center accent marks on each edge */}
-      <div style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', width: 28, height: 2, background: t.accent, opacity: 0.38, borderRadius: 1 }}/>
-      <div style={{ position: 'absolute', bottom: -1, left: '50%', transform: 'translateX(-50%)', width: 28, height: 2, background: t.accent, opacity: 0.38, borderRadius: 1 }}/>
-      <div style={{ position: 'absolute', left: -1, top: '50%', transform: 'translateY(-50%)', width: 2, height: 28, background: t.accent, opacity: 0.38, borderRadius: 1 }}/>
-      <div style={{ position: 'absolute', right: -1, top: '50%', transform: 'translateY(-50%)', width: 2, height: 28, background: t.accent, opacity: 0.38, borderRadius: 1 }}/>
-      {/* Inner border */}
-      <div style={{ border: `1px solid ${t.line}`, borderRadius: 10, padding: '28px 22px', position: 'relative' }}>
+    <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', minHeight: 200 }}>
+      {/* SVG frame — preserveAspectRatio="none" stretches to fill any container */}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 800 1200"
+        width="100%"
+        height="100%"
+        preserveAspectRatio="none"
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id="mfr-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={ab}/>
+            <stop offset="25%" stopColor={a}/>
+            <stop offset="50%" stopColor={ab}/>
+            <stop offset="75%" stopColor={as_}/>
+            <stop offset="100%" stopColor={a}/>
+          </linearGradient>
+
+          <pattern id="mfr-bp" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+            <rect width="60" height="60" fill="transparent"/>
+            <path d="M0,0 L60,60 M60,0 L0,60" stroke={ln} strokeWidth="3"/>
+            <g stroke={a} strokeWidth="1.5" fill="none">
+              <polygon points="30,5 55,30 30,55 5,30"/>
+              <polygon points="12,12 48,12 48,48 12,48"/>
+            </g>
+            <circle cx="30" cy="30" r="10" fill={a}/>
+            <circle cx="30" cy="30" r="6" fill={bg}/>
+            <circle cx="30" cy="30" r="2" fill={a}/>
+            <path d="M30,0 L30,5 M30,55 L30,60 M0,30 L5,30 M55,30 L60,30" stroke={a} strokeWidth="2"/>
+          </pattern>
+
+          <g id="mfr-cb">
+            <rect width="60" height="60" fill={bg}/>
+            <rect x="2" y="2" width="56" height="56" fill="none" stroke={a} strokeWidth="1.5"/>
+            <rect x="6" y="6" width="48" height="48" fill="none" stroke={a} strokeWidth="0.8"/>
+            <g transform="translate(30,30)">
+              <polygon points="0,-20 14,-14 20,0 14,14 0,20 -14,14 -20,0 -14,-14" fill={a}/>
+              <circle cx="0" cy="0" r="8" fill={bg}/>
+              <circle cx="0" cy="0" r="3" fill={a}/>
+              <path d="M0,-20 L0,-26 M20,0 L26,0 M0,20 L0,26 M-20,0 L-26,0" stroke={a} strokeWidth="1.5"/>
+              <path d="M14,-14 L18,-18 M14,14 L18,18 M-14,14 L-18,18 M-14,-14 L-18,-18" stroke={a} strokeWidth="1.5"/>
+            </g>
+          </g>
+
+          <g id="mfr-ic">
+            <path d="M0,60 A60 60 0 0 1 60,0 L0,0 Z" fill={a}/>
+            <path d="M0,55 A55 55 0 0 1 55,0 L0,0 Z" fill={bg}/>
+            <path d="M0,45 A45 45 0 0 1 45,0 L0,0 Z" fill="none" stroke={a} strokeWidth="1.5"/>
+            <path d="M0,35 A35 35 0 0 1 35,0 L0,0 Z" fill={a}/>
+            <circle cx="15" cy="15" r="4" fill={bg}/>
+            <circle cx="25" cy="25" r="3" fill={bg}/>
+            <circle cx="35" cy="10" r="2" fill={bg}/>
+            <circle cx="10" cy="35" r="2" fill={bg}/>
+          </g>
+
+          <g id="mfr-med">
+            <path d="M0,-60 C20,-60 50,-20 60,0 C50,20 20,60 0,60 Z" fill={bg} stroke={a} strokeWidth="2.5"/>
+            <path d="M0,-50 C15,-50 40,-15 48,0 C40,15 15,50 0,50 Z" fill={a}/>
+            <circle cx="15" cy="0" r="10" fill={bg}/>
+            <circle cx="15" cy="0" r="5" fill={a}/>
+          </g>
+        </defs>
+
+        {/* Watermark discret */}
+        <g transform="translate(400,600) scale(4)" opacity="0.03">
+          <rect x="-30" y="-30" width="60" height="60" fill={a}/>
+          <rect x="-30" y="-30" width="60" height="60" fill={a} transform="rotate(45)"/>
+          <circle cx="0" cy="0" r="15" fill={a}/>
+        </g>
+
+        {/* Lignes extérieures */}
+        <rect x="26" y="46" width="748" height="1108" fill="none" stroke={a} strokeWidth="0.8"/>
+        <rect x="30" y="50" width="740" height="1100" fill="none" stroke={ln} strokeWidth="2"/>
+        <rect x="35" y="55" width="730" height="1090" fill="none" stroke={a} strokeWidth="0.8"/>
+        <rect x="40" y="60" width="720" height="1080" fill="none" stroke={a} strokeWidth="3.5"/>
+
+        {/* Bande géométrique */}
+        <path d="M40,60 h720 v1080 h-720 v-1080 M100,120 v960 h600 v-960 h-600" fill="url(#mfr-bp)" fillRule="evenodd"/>
+
+        {/* Blocs d'angle */}
+        <use href="#mfr-cb" x={40} y={60}/>
+        <use href="#mfr-cb" x={700} y={60}/>
+        <use href="#mfr-cb" x={40} y={1080}/>
+        <use href="#mfr-cb" x={700} y={1080}/>
+
+        {/* Lignes intérieures */}
+        <rect x="100" y="120" width="600" height="960" fill="none" stroke={a} strokeWidth="3.5"/>
+        <rect x="105" y="125" width="590" height="950" fill="none" stroke={a} strokeWidth="0.8"/>
+        <rect x="110" y="130" width="580" height="940" fill="none" stroke={ln} strokeWidth="1.5"/>
+        <rect x="114" y="134" width="572" height="932" fill="none" stroke={a} strokeWidth="0.8"/>
+
+        {/* Angles intérieurs tezhib */}
+        <use href="#mfr-ic" transform="translate(114,134)"/>
+        <use href="#mfr-ic" transform="translate(686,134) scale(-1,1)"/>
+        <use href="#mfr-ic" transform="translate(114,1066) scale(1,-1)"/>
+        <use href="#mfr-ic" transform="translate(686,1066) scale(-1,-1)"/>
+
+        {/* Médaillons latéraux */}
+        <use href="#mfr-med" transform="translate(760,600)"/>
+        <use href="#mfr-med" transform="translate(40,600) scale(-1,1)"/>
+
+        {/* Cartouche supérieur (décoratif) */}
+        <g transform="translate(0,15)">
+          <path d="M180,160 L620,160 L650,200 L620,240 L180,240 L150,200 Z" fill={bg} stroke={a} strokeWidth="3.5"/>
+          <path d="M184,166 L616,166 L642,200 L616,234 L184,234 L158,200 Z" fill="none" stroke={a} strokeWidth="1.2"/>
+          <circle cx="170" cy="200" r="4" fill={a}/>
+          <circle cx="630" cy="200" r="4" fill={a}/>
+        </g>
+
+        {/* Cartouche inférieur — numéro de page */}
+        <g>
+          <path d="M320,1020 L480,1020 L500,1040 L480,1060 L320,1060 L300,1040 Z" fill={bg} stroke={a} strokeWidth="2.5"/>
+          <path d="M324,1024 L476,1024 L492,1040 L476,1056 L324,1056 L308,1040 Z" fill="none" stroke={a} strokeWidth="0.8"/>
+          {pgNum !== undefined && (
+            <text x="400" y="1047" fontFamily="Fraunces, serif" fontSize="18" fill={a} textAnchor="middle" fontWeight="300">
+              {totalPages ? `${pgNum} / ${totalPages}` : String(pgNum)}
+            </text>
+          )}
+        </g>
+      </svg>
+
+      {/* Contenu — padding calibré sur l'espace intérieur du cadre */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        padding: narrow ? '44px 24px 40px' : '52px 70px 48px',
+      }}>
         {children}
       </div>
     </div>
@@ -739,7 +840,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         {/* ── MUSHAF MODE ── */}
         {viewMode === 'mushaf' && !loading && !dbError && filteredVerses.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-            <MushafFrame t={t}>
+            <MushafFrame t={t} page={mushafPage} totalPages={totalMushafPages}>
               {/* Basmala inside frame */}
               {selectedSurahId !== 9 && !verseSearch && mushafPage === 0 && (
                 <div style={{ textAlign: 'center', marginBottom: 20, paddingBottom: 16, borderBottom: `1px solid ${t.line}` }}>
