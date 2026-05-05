@@ -181,11 +181,11 @@ function SurahNameplate({ surahId, surahName, t }: {
       }}>
         <div style={{
           fontFamily: '"SurahNameFont", "Amiri Quran", serif',
-          fontSize: 28, color: t.accentBright, lineHeight: 1,
+          fontSize: 18, color: t.accentBright, lineHeight: 1,
         }}>
           {fontCode}
         </div>
-        <div style={{ fontSize: 8.5, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 7.5, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
           {surahName}
         </div>
       </div>
@@ -684,7 +684,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
           <div className="anim-guide-fill" style={{ height: `${readProgress}%` }}/>
         </div>
 
-      <div ref={listRef} onScroll={onListScroll} style={{ flex: 1, overflowY: 'auto', paddingBottom: 24, touchAction: 'pan-y' }} className="no-scrollbar">
+      <div ref={listRef} onScroll={onListScroll} style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', paddingBottom: 24, touchAction: 'pan-y' }} className="no-scrollbar">
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
             <IslamicLoader size={52} label={fr ? 'Chargement…' : 'جارٍ التحميل…'} />
