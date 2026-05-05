@@ -317,7 +317,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const fetchVerses = useCallback(async (surahId: number) => {
     if (cache.current.has(surahId)) { setVerses(cache.current.get(surahId)!); return; }
 
-    // 1. localStorage first — instant, no spinner needed
+    // 1. localStorage first — instant, no spinner
     const lsKey = `mishkat_quran_${surahId}`;
     try {
       const raw = localStorage.getItem(lsKey);
@@ -329,10 +329,26 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
       }
     } catch {}
 
-    // 2. Nothing cached — show loader and try network sources
+    // 2. Nothing cached — show loader
     setLoading(true); setDbError(null);
 
-    const loadFromApi = async (): Promise<QuranVerse[] | null> => {
+    const save = (rows: QuranVerse[]) => {
+      try { localStorage.setItem(lsKey, JSON.stringify(rows)); } catch {}
+      cache.current.set(surahId, rows); setVerses(rows); setLoading(false);
+    };
+
+    // Start both requests immediately (true parallel)
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 4000);
+
+    const sbPromise = Promise.resolve(
+      supabase.from('quran_verses').select('*')
+        .eq('surah_number', surahId).order('ayah_number')
+        .abortSignal(controller.signal)
+    ).then(({ data, error }) => (!error && data && data.length > 0 ? data as QuranVerse[] : null))
+      .catch(() => null);
+
+    const apiPromise = (async (): Promise<QuranVerse[] | null> => {
       try {
         const [arRes, frRes] = await Promise.all([
           fetch(`https://api.alquran.cloud/v1/surah/${surahId}/quran-uthmani`),
@@ -340,11 +356,11 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         ]);
         if (!arRes.ok || !frRes.ok) return null;
         const [arJson, frJson] = await Promise.all([arRes.json(), frRes.json()]);
-        const arAyahs: { numberInSurah: number; text: string }[] = arJson.data.ayahs;
         const frMap = new Map<number, string>(
-          (frJson.data.ayahs as { numberInSurah: number; text: string }[]).map(a => [a.numberInSurah, a.text])
+          (frJson.data.ayahs as { numberInSurah: number; text: string }[])
+            .map(a => [a.numberInSurah, a.text])
         );
-        return arAyahs.map(a => ({
+        return (arJson.data.ayahs as { numberInSurah: number; text: string }[]).map(a => ({
           id: surahId * 1000 + a.numberInSurah,
           surah_number: surahId,
           ayah_number: a.numberInSurah,
@@ -352,39 +368,22 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
           french_text: frMap.get(a.numberInSurah) ?? '',
         }));
       } catch { return null; }
-    };
+    })();
 
-    // Try Supabase (4s timeout) and alquran.cloud in parallel — use first winner
-    const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 4000);
-
+    // Use whichever responds first with data — don't wait for the slow one
     try {
-      const sbPromise = Promise.resolve(
-        supabase.from('quran_verses').select('*')
-          .eq('surah_number', surahId).order('ayah_number')
-          .abortSignal(controller.signal)
-      ).then(({ data, error }) => (!error && data && data.length > 0 ? data as QuranVerse[] : null))
-        .catch(() => null);
-
-      const apiPromise = loadFromApi();
-
-      // Use whichever gives us data first
-      let result: QuranVerse[] | null = null;
-      const [sb, api] = await Promise.all([sbPromise, apiPromise]);
+      const sb = await sbPromise;
       clearTimeout(tid);
-      result = sb ?? api;
-
-      if (result && result.length > 0) {
-        try { localStorage.setItem(lsKey, JSON.stringify(result)); } catch {}
-        cache.current.set(surahId, result); setVerses(result); setLoading(false);
-      } else {
-        setLoading(false);
-        setDbError(fr ? 'Impossible de charger les versets. Vérifiez votre connexion.' : 'تعذّر تحميل الآيات. تحقق من اتصالك.');
-      }
+      if (sb) { save(sb); return; }
+      // Supabase gave nothing — wait for API (already running)
+      const api = await apiPromise;
+      if (api) { save(api); return; }
+      setLoading(false);
+      setDbError(fr ? 'Impossible de charger les versets. Vérifiez votre connexion.' : 'تعذّر تحميل الآيات. تحقق من اتصالك.');
     } catch {
       clearTimeout(tid);
       setLoading(false);
-      setDbError(fr ? 'Erreur inattendue. Réessayez.' : 'خطأ غير متوقع. أعد المحاولة.');
+      setDbError(fr ? 'Erreur de chargement. Réessayez.' : 'خطأ في التحميل. أعد المحاولة.');
     }
   }, [fr]);
 
