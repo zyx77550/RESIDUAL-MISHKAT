@@ -14,7 +14,7 @@ import { supabase, QuranVerse } from '../lib/supabase';
 import { SURAH_DATA } from '../types';
 import { UserData } from '../types';
 import { useT } from '../lib/theme';
-import { useIsNarrow } from './ui';
+import { useIsNarrow, useIsMobile } from './ui';
 import { saveQuranPosition } from './Dashboard';
 
 interface QuranProps {
@@ -378,8 +378,8 @@ function MushafFrame({ children, t, page, totalPages }: {
         position: 'absolute',
         top: '13%',
         bottom: '13%',
-        left: narrow ? '13%' : '16%',
-        right: narrow ? '13%' : '16%',
+        left: '16%',
+        right: '16%',
         overflow: 'hidden',
         zIndex: 1,
       }}>
@@ -441,6 +441,7 @@ function VerseNav({ currentSurahId, onNavigate, fr, t }: {
 export const QuranSection = ({ userData, lang }: QuranProps) => {
   const t = useT();
   const narrow = useIsNarrow();
+  const isMobile = useIsMobile();
   const fr = lang === 'fr';
 
   const [selectedSurahId, setSelectedSurahId] = useState<number | null>(null);
@@ -803,22 +804,26 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0, ...(readingBg ? { background: readingBg, color: readingInk } : {}) }}>
       <div style={{ flexShrink: 0, paddingBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+        {/* Ligne 1 : retour + identité de la sourate */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <button
             onClick={goBack}
-            style={{ width: 34, height: 34, borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}
+            style={{ width: 34, height: 34, borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
           >
             <ChevronLeft size={16}/>
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 2 }}>
+            <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {selectedSurah?.name} · {selectedSurah?.verses} {fr ? 'v.' : 'آية'} · Juz {selectedSurah?.juz}
             </div>
-            <h2 style={{ fontFamily: 'Amiri Quran, serif', fontSize: 28, color: readingInk ?? t.ink, margin: 0, lineHeight: 1.3, direction: 'rtl' }}>
+            <h2 style={{ fontFamily: 'Amiri Quran, serif', fontSize: isMobile ? 24 : 28, color: readingInk ?? t.ink, margin: 0, lineHeight: 1.3, direction: 'rtl', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {selectedSurah?.arabicName}
             </h2>
           </div>
+        </div>
 
+        {/* Ligne 2 : contrôles */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
           {/* View mode */}
           <div style={ctrlGroup}>
             {([
@@ -841,14 +846,13 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
               </button>
             ))}
           </div>
-
+          <div style={{ flex: 1 }}/>
           {/* Font size */}
           <div style={ctrlGroup}>
             <button onClick={() => setFontSize(s => Math.max(16, s - 2))} style={{ padding: '4px 6px', background: 'transparent', border: 'none', color: t.inkDim, cursor: 'pointer', display: 'flex' }}><Minus size={11}/></button>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.accent, minWidth: 18, textAlign: 'center' }}>{fontSize}</span>
             <button onClick={() => setFontSize(s => Math.min(42, s + 2))} style={{ padding: '4px 6px', background: 'transparent', border: 'none', color: t.inkDim, cursor: 'pointer', display: 'flex' }}><Plus size={11}/></button>
           </div>
-
           {/* Reading mode */}
           <div style={ctrlGroup}>
             {([['default','☀'], ['night','🌙'], ['flare','✨']] as const).map(([m, icon]) => (
