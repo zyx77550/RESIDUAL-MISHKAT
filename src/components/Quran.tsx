@@ -35,7 +35,6 @@ const toArabicNum = (n: number) =>
   n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[+d]);
 
 const GLOBAL_ITEM_HEIGHT = 114;
-const VERSES_PER_PAGE = 8;
 
 // Page de début dans le mushaf Madinah pour chaque sourate (1-114)
 const SURAH_PAGES = [1, 2, 50, 77, 106, 128, 151, 177, 187, 208, 221, 235, 249, 255, 262, 267, 282, 293, 305, 312, 322, 332, 342, 350, 359, 367, 377, 385, 396, 404, 411, 415, 418, 428, 434, 440, 446, 453, 458, 467, 477, 483, 489, 496, 499, 502, 507, 511, 515, 518, 520, 523, 526, 528, 531, 534, 537, 542, 545, 549, 551, 553, 554, 556, 558, 560, 562, 564, 566, 568, 570, 572, 574, 575, 577, 578, 580, 582, 583, 585, 586, 587, 587, 589, 590, 591, 591, 592, 593, 594, 595, 595, 596, 596, 597, 597, 598, 598, 599, 599, 600, 600, 601, 601, 601, 602, 602, 602, 603, 603, 603, 604, 604, 604];
@@ -109,48 +108,6 @@ function OrnamentSeparator({ t }: { t: ReturnType<typeof useT> }) {
   );
 }
 
-/** Étoile à 8 branches (Hizb) — ornement de section */
-function HizbStar({ t, size = 28 }: { t: ReturnType<typeof useT>; size?: number }) {
-  const a = t.accent;
-  const bg = t.card;
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width={size} height={size}>
-      <g transform="translate(50,50)">
-        <g stroke={a} strokeWidth="2.5" fill={bg}>
-          <rect x="-30" y="-30" width="60" height="60"/>
-          <rect x="-30" y="-30" width="60" height="60" transform="rotate(45)"/>
-        </g>
-        <g stroke={a} strokeWidth="0.8" fill="none">
-          <rect x="-22" y="-22" width="44" height="44"/>
-          <rect x="-22" y="-22" width="44" height="44" transform="rotate(45)"/>
-        </g>
-        <circle cx="0" cy="0" r="10" fill={a}/>
-        <circle cx="0" cy="0" r="5" fill={bg}/>
-        <circle cx="0" cy="-42" r="3" fill={a}/>
-        <circle cx="0" cy="42" r="3" fill={a}/>
-        <circle cx="-42" cy="0" r="3" fill={a}/>
-        <circle cx="42" cy="0" r="3" fill={a}/>
-      </g>
-    </svg>
-  );
-}
-
-/** Icône Mushaf (livre ouvert sur rehal) */
-function MushabBookIcon({ color, size = 14 }: { color: string; size?: number }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width={size} height={size} style={{ flexShrink: 0 }}>
-      <g transform="translate(50,55)">
-        <path d="M-30,20 L-40,40 L-35,42 L-20,15 Z" fill={color} opacity="0.65"/>
-        <path d="M30,20 L40,40 L35,42 L20,15 Z" fill={color} opacity="0.65"/>
-        <path d="M0,20 C-15,20 -35,5 -40,-10 L-40,-25 C-30,-15 -15,-5 0,10 Z" fill={color} opacity="0.22"/>
-        <path d="M0,20 C15,20 35,5 40,-10 L40,-25 C30,-15 15,-5 0,10 Z" fill={color} opacity="0.22"/>
-        <path d="M-5,5 C-15,-2 -25,-10 -35,-20" stroke={color} strokeWidth="2" fill="none" opacity="0.5"/>
-        <path d="M5,5 C15,-2 25,-10 35,-20" stroke={color} strokeWidth="2" fill="none" opacity="0.5"/>
-        <path d="M0,10 L-5,30 L0,25 L5,30 Z" fill={color}/>
-      </g>
-    </svg>
-  );
-}
 
 // ── GlobalRow ──────────────────────────────────────────────────────
 interface GlobalRowProps {
@@ -236,158 +193,6 @@ function SurahNameplate({ surahId, surahName, t }: {
   );
 }
 
-// ── Mushaf decorative SVG frame ──────────────────────────────────
-function MushafFrame({ children, t, page, totalPages }: {
-  children: React.ReactNode;
-  t: ReturnType<typeof useT>;
-  page?: number;
-  totalPages?: number;
-}) {
-  const narrow = useIsNarrow();
-  const a = t.accent;
-  const ab = t.accentBright;
-  const as_ = t.accentSoft;
-  const bg = t.card;
-  const ln = t.line;
-  const pgNum = page !== undefined ? page + 1 : undefined;
-
-  return (
-    <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', width: '100%', maxWidth: narrow ? 373 : 453, margin: '0 auto', aspectRatio: '2/3' }}>
-      {/* SVG frame — preserveAspectRatio="none" stretches to fill any container */}
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 800 1200"
-        width="100%"
-        height="100%"
-        preserveAspectRatio="none"
-        style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}
-        aria-hidden="true"
-      >
-        <defs>
-          <linearGradient id="mfr-gold" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={ab}/>
-            <stop offset="25%" stopColor={a}/>
-            <stop offset="50%" stopColor={ab}/>
-            <stop offset="75%" stopColor={as_}/>
-            <stop offset="100%" stopColor={a}/>
-          </linearGradient>
-
-          <pattern id="mfr-bp" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
-            <rect width="60" height="60" fill="transparent"/>
-            <path d="M0,0 L60,60 M60,0 L0,60" stroke={ln} strokeWidth="3"/>
-            <g stroke={a} strokeWidth="1.5" fill="none">
-              <polygon points="30,5 55,30 30,55 5,30"/>
-              <polygon points="12,12 48,12 48,48 12,48"/>
-            </g>
-            <circle cx="30" cy="30" r="10" fill={a}/>
-            <circle cx="30" cy="30" r="6" fill={bg}/>
-            <circle cx="30" cy="30" r="2" fill={a}/>
-            <path d="M30,0 L30,5 M30,55 L30,60 M0,30 L5,30 M55,30 L60,30" stroke={a} strokeWidth="2"/>
-          </pattern>
-
-          <g id="mfr-cb">
-            <rect width="60" height="60" fill={bg}/>
-            <rect x="2" y="2" width="56" height="56" fill="none" stroke={a} strokeWidth="1.5"/>
-            <rect x="6" y="6" width="48" height="48" fill="none" stroke={a} strokeWidth="0.8"/>
-            <g transform="translate(30,30)">
-              <polygon points="0,-20 14,-14 20,0 14,14 0,20 -14,14 -20,0 -14,-14" fill={a}/>
-              <circle cx="0" cy="0" r="8" fill={bg}/>
-              <circle cx="0" cy="0" r="3" fill={a}/>
-              <path d="M0,-20 L0,-26 M20,0 L26,0 M0,20 L0,26 M-20,0 L-26,0" stroke={a} strokeWidth="1.5"/>
-              <path d="M14,-14 L18,-18 M14,14 L18,18 M-14,14 L-18,18 M-14,-14 L-18,-18" stroke={a} strokeWidth="1.5"/>
-            </g>
-          </g>
-
-          <g id="mfr-ic">
-            <path d="M0,60 A60 60 0 0 1 60,0 L0,0 Z" fill={a}/>
-            <path d="M0,55 A55 55 0 0 1 55,0 L0,0 Z" fill={bg}/>
-            <path d="M0,45 A45 45 0 0 1 45,0 L0,0 Z" fill="none" stroke={a} strokeWidth="1.5"/>
-            <path d="M0,35 A35 35 0 0 1 35,0 L0,0 Z" fill={a}/>
-            <circle cx="15" cy="15" r="4" fill={bg}/>
-            <circle cx="25" cy="25" r="3" fill={bg}/>
-            <circle cx="35" cy="10" r="2" fill={bg}/>
-            <circle cx="10" cy="35" r="2" fill={bg}/>
-          </g>
-
-          <g id="mfr-med">
-            <path d="M0,-60 C20,-60 50,-20 60,0 C50,20 20,60 0,60 Z" fill={bg} stroke={a} strokeWidth="2.5"/>
-            <path d="M0,-50 C15,-50 40,-15 48,0 C40,15 15,50 0,50 Z" fill={a}/>
-            <circle cx="15" cy="0" r="10" fill={bg}/>
-            <circle cx="15" cy="0" r="5" fill={a}/>
-          </g>
-        </defs>
-
-        {/* Watermark discret */}
-        <g transform="translate(400,600) scale(4)" opacity="0.03">
-          <rect x="-30" y="-30" width="60" height="60" fill={a}/>
-          <rect x="-30" y="-30" width="60" height="60" fill={a} transform="rotate(45)"/>
-          <circle cx="0" cy="0" r="15" fill={a}/>
-        </g>
-
-        {/* Lignes extérieures */}
-        <rect x="26" y="46" width="748" height="1108" fill="none" stroke={a} strokeWidth="0.8"/>
-        <rect x="30" y="50" width="740" height="1100" fill="none" stroke={ln} strokeWidth="2"/>
-        <rect x="35" y="55" width="730" height="1090" fill="none" stroke={a} strokeWidth="0.8"/>
-        <rect x="40" y="60" width="720" height="1080" fill="none" stroke={a} strokeWidth="3.5"/>
-
-        {/* Bande géométrique */}
-        <path d="M40,60 h720 v1080 h-720 v-1080 M100,120 v960 h600 v-960 h-600" fill="url(#mfr-bp)" fillRule="evenodd"/>
-
-        {/* Blocs d'angle */}
-        <use href="#mfr-cb" x={40} y={60}/>
-        <use href="#mfr-cb" x={700} y={60}/>
-        <use href="#mfr-cb" x={40} y={1080}/>
-        <use href="#mfr-cb" x={700} y={1080}/>
-
-        {/* Lignes intérieures */}
-        <rect x="100" y="120" width="600" height="960" fill="none" stroke={a} strokeWidth="3.5"/>
-        <rect x="105" y="125" width="590" height="950" fill="none" stroke={a} strokeWidth="0.8"/>
-        <rect x="110" y="130" width="580" height="940" fill="none" stroke={ln} strokeWidth="1.5"/>
-        <rect x="114" y="134" width="572" height="932" fill="none" stroke={a} strokeWidth="0.8"/>
-
-        {/* Angles intérieurs tezhib */}
-        <use href="#mfr-ic" transform="translate(114,134)"/>
-        <use href="#mfr-ic" transform="translate(686,134) scale(-1,1)"/>
-        <use href="#mfr-ic" transform="translate(114,1066) scale(1,-1)"/>
-        <use href="#mfr-ic" transform="translate(686,1066) scale(-1,-1)"/>
-
-        {/* Médaillons latéraux */}
-        <use href="#mfr-med" transform="translate(760,600)"/>
-        <use href="#mfr-med" transform="translate(40,600) scale(-1,1)"/>
-
-        {/* Cartouche supérieur — dans la bande décorative (y=60-120) */}
-        <path d="M200,75 L600,75 L626,90 L600,105 L200,105 L174,90 Z" fill={bg} stroke={a} strokeWidth="2.5"/>
-        <path d="M204,79 L596,79 L618,90 L596,101 L204,101 L182,90 Z" fill="none" stroke={a} strokeWidth="0.8"/>
-        <circle cx="192" cy="90" r="3.5" fill={a}/>
-        <circle cx="608" cy="90" r="3.5" fill={a}/>
-
-        {/* Cartouche inférieur — dans la bande décorative (y=1080-1140), numéro de page */}
-        <path d="M320,1095 L480,1095 L500,1110 L480,1125 L320,1125 L300,1110 Z" fill={bg} stroke={a} strokeWidth="2.5"/>
-        <path d="M324,1099 L476,1099 L492,1110 L476,1121 L324,1121 L308,1110 Z" fill="none" stroke={a} strokeWidth="0.8"/>
-        {pgNum !== undefined && (
-          <text x="400" y="1115" fontFamily="Fraunces, serif" fontSize="20" fill={a} textAnchor="middle" fontWeight="300">
-            {totalPages ? `${pgNum} / ${totalPages}` : String(pgNum)}
-          </text>
-        )}
-      </svg>
-
-      {/* Contenu — positionné en absolu dans la zone utile du cadre SVG.
-          Les % sont calés sur l'innermost rect (x=114,y=134 → x=686,y=1066 dans viewBox 800×1200).
-          overflow:hidden empêche tout débordement hors cadre. */}
-      <div style={{
-        position: 'absolute',
-        top: '13%',
-        bottom: '13%',
-        left: '16%',
-        right: '16%',
-        overflow: 'hidden',
-        zIndex: 1,
-      }}>
-        {children}
-      </div>
-    </div>
-  );
-}
 
 // ── Surah prev / next navigation ─────────────────────────────────
 function VerseNav({ currentSurahId, onNavigate, fr, t }: {
@@ -452,11 +257,10 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const [verseSearch, setVerseSearch] = useState('');
   const [expandedId, setExpandedId]   = useState<number | null>(null);
   const [bookmarks, setBookmarks] = useState<Set<BookmarkKey>>(loadBookmarks);
-  const [viewMode, setViewMode]   = useState<'list' | 'mushaf' | 'authentic'>('list');
+  const [viewMode, setViewMode]   = useState<'list' | 'authentic'>('list');
   const [authenticPage, setAuthenticPage] = useState(1);
   const [readProgress, setReadProgress] = useState(0);
   const [mushafSelected, setMushafSelected] = useState<QuranVerse | null>(null);
-  const [mushafPage, setMushafPage] = useState(0);
   const [readingMode, setReadingMode] = useState<'default' | 'night' | 'flare'>('default');
   const [fontSize, setFontSize]   = useState(24);
   const [playingId, setPlayingId] = useState<number | null>(null);
@@ -542,7 +346,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
   const openSurah = useCallback((id: number) => {
     setSelectedSurahId(id); setVerseSearch(''); setExpandedId(null);
-    setMushafSelected(null); setMushafPage(0); setAuthenticPage(surahPageStart(id));
+    setMushafSelected(null); setAuthenticPage(surahPageStart(id));
     fetchVerses(id); listRef.current?.scrollTo({ top: 0 });
     const s = SURAH_DATA.find(x => x.id === id);
     if (s) saveQuranPosition(id, s.name, 1);
@@ -608,12 +412,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
     const q = verseSearch.toLowerCase();
     return verses.filter(v => v.arabic_text.includes(verseSearch) || v.french_text.toLowerCase().includes(q) || v.ayah_number.toString() === q);
   }, [verseSearch, verses]);
-
-  const mushafPageVerses = useMemo(() => {
-    const start = mushafPage * VERSES_PER_PAGE;
-    return filteredVerses.slice(start, start + VERSES_PER_PAGE);
-  }, [filteredVerses, mushafPage]);
-  const totalMushafPages = Math.ceil(filteredVerses.length / VERSES_PER_PAGE);
 
   const globalRowData = useMemo<GlobalRowProps>(() => ({
     results: globalResults, lang, t, onOpen: openSurahAtVerse,
@@ -828,11 +626,10 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
           <div style={ctrlGroup}>
             {([
               { mode: 'list',      label: fr ? 'Liste' : 'قائمة', icon: <LayoutList size={12}/> },
-              { mode: 'mushaf',    label: 'Mushaf',                icon: <MushabBookIcon color={viewMode === 'mushaf' ? '#1a0f00' : t.inkDim} size={14}/> },
               { mode: 'authentic', label: fr ? 'Pages' : 'مصحف',  icon: <BookOpen size={12}/> },
             ] as const).map(({ mode, label, icon }) => (
               <button key={mode} onClick={() => {
-                setViewMode(mode); setMushafSelected(null); setMushafPage(0);
+                setViewMode(mode); setMushafSelected(null);
                 if (mode === 'authentic' && selectedSurahId) setAuthenticPage(surahPageStart(selectedSurahId));
               }} style={{
                 display: 'flex', alignItems: 'center', gap: 4, padding: '5px 9px', borderRadius: 7,
@@ -1020,109 +817,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                 {fr ? `${filteredVerses.length} versets` : `${filteredVerses.length} آية`}
               </span>
             </div>
-          </motion.div>
-        )}
-
-        {/* ── MUSHAF MODE ── */}
-        {viewMode === 'mushaf' && !loading && !dbError && filteredVerses.length > 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-            <MushafFrame t={t} page={mushafPage} totalPages={totalMushafPages}>
-              {/* Surah nameplate + basmala on first page */}
-              {!verseSearch && mushafPage === 0 && selectedSurah && (
-                <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                  <SurahNameplate surahId={selectedSurah.id} surahName={selectedSurah.name} t={t}/>
-                  {selectedSurahId !== 9 && (
-                    <div className="anim-reading" style={{ fontFamily: 'Amiri Quran, serif', fontSize: Math.round(fontSize * 1.05), color: t.accentBright, direction: 'rtl', lineHeight: 1.9, marginTop: 4 }}>
-                      بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-                    </div>
-                  )}
-                  <div style={{ marginTop: 10 }}>
-                    <OrnamentSeparator t={t}/>
-                  </div>
-                </div>
-              )}
-
-              {/* Verse text — continuous justified */}
-              <div style={{
-                direction: 'rtl', fontFamily: 'Amiri Quran, serif', fontSize: fontSize, lineHeight: '2.2',
-                color: readingInk ?? t.ink, textAlign: 'justify',
-              }}>
-                {mushafPageVerses.map(verse => {
-                  const isSelected = mushafSelected?.id === verse.id;
-                  return (
-                    <React.Fragment key={verse.id}>
-                      <span
-                        onClick={() => setMushafSelected(isSelected ? null : verse)}
-                        style={{ cursor: 'pointer', color: isSelected ? t.accentBright : (readingInk ?? t.ink), background: isSelected ? `${t.accent}16` : 'transparent', borderRadius: 4, padding: '0 2px', transition: 'color 0.15s, background 0.15s' }}
-                      >
-                        {verse.arabic_text}
-                      </span>
-                      {'‏ '}
-                      <span
-                        onClick={() => setMushafSelected(isSelected ? null : verse)}
-                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', background: isSelected ? t.accent : `${t.accent}18`, color: isSelected ? '#1a0f00' : t.accentBright, fontSize: 11, fontFamily: 'Amiri Quran, serif', verticalAlign: 'middle', margin: '0 3px', cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}
-                      >
-                        {toArabicNum(verse.ayah_number)}
-                      </span>
-                      {' '}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            </MushafFrame>
-
-            {/* Mushaf pagination */}
-            {totalMushafPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '16px 0 8px' }}>
-                <button
-                  onClick={() => { setMushafPage(p => Math.max(0, p - 1)); setMushafSelected(null); listRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                  disabled={mushafPage === 0}
-                  style={{ width: 34, height: 34, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: mushafPage === 0 ? t.inkMute : t.ink, cursor: mushafPage === 0 ? 'default' : 'pointer', opacity: mushafPage === 0 ? 0.4 : 1 }}
-                >
-                  <ChevronRight size={14}/>
-                </button>
-                <span style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.14em', fontWeight: 700 }}>
-                  {fr ? `${mushafPage + 1} / ${totalMushafPages}` : `${toArabicNum(totalMushafPages)} / ${toArabicNum(mushafPage + 1)}`}
-                </span>
-                <button
-                  onClick={() => { setMushafPage(p => Math.min(totalMushafPages - 1, p + 1)); setMushafSelected(null); listRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                  disabled={mushafPage >= totalMushafPages - 1}
-                  style={{ width: 34, height: 34, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: mushafPage >= totalMushafPages - 1 ? t.inkMute : t.ink, cursor: mushafPage >= totalMushafPages - 1 ? 'default' : 'pointer', opacity: mushafPage >= totalMushafPages - 1 ? 0.4 : 1 }}
-                >
-                  <ChevronLeft size={14}/>
-                </button>
-              </div>
-            )}
-
-            {/* Selected verse detail panel */}
-            <AnimatePresence>
-              {mushafSelected && (
-                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
-                  style={{ position: 'sticky', bottom: 0, marginTop: 12, background: t.card, border: `1px solid ${t.line}`, borderRadius: '14px 14px 8px 8px', padding: '16px 20px 18px', boxShadow: '0 -6px 24px rgba(0,0,0,0.12)' }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <span style={{ fontSize: 10, color: t.accentBright, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-                      {fr ? `${selectedSurah?.name} · Verset ${mushafSelected.ayah_number}` : `${selectedSurah?.arabicName} · آية ${toArabicNum(mushafSelected.ayah_number)}`}
-                    </span>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {/* Action pills in panel */}
-                      {[
-                        { icon: playingId === mushafSelected.id ? <VolumeX size={12}/> : <Volume2 size={12}/>, fn: (e: React.MouseEvent) => playAudio(mushafSelected, e), active: playingId === mushafSelected.id },
-                        { icon: <Copy size={12}/>, fn: (e: React.MouseEvent) => copyVerse(mushafSelected, e), active: false },
-                        { icon: bookmarks.has(`${mushafSelected.surah_number}:${mushafSelected.ayah_number}` as BookmarkKey) ? <BookMarked size={12}/> : <Bookmark size={12}/>, fn: (e: React.MouseEvent) => toggleBookmark(mushafSelected.surah_number, mushafSelected.ayah_number, e), active: bookmarks.has(`${mushafSelected.surah_number}:${mushafSelected.ayah_number}` as BookmarkKey) },
-                      ].map((btn, i) => (
-                        <button key={i} onClick={btn.fn} style={{ width: 30, height: 30, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: btn.active ? `${t.accent}18` : t.cardElev, border: `1px solid ${btn.active ? t.accent : t.line}`, color: btn.active ? t.accent : t.inkDim, cursor: 'pointer' }}>
-                          {btn.icon}
-                        </button>
-                      ))}
-                      <button onClick={() => setMushafSelected(null)} style={{ width: 30, height: 30, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkMute, cursor: 'pointer' }}><X size={13}/></button>
-                    </div>
-                  </div>
-                  <p style={{ fontSize: 20, fontFamily: 'Amiri Quran, serif', direction: 'rtl', color: t.ink, lineHeight: '2.2', marginBottom: 10 }}>{mushafSelected.arabic_text}</p>
-                  <p style={{ fontSize: 13, color: t.inkDim, lineHeight: '1.7', fontStyle: 'italic', fontFamily: 'Fraunces, serif' }}>{mushafSelected.french_text}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </motion.div>
         )}
 
