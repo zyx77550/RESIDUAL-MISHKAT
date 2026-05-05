@@ -1109,8 +1109,8 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         )}
       </div>
 
-        {/* ── Smart scroll handle (right side) ── */}
-        {viewMode === 'list' && selectedSurahId !== null && (
+        {/* ── Smart scroll handle (right side) — list + authentic ── */}
+        {selectedSurahId !== null && (
           <div
             ref={trackRef}
             onMouseEnter={() => setTrackHovered(true)}
