@@ -163,7 +163,8 @@ function SurahNameplate({ surahId, surahName, t }: {
 }) {
   const fontCode = `surah${String(surahId).padStart(3, '0')}`;
   return (
-    <div style={{ position: 'relative', width: '100%', marginBottom: 10 }}>
+    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+    <div style={{ position: 'relative', width: '100%', maxWidth: 260 }}>
       <img
         src="/surah-frame.svg"
         alt=""
@@ -189,6 +190,7 @@ function SurahNameplate({ surahId, surahName, t }: {
           {surahName}
         </div>
       </div>
+    </div>
     </div>
   );
 }
@@ -266,6 +268,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const [playingId, setPlayingId] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const shareRef = useRef<HTMLDivElement | null>(null);
+  const [imgScale, setImgScale] = useState(1);
 
   const [globalMode, setGlobalMode] = useState(false);
   const [globalQuery, setGlobalQuery] = useState('');
@@ -294,8 +297,12 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   };
 
   const pinchBind = usePinch(({ offset: [scale], first }) => {
-    if (first) baseFontRef.current = fontSize;
-    setFontSize(Math.max(16, Math.min(42, Math.round(baseFontRef.current * scale))));
+    if (viewMode === 'authentic') {
+      setImgScale(Math.max(1, Math.min(2.5, scale)));
+    } else {
+      if (first) baseFontRef.current = fontSize;
+      setFontSize(Math.max(16, Math.min(42, Math.round(baseFontRef.current * scale))));
+    }
   }, { target: listRef, eventOptions: { passive: false } });
 
   const selectedSurah = selectedSurahId != null
@@ -346,7 +353,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
   const openSurah = useCallback((id: number) => {
     setSelectedSurahId(id); setVerseSearch(''); setExpandedId(null);
-    setMushafSelected(null); setAuthenticPage(surahPageStart(id));
+    setMushafSelected(null); setAuthenticPage(surahPageStart(id)); setImgScale(1);
     fetchVerses(id); listRef.current?.scrollTo({ top: 0 });
     const s = SURAH_DATA.find(x => x.id === id);
     if (s) saveQuranPosition(id, s.name, 1);
@@ -629,7 +636,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
               { mode: 'authentic', label: fr ? 'Pages' : 'مصحف',  icon: <BookOpen size={12}/> },
             ] as const).map(({ mode, label, icon }) => (
               <button key={mode} onClick={() => {
-                setViewMode(mode); setMushafSelected(null);
+                setViewMode(mode); setMushafSelected(null); setImgScale(1);
                 if (mode === 'authentic' && selectedSurahId) setAuthenticPage(surahPageStart(selectedSurahId));
               }} style={{
                 display: 'flex', alignItems: 'center', gap: 4, padding: '5px 9px', borderRadius: 7,
@@ -830,18 +837,26 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
               <SurahNameplate surahId={selectedSurah.id} surahName={selectedSurah.name} t={t}/>
             )}
 
-            {/* Page image — full width, aucune restriction de maxWidth */}
+            {/* Page image — full width */}
             <div style={{
               position: 'relative', borderRadius: 12, overflow: 'hidden',
               width: '100%',
               boxShadow: '0 4px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,166,74,0.2)',
             }}>
-              <div style={{ background: '#f5efe0', borderRadius: 12 }}>
+              <div
+                style={{ background: '#f5efe0', borderRadius: 12, overflow: 'hidden' }}
+                onDoubleClick={() => setImgScale(1)}
+              >
                 <img
-                  key={authenticPage}
                   src={mushafSvgUrl(authenticPage)}
                   alt={`Mushaf page ${authenticPage}`}
-                  style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 12 }}
+                  style={{
+                    width: '100%', height: 'auto', display: 'block',
+                    transform: `scale(${imgScale})`,
+                    transformOrigin: 'top center',
+                    transition: 'transform 0.2s ease',
+                    touchAction: 'none',
+                  }}
                   loading="eager"
                 />
               </div>
@@ -851,34 +866,46 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
                 background: 'rgba(26,15,0,0.82)', borderRadius: 99,
                 padding: '3px 14px', fontSize: 11, color: '#d4a64a',
                 fontFamily: 'Fraunces, serif', letterSpacing: '0.14em', whiteSpace: 'nowrap',
+                pointerEvents: 'none',
               }}>
                 {fr ? `Page ${authenticPage}` : `صفحة ${toArabicNum(authenticPage)}`}
               </div>
+              {/* Zoom hint */}
+              {imgScale > 1 && (
+                <div style={{
+                  position: 'absolute', top: 10, right: 10,
+                  background: 'rgba(26,15,0,0.75)', borderRadius: 99,
+                  padding: '3px 10px', fontSize: 10, color: '#d4a64a',
+                  fontFamily: 'Fraunces, serif',
+                }}>
+                  ×{imgScale.toFixed(1)}
+                </div>
+              )}
             </div>
 
             {/* Navigation page */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
               <button
-                onClick={() => { setAuthenticPage(p => Math.max(surahPageStart(selectedSurahId), p - 1)); listRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                onClick={() => { setAuthenticPage(p => Math.max(surahPageStart(selectedSurahId), p - 1)); setImgScale(1); listRef.current?.scrollTo({ top: 0 }); }}
                 disabled={authenticPage <= surahPageStart(selectedSurahId)}
                 style={{ width: 40, height: 40, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: authenticPage <= surahPageStart(selectedSurahId) ? t.inkMute : t.ink, cursor: authenticPage <= surahPageStart(selectedSurahId) ? 'default' : 'pointer', opacity: authenticPage <= surahPageStart(selectedSurahId) ? 0.35 : 1 }}
               >
-                <ChevronRight size={16}/>
+                <ChevronLeft size={16}/>
               </button>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 13, color: t.accent, fontFamily: 'Fraunces, serif', fontWeight: 300 }}>
-                  {toArabicNum(authenticPage)} / {toArabicNum(surahPageEnd(selectedSurahId))}
+                  {authenticPage} / {surahPageEnd(selectedSurahId)}
                 </div>
                 <div style={{ fontSize: 9, color: t.inkMute, letterSpacing: '0.1em', marginTop: 2 }}>
                   {fr ? 'Complexe du Roi Fahd · Médine' : 'مجمع الملك فهد · المدينة'}
                 </div>
               </div>
               <button
-                onClick={() => { setAuthenticPage(p => Math.min(surahPageEnd(selectedSurahId), p + 1)); listRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                onClick={() => { setAuthenticPage(p => Math.min(surahPageEnd(selectedSurahId), p + 1)); setImgScale(1); listRef.current?.scrollTo({ top: 0 }); }}
                 disabled={authenticPage >= surahPageEnd(selectedSurahId)}
                 style={{ width: 40, height: 40, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.cardElev, border: `1px solid ${t.line}`, color: authenticPage >= surahPageEnd(selectedSurahId) ? t.inkMute : t.ink, cursor: authenticPage >= surahPageEnd(selectedSurahId) ? 'default' : 'pointer', opacity: authenticPage >= surahPageEnd(selectedSurahId) ? 0.35 : 1 }}
               >
-                <ChevronLeft size={16}/>
+                <ChevronRight size={16}/>
               </button>
             </div>
 
