@@ -317,12 +317,59 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const fetchVerses = useCallback(async (surahId: number) => {
     if (cache.current.has(surahId)) { setVerses(cache.current.get(surahId)!); return; }
     setLoading(true); setDbError(null);
-    const { data, error } = await supabase.from('quran_verses').select('*').eq('surah_number', surahId).order('ayah_number');
-    setLoading(false);
-    if (error) { setDbError(error.message); return; }
-    cache.current.set(surahId, data ?? []);
-    setVerses(data ?? []);
-  }, []);
+
+    // 1. Try Supabase with 8s timeout
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 8000);
+    try {
+      const { data, error } = await supabase
+        .from('quran_verses').select('*')
+        .eq('surah_number', surahId).order('ayah_number')
+        .abortSignal(controller.signal);
+      clearTimeout(tid);
+      if (!error && data && data.length > 0) {
+        cache.current.set(surahId, data); setVerses(data); setLoading(false); return;
+      }
+    } catch { clearTimeout(tid); }
+
+    // 2. localStorage cache (works offline after first API load)
+    const lsKey = `mishkat_quran_${surahId}`;
+    try {
+      const raw = localStorage.getItem(lsKey);
+      if (raw) {
+        const parsed: QuranVerse[] = JSON.parse(raw);
+        if (parsed.length > 0) {
+          cache.current.set(surahId, parsed); setVerses(parsed); setLoading(false); return;
+        }
+      }
+    } catch {}
+
+    // 3. Public API fallback — alquran.cloud (Arabic uthmani + French Hamidullah)
+    try {
+      const [arRes, frRes] = await Promise.all([
+        fetch(`https://api.alquran.cloud/v1/surah/${surahId}/quran-uthmani`),
+        fetch(`https://api.alquran.cloud/v1/surah/${surahId}/fr.hamidullah`),
+      ]);
+      if (!arRes.ok || !frRes.ok) throw new Error('api');
+      const [arJson, frJson] = await Promise.all([arRes.json(), frRes.json()]);
+      const arAyahs: { numberInSurah: number; text: string }[] = arJson.data.ayahs;
+      const frMap = new Map<number, string>(
+        (frJson.data.ayahs as { numberInSurah: number; text: string }[]).map(a => [a.numberInSurah, a.text])
+      );
+      const mapped: QuranVerse[] = arAyahs.map(a => ({
+        id: surahId * 1000 + a.numberInSurah,
+        surah_number: surahId,
+        ayah_number: a.numberInSurah,
+        arabic_text: a.text,
+        french_text: frMap.get(a.numberInSurah) ?? '',
+      }));
+      try { localStorage.setItem(lsKey, JSON.stringify(mapped)); } catch {}
+      cache.current.set(surahId, mapped); setVerses(mapped); setLoading(false);
+    } catch {
+      setLoading(false);
+      setDbError(fr ? 'Impossible de charger — vérifiez votre connexion.' : 'تعذّر التحميل — تحقق من اتصالك.');
+    }
+  }, [fr]);
 
   useEffect(() => {
     if (!globalMode || globalQuery.trim().length < 2) { setGlobalResults([]); setGlobalSearched(false); return; }
@@ -715,19 +762,30 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
             <IslamicLoader size={52} label={fr ? 'Chargement…' : 'جارٍ التحميل…'} />
           </div>
         )}
-        {!loading && !dbError && verses.length === 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 12, textAlign: 'center' }}>
+        {!loading && !dbError && verses.length === 0 && selectedSurahId !== null && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 14, textAlign: 'center' }}>
             <AlertCircle size={44} style={{ color: t.accent, opacity: 0.3 }}/>
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: t.ink }}>{fr ? 'Base de données vide' : 'قاعدة البيانات فارغة'}</p>
-              <p style={{ fontSize: 11, color: t.inkMute, marginTop: 4 }}>{fr ? 'Lance npm run seed pour importer le Coran.' : 'شغّل npm run seed لاستيراد القرآن.'}</p>
-            </div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: t.ink }}>
+              {fr ? 'Aucun verset trouvé' : 'لم يُعثر على آيات'}
+            </p>
+            <button
+              onClick={() => { cache.current.delete(selectedSurahId); fetchVerses(selectedSurahId); }}
+              style={{ padding: '8px 20px', borderRadius: 999, background: t.accent, color: '#1a0f00', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer' }}
+            >
+              {fr ? 'Réessayer' : 'إعادة المحاولة'}
+            </button>
           </div>
         )}
-        {!loading && dbError && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 10 }}>
+        {!loading && dbError && selectedSurahId !== null && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 12 }}>
             <AlertCircle size={44} style={{ color: '#ef4444', opacity: 0.5 }}/>
-            <p style={{ fontSize: 12, color: '#ef4444' }}>{dbError}</p>
+            <p style={{ fontSize: 12, color: '#ef4444', maxWidth: 260, textAlign: 'center', lineHeight: 1.6 }}>{dbError}</p>
+            <button
+              onClick={() => { cache.current.delete(selectedSurahId); setDbError(null); fetchVerses(selectedSurahId); }}
+              style={{ padding: '8px 20px', borderRadius: 999, background: t.accent, color: '#1a0f00', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer' }}
+            >
+              {fr ? 'Réessayer' : 'إعادة المحاولة'}
+            </button>
           </div>
         )}
 
