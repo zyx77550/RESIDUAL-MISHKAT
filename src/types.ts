@@ -113,6 +113,7 @@ export interface UserData {
   settings: UserSettings;
   lastLoginDate?: string;
   loginStreak: number;
+  joursBlancs?: Record<string, { 13: boolean; 14: boolean; 15: boolean }>;
 }
 
 // ═══════════════════════════════════════════════════════════════

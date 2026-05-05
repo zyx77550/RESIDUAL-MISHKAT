@@ -31,6 +31,7 @@ export const Icons = {
   settings:  <><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></>,
   flame:     <><path d="M12 2c0 4-4 5-4 9a4 4 0 0 0 8 0c0-2-1-3-2-4 0 2-1 3-2 3-1 0-2-1-2-3 0-2 2-3 2-5z"/></>,
   moon:      <><path d="M20 14a8 8 0 1 1-9-10 6 6 0 0 0 9 10z"/></>,
+  moonStar:  <><path d="M20 14a8 8 0 1 1-9-10 6 6 0 0 0 9 10z"/><path d="M18.5 3.5l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5L17 5.5l1.5-.5z" fill="currentColor"/></>,
   sparkle:   <><path d="M12 2l1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5z"/></>,
   check:     <><path d="M5 12l4 4 10-10"/></>,
   plus:      <><path d="M12 5v14M5 12h14"/></>,
@@ -226,6 +227,7 @@ const MENU_ITEMS = [
   { id: 'quran',        labelFr: 'Coran',             icon: 'bookmark'  },
   { id: 'adhkar',       labelFr: 'Adhkar',            icon: 'moon'      },
   { id: 'quiz',         labelFr: 'Quiz',              icon: 'sparkle'   },
+  { id: 'joursblancs',  labelFr: 'Jours Blancs',     icon: 'moonStar'  },
   { id: 'settings',     labelFr: 'Réglages',         icon: 'settings'  },
 ];
 
