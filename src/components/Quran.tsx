@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, BookOpen, Copy, X,
   Bookmark, BookMarked, ChevronLeft, ChevronRight, ChevronUp, AlertCircle,
-  LayoutList, Volume2, VolumeX, Share2, Minus, Plus, Globe,
+  LayoutList, Volume2, VolumeX, Share2, Minus, Plus, Globe, Lock, Unlock,
 } from 'lucide-react';
 import { IslamicLoader } from './IslamicLoader';
 import html2canvas from 'html2canvas';
@@ -269,6 +269,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const shareRef = useRef<HTMLDivElement | null>(null);
   const [imgScale, setImgScale] = useState(1);
+  const [zoomLocked, setZoomLocked] = useState(false);
 
   const [globalMode, setGlobalMode] = useState(false);
   const [globalQuery, setGlobalQuery] = useState('');
@@ -298,7 +299,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
   const pinchBind = usePinch(({ offset: [scale], first }) => {
     if (viewMode === 'authentic') {
-      setImgScale(Math.max(1, Math.min(2.5, scale)));
+      if (!zoomLocked) setImgScale(Math.max(1, Math.min(2.5, scale)));
     } else {
       if (first) baseFontRef.current = fontSize;
       setFontSize(Math.max(16, Math.min(42, Math.round(baseFontRef.current * scale))));
@@ -837,50 +838,72 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
               <SurahNameplate surahId={selectedSurah.id} surahName={selectedSurah.name} t={t}/>
             )}
 
-            {/* Page image — full width */}
+            {/* Page image — fixed-ratio container clips zoom */}
             <div style={{
-              position: 'relative', borderRadius: 12, overflow: 'hidden',
+              position: 'relative', borderRadius: 12,
               width: '100%',
+              /* aspect-ratio fixes the container height so overflow:hidden clips correctly */
+              aspectRatio: '5 / 7',
+              overflow: 'hidden',
+              background: '#f5efe0',
               boxShadow: '0 4px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,166,74,0.2)',
             }}>
+              {/* Zoom wrapper — transform here, clipped by parent overflow:hidden */}
               <div
-                style={{ background: '#f5efe0', borderRadius: 12, overflow: 'hidden' }}
-                onDoubleClick={() => setImgScale(1)}
+                style={{
+                  position: 'absolute', inset: 0,
+                  transform: `scale(${imgScale})`,
+                  transformOrigin: 'center center',
+                  transition: 'transform 0.2s ease',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                onDoubleClick={() => { if (!zoomLocked) setImgScale(1); }}
               >
                 <img
                   src={mushafSvgUrl(authenticPage)}
                   alt={`Mushaf page ${authenticPage}`}
-                  style={{
-                    width: '100%', height: 'auto', display: 'block',
-                    transform: `scale(${imgScale})`,
-                    transformOrigin: 'top center',
-                    transition: 'transform 0.2s ease',
-                    touchAction: 'none',
-                  }}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', touchAction: 'none' }}
                   loading="eager"
                 />
               </div>
-              {/* Page number */}
+
+              {/* Page number badge */}
               <div style={{
-                position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
+                position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
                 background: 'rgba(26,15,0,0.82)', borderRadius: 99,
                 padding: '3px 14px', fontSize: 11, color: '#d4a64a',
                 fontFamily: 'Fraunces, serif', letterSpacing: '0.14em', whiteSpace: 'nowrap',
-                pointerEvents: 'none',
+                pointerEvents: 'none', zIndex: 2,
               }}>
                 {fr ? `Page ${authenticPage}` : `صفحة ${toArabicNum(authenticPage)}`}
               </div>
-              {/* Zoom hint */}
-              {imgScale > 1 && (
-                <div style={{
-                  position: 'absolute', top: 10, right: 10,
-                  background: 'rgba(26,15,0,0.75)', borderRadius: 99,
-                  padding: '3px 10px', fontSize: 10, color: '#d4a64a',
-                  fontFamily: 'Fraunces, serif',
-                }}>
-                  ×{imgScale.toFixed(1)}
-                </div>
-              )}
+
+              {/* Lock / zoom controls */}
+              <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 6, zIndex: 2 }}>
+                {imgScale > 1 && !zoomLocked && (
+                  <div style={{
+                    background: 'rgba(26,15,0,0.75)', borderRadius: 99,
+                    padding: '3px 10px', fontSize: 10, color: '#d4a64a',
+                    fontFamily: 'Fraunces, serif', pointerEvents: 'none',
+                  }}>
+                    ×{imgScale.toFixed(1)}
+                  </div>
+                )}
+                <button
+                  onClick={() => setZoomLocked(l => !l)}
+                  title={zoomLocked ? (fr ? 'Déverrouiller le zoom' : 'فتح التكبير') : (fr ? 'Verrouiller le zoom' : 'قفل التكبير')}
+                  style={{
+                    width: 30, height: 30, borderRadius: 999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: zoomLocked ? 'rgba(212,166,74,0.25)' : 'rgba(26,15,0,0.65)',
+                    border: `1px solid ${zoomLocked ? '#d4a64a' : 'rgba(212,166,74,0.3)'}`,
+                    color: zoomLocked ? '#d4a64a' : 'rgba(212,166,74,0.7)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {zoomLocked ? <Lock size={12}/> : <Unlock size={12}/>}
+                </button>
+              </div>
             </div>
 
             {/* Navigation page */}
