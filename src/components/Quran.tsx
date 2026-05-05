@@ -498,6 +498,47 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
     memorized: t.accent, review: t.accentBright, in_progress: t.accentSoft, not_started: 'transparent',
   };
 
+  // These hooks must live here — not after any conditional return (Rules of Hooks)
+  const onListScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const maxScroll = el.scrollHeight - el.clientHeight;
+    const pct = maxScroll > 0 ? (el.scrollTop / maxScroll) * 100 : 100;
+    setReadProgress(Math.round(pct));
+    const ratio = el.clientHeight / el.scrollHeight;
+    setThumbPct(Math.max(8, Math.min(70, ratio * 100)));
+  };
+
+  const scrubToY = useCallback((clientY: number) => {
+    const track = trackRef.current;
+    const list  = listRef.current;
+    if (!track || !list) return;
+    const rect    = track.getBoundingClientRect();
+    const rawPct  = (clientY - rect.top) / rect.height;
+    const clamped = Math.max(0, Math.min(1, rawPct));
+    const maxScroll = list.scrollHeight - list.clientHeight;
+    list.scrollTop = clamped * maxScroll;
+  }, []);
+
+  useEffect(() => {
+    if (!scrubbing) return;
+    const onMove = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault();
+      const y = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+      scrubToY(y);
+    };
+    const onUp = () => setScrubbing(false);
+    window.addEventListener('mousemove', onMove, { passive: false });
+    window.addEventListener('mouseup',   onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend',  onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup',   onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend',  onUp);
+    };
+  }, [scrubbing, scrubToY]);
+
   // ── Surah list ────────────────────────────────────────────────────
   if (selectedSurahId === null) {
     return (
@@ -661,46 +702,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
     );
   }
 
-
-  const onListScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    const maxScroll = el.scrollHeight - el.clientHeight;
-    const pct = maxScroll > 0 ? (el.scrollTop / maxScroll) * 100 : 100;
-    setReadProgress(Math.round(pct));
-    const ratio = el.clientHeight / el.scrollHeight;
-    setThumbPct(Math.max(8, Math.min(70, ratio * 100)));
-  };
-
-  const scrubToY = useCallback((clientY: number) => {
-    const track = trackRef.current;
-    const list  = listRef.current;
-    if (!track || !list) return;
-    const rect    = track.getBoundingClientRect();
-    const rawPct  = (clientY - rect.top) / rect.height;
-    const clamped = Math.max(0, Math.min(1, rawPct));
-    const maxScroll = list.scrollHeight - list.clientHeight;
-    list.scrollTop = clamped * maxScroll;
-  }, []);
-
-  useEffect(() => {
-    if (!scrubbing) return;
-    const onMove = (e: MouseEvent | TouchEvent) => {
-      e.preventDefault();
-      const y = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
-      scrubToY(y);
-    };
-    const onUp = () => setScrubbing(false);
-    window.addEventListener('mousemove', onMove, { passive: false });
-    window.addEventListener('mouseup',   onUp);
-    window.addEventListener('touchmove', onMove, { passive: false });
-    window.addEventListener('touchend',  onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup',   onUp);
-      window.removeEventListener('touchmove', onMove);
-      window.removeEventListener('touchend',  onUp);
-    };
-  }, [scrubbing, scrubToY]);
 
   // ── Verse view ────────────────────────────────────────────────────
   return (
