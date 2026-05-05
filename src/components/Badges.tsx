@@ -121,11 +121,12 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
             {fr ? 'Débloqués récemment' : 'المفتوحة مؤخراً'}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
-            {(selectedRarity ? unlocked.filter(b => b.rarity === selectedRarity) : unlocked).map(badge => {
+            {(selectedRarity ? unlocked.filter(b => b.rarity === selectedRarity) : unlocked).map((badge, i) => {
               const rColor = getRarityColor(badge.rarity);
               return (
                 <div key={badge.id} onClick={() => setSelectedBadge(badge)}
-                  style={{ padding: '18px 14px', background: t.card, border: `1px solid ${rColor}33`, borderRadius: 12, textAlign: 'center', position: 'relative', overflow: 'hidden', cursor: 'pointer' }}>
+                  className="anim-stagger"
+                  style={{ '--idx': i, padding: '18px 14px', background: t.card, border: `1px solid ${rColor}33`, borderRadius: 12, textAlign: 'center', position: 'relative', overflow: 'hidden', cursor: 'pointer' } as React.CSSProperties}>
                   <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: `radial-gradient(circle, ${rColor}22, transparent 70%)` }}/>
                   <div style={{ width: 44, height: 44, margin: '0 auto', borderRadius: '50%', background: t.cardElev, border: `1px solid ${rColor}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
                     <Icon d={ICON_MAP[badge.icon] ?? Icons.star} size={20} color={rColor} stroke={1.5}/>
@@ -150,12 +151,13 @@ export const BadgesSection = ({ userData, lang, newlyUnlocked }: BadgesSectionPr
             {fr ? 'À débloquer' : 'للفتح'}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
-            {(selectedRarity ? locked.filter(b => b.rarity === selectedRarity) : locked).map(badge => {
+            {(selectedRarity ? locked.filter(b => b.rarity === selectedRarity) : locked).map((badge, i) => {
               const rColor = getRarityColor(badge.rarity);
               const progressVal = getBadgeProgress(userData, badge.id);
               return (
                 <div key={badge.id} onClick={() => setSelectedBadge(badge)}
-                  style={{ padding: '18px 14px', background: t.card, border: `1px dashed ${t.line}`, borderRadius: 12, textAlign: 'center', opacity: 0.55, cursor: 'pointer' }}>
+                  className="anim-stagger"
+                  style={{ '--idx': i, padding: '18px 14px', background: t.card, border: `1px dashed ${t.line}`, borderRadius: 12, textAlign: 'center', opacity: 0.55, cursor: 'pointer' } as React.CSSProperties}>
                   <div style={{ width: 44, height: 44, margin: '0 auto', borderRadius: '50%', background: t.cardElev, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon d={Icons.lock} size={16} color={t.inkMute}/>
                   </div>

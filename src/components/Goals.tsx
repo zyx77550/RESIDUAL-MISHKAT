@@ -126,8 +126,8 @@ export const GoalsSection = ({ userData, setUserData, lang }: GoalsSectionProps)
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {[...pending, ...completed].map(goal => (
-            <div key={goal.id} style={{ ...card, padding: '16px 20px' }}>
+          {[...pending, ...completed].map((goal, i) => (
+            <div key={goal.id} className="anim-stagger" style={{ '--idx': i, ...card, padding: '16px 20px' } as React.CSSProperties}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 {/* Square checkbox */}
                 <button onClick={() => toggleGoal(goal.id)}

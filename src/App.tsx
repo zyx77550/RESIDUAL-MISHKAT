@@ -442,10 +442,10 @@ export default function App() {
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -6, scale: 0.98 }}
-              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 14, scale: 0.975, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -8, scale: 0.975, filter: 'blur(4px)' }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
             >
               {activeTab === 'dashboard'    && <Dashboard {...commonProps} onNavigate={setActiveTab}/>}

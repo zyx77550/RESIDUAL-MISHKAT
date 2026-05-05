@@ -775,8 +775,15 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
       <div ref={listRef} onScroll={onListScroll} style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', paddingBottom: 24, touchAction: 'pan-y' }} className="no-scrollbar">
         {loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
-            <IslamicLoader size={52} label={fr ? 'Chargement…' : 'جارٍ التحميل…'} />
+          <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 10, opacity: 1 - i * 0.12 }}>
+                <div className="skeleton-line lg" style={{ width: '85%', marginLeft: 'auto' }}/>
+                <div className="skeleton-line lg" style={{ width: '70%', marginLeft: 'auto' }}/>
+                <div className="skeleton-line sm" style={{ width: '60%' }}/>
+                <div className="skeleton-line sm" style={{ width: '45%' }}/>
+              </div>
+            ))}
           </div>
         )}
         {!loading && !dbError && verses.length === 0 && selectedSurahId !== null && (
