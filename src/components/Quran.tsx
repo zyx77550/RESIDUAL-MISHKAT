@@ -4,7 +4,7 @@ import { usePinch } from '@use-gesture/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, BookOpen, Copy, X,
-  Bookmark, BookMarked, ChevronLeft, ChevronRight, ChevronUp, AlertCircle,
+  Bookmark, BookMarked, ChevronLeft, ChevronRight, AlertCircle,
   LayoutList, Volume2, VolumeX, Share2, Minus, Plus, Globe, Lock, Unlock,
 } from 'lucide-react';
 import { IslamicLoader } from './IslamicLoader';
@@ -259,15 +259,19 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const [verseSearch, setVerseSearch] = useState('');
   const [expandedId, setExpandedId]   = useState<number | null>(null);
   const [bookmarks, setBookmarks] = useState<Set<BookmarkKey>>(loadBookmarks);
-  const [viewMode, setViewMode]   = useState<'list' | 'authentic'>('list');
+  const [viewMode, setViewMode]   = useState<'list' | 'authentic'>(userData.settings.quranDefaultView ?? 'list');
   const [authenticPage, setAuthenticPage] = useState(1);
   const [readProgress, setReadProgress] = useState(0);
+  const [thumbPct, setThumbPct]   = useState(20);   // visible height % of total
+  const [scrubbing, setScrubbing] = useState(false);
+  const [trackHovered, setTrackHovered] = useState(false);
   const [mushafSelected, setMushafSelected] = useState<QuranVerse | null>(null);
 
-  const [fontSize, setFontSize]   = useState(24);
+  const [fontSize, setFontSize]   = useState(userData.settings.quranFontSize ?? 24);
   const [playingId, setPlayingId] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const shareRef = useRef<HTMLDivElement | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const [imgScale, setImgScale] = useState(1);
   const [zoomLocked, setZoomLocked] = useState(false);
 
@@ -597,10 +601,43 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
   const onListScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
-    const pct = el.scrollHeight > el.clientHeight
-      ? (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100 : 100;
+    const maxScroll = el.scrollHeight - el.clientHeight;
+    const pct = maxScroll > 0 ? (el.scrollTop / maxScroll) * 100 : 100;
     setReadProgress(Math.round(pct));
+    const ratio = el.clientHeight / el.scrollHeight;
+    setThumbPct(Math.max(8, Math.min(70, ratio * 100)));
   };
+
+  const scrubToY = useCallback((clientY: number) => {
+    const track = trackRef.current;
+    const list  = listRef.current;
+    if (!track || !list) return;
+    const rect    = track.getBoundingClientRect();
+    const rawPct  = (clientY - rect.top) / rect.height;
+    const clamped = Math.max(0, Math.min(1, rawPct));
+    const maxScroll = list.scrollHeight - list.clientHeight;
+    list.scrollTop = clamped * maxScroll;
+  }, []);
+
+  useEffect(() => {
+    if (!scrubbing) return;
+    const onMove = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault();
+      const y = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+      scrubToY(y);
+    };
+    const onUp = () => setScrubbing(false);
+    window.addEventListener('mousemove', onMove, { passive: false });
+    window.addEventListener('mouseup',   onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend',  onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup',   onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend',  onUp);
+    };
+  }, [scrubbing, scrubToY]);
 
   // ── Verse view ────────────────────────────────────────────────────
   return (
@@ -670,11 +707,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
       </div>
 
       {/* Guide de lecture + liste des versets */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0, gap: 8 }}>
-        {/* Barre de progression verticale */}
-        <div className="anim-guide-track" style={{ height: 'auto', alignSelf: 'stretch', margin: '6px 0' }}>
-          <div className="anim-guide-fill" style={{ height: `${readProgress}%` }}/>
-        </div>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, gap: 0 }}>
 
       <div ref={listRef} onScroll={onListScroll} style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', paddingBottom: 24, touchAction: 'pan-y' }} className="no-scrollbar">
         {loading && (
@@ -750,7 +783,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
                     {/* Text content */}
                     <div style={{ flex: 1, textAlign: 'right', direction: 'rtl' }}>
-                      <div className="anim-verse-glow" style={{ fontFamily: 'Amiri Quran, serif', fontSize: fontSize, lineHeight: 2.2, color: t.ink }}>
+                      <div className={userData.settings.quranVerseGlow !== false ? 'anim-verse-glow' : ''} style={{ fontFamily: 'Amiri Quran, serif', fontSize: fontSize, lineHeight: 2.2, color: t.ink }}>
                         {verse.arabic_text}
                       </div>
                       {isSelected && (
@@ -1000,7 +1033,40 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
           />
         )}
       </div>
-      {/* Fin guide-track + listRef wrapper */}
+
+        {/* ── Smart scroll handle (right side) ── */}
+        {viewMode === 'list' && selectedSurahId !== null && (
+          <div
+            ref={trackRef}
+            onMouseEnter={() => setTrackHovered(true)}
+            onMouseLeave={() => { if (!scrubbing) setTrackHovered(false); }}
+            onMouseDown={e => { e.preventDefault(); setScrubbing(true); scrubToY(e.clientY); }}
+            onTouchStart={e => { setScrubbing(true); scrubToY(e.touches[0].clientY); }}
+            style={{
+              width: scrubbing ? 10 : trackHovered ? 7 : 3,
+              transition: scrubbing ? 'none' : 'width 0.22s ease',
+              alignSelf: 'stretch', margin: '8px 4px',
+              background: t.lineSoft,
+              borderRadius: 999, position: 'relative',
+              cursor: 'ns-resize', flexShrink: 0, userSelect: 'none',
+            }}
+          >
+            {/* Thumb */}
+            <div style={{
+              position: 'absolute',
+              top: `${readProgress / 100 * (100 - thumbPct)}%`,
+              left: 0, right: 0,
+              height: `${thumbPct}%`,
+              minHeight: 28,
+              background: scrubbing ? t.accent : trackHovered ? t.accentBright : t.accent,
+              opacity: scrubbing ? 1 : trackHovered ? 0.85 : 0.45,
+              borderRadius: 999,
+              transition: scrubbing ? 'none' : 'top 0.12s ease, opacity 0.2s, background 0.2s',
+              boxShadow: scrubbing ? `0 0 10px ${t.accent}66` : 'none',
+            }}/>
+          </div>
+        )}
+      {/* end listRef + scrubber wrapper */}
       </div>
 
       {/* Hidden share card */}
@@ -1020,15 +1086,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         )}
       </div>
 
-      <motion.button
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-        onClick={() => listRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-        style={{ position: 'fixed', bottom: 84, right: 14, zIndex: 40, width: 36, height: 36, borderRadius: '50%', background: t.accent, color: '#1a0f00', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.18)' }}
-        whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-        title={fr ? 'Haut de page' : 'أعلى الصفحة'}
-      >
-        <ChevronUp size={16}/>
-      </motion.button>
     </div>
   );
 };

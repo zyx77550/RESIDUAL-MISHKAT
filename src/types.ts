@@ -74,6 +74,11 @@ export interface UserSettings {
   city?: string;
   settingsVersion?: number;
   darkMode?: boolean;
+  // Quran reading preferences
+  quranFontSize?: number;
+  quranDefaultView?: 'list' | 'authentic';
+  quranVerseGlow?: boolean;
+  showSplashOnLogin?: boolean;
 }
 
 export interface Goal {

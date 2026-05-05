@@ -69,6 +69,7 @@ export const SettingsSection = ({
   const NAV_SECTIONS = [
     { id: 'profile',       labelFr: 'Profil',          labelAr: 'الملف الشخصي' },
     { id: 'appearance',    labelFr: 'Apparence',        labelAr: 'المظهر'       },
+    { id: 'lecture',       labelFr: 'Lecture',          labelAr: 'القراءة'      },
     { id: 'notifications', labelFr: 'Notifications',    labelAr: 'التنبيهات'    },
     { id: 'accessibility', labelFr: 'Accessibilité',    labelAr: 'إمكانية الوصول'},
     { id: 'data',          labelFr: 'Données',          labelAr: 'البيانات'     },
@@ -373,6 +374,64 @@ export const SettingsSection = ({
           </div>
         </div>
         )} {/* end Appearance conditional */}
+
+        {/* Lecture / Quran reading */}
+        {(activeSection === 'lecture' || narrow) && (
+        <div style={card}>
+          <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
+            {fr ? 'Lecture du Coran' : 'قراءة القرآن'}
+          </div>
+
+          {/* Font size default */}
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 11, color: t.inkDim, marginBottom: 10 }}>
+              {fr ? 'Taille de police arabe (défaut)' : 'حجم الخط العربي (افتراضي)'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                onClick={() => updateSettings({ quranFontSize: Math.max(18, (settings.quranFontSize ?? 24) - 2) })}
+                style={{ width: 32, height: 32, borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >−</button>
+              <div style={{ flex: 1, textAlign: 'center', fontFamily: 'Fraunces, serif', fontSize: 22, color: t.accent, lineHeight: 1 }}>
+                {settings.quranFontSize ?? 24}
+              </div>
+              <button
+                onClick={() => updateSettings({ quranFontSize: Math.min(40, (settings.quranFontSize ?? 24) + 2) })}
+                style={{ width: 32, height: 32, borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >+</button>
+            </div>
+            <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: settings.quranFontSize ?? 24, color: t.ink, textAlign: 'center', direction: 'rtl', marginTop: 10, padding: '8px', background: t.cardElev, borderRadius: 8 }}>
+              بِسْمِ اللَّهِ
+            </div>
+          </div>
+
+          {/* Default view mode */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: t.inkDim, marginBottom: 8 }}>
+              {fr ? 'Affichage par défaut' : 'عرض افتراضي'}
+            </div>
+            <div style={{ display: 'flex', gap: 4, padding: 4, background: t.cardElev, borderRadius: 10 }}>
+              <SegButton active={(settings.quranDefaultView ?? 'list') === 'list'} onClick={() => updateSettings({ quranDefaultView: 'list' })}>
+                {fr ? 'Liste' : 'قائمة'}
+              </SegButton>
+              <SegButton active={settings.quranDefaultView === 'authentic'} onClick={() => updateSettings({ quranDefaultView: 'authentic' })}>
+                {fr ? 'Pages Mushaf' : 'صفحات المصحف'}
+              </SegButton>
+            </div>
+          </div>
+
+          {/* Toggles */}
+          {[
+            { label: fr ? 'Lueur dorée sur les versets' : 'توهج ذهبي على الآيات', value: settings.quranVerseGlow !== false, key: 'quranVerseGlow' as const },
+            { label: fr ? 'Animation de bienvenue à la connexion' : 'رسوم ترحيبية عند الدخول', value: settings.showSplashOnLogin !== false, key: 'showSplashOnLogin' as const },
+          ].map(row => (
+            <div key={row.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${t.lineSoft}` }}>
+              <span style={{ fontSize: 12, color: t.ink }}>{row.label}</span>
+              <Toggle value={row.value} onChange={v => updateSettings({ [row.key]: v })}/>
+            </div>
+          ))}
+        </div>
+        )} {/* end Lecture conditional */}
 
         {/* Accessibility */}
         {(activeSection === 'accessibility' || narrow) && (

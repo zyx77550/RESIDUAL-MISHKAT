@@ -117,11 +117,12 @@ export default function App() {
               if (typeof cloudData.loginStreak !== 'number') cloudData.loginStreak = 1;
               cloudData.settings = { ...cloudData.settings, isAdmin: isAdminEmail(session.user.email) };
               setUserData(cloudData);
-              setShowSplash(true);
+              if (cloudData.settings?.showSplashOnLogin !== false) setShowSplash(true);
               return;
             }
           } catch {}
-          setShowSplash(true);
+          // Fallback: no cloud data → will use local/default data; show splash if setting allows
+          // (userData not set yet here, so splash is controlled per-path above)
         }
         setUserData(prev => prev ? {
           ...prev,
