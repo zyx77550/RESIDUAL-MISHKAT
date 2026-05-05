@@ -199,15 +199,15 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginTop: 4 }}>
-            <button onClick={() => onNavigate?.('memorization')} style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.inkMute, cursor: 'pointer' }}>
+            <motion.button whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.06, transition: { duration: 0.12 } }} onClick={() => onNavigate?.('memorization')} style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.inkMute, cursor: 'pointer' }}>
               <Icon d={Icons.search} size={14}/>
-            </button>
-            <button onClick={() => onNavigate?.('settings')} style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.inkMute, cursor: 'pointer' }}>
+            </motion.button>
+            <motion.button whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.06, transition: { duration: 0.12 } }} onClick={() => onNavigate?.('settings')} style={{ width: 36, height: 36, borderRadius: 8, background: t.card, border: `1px solid ${t.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.inkMute, cursor: 'pointer' }}>
               <Icon d={Icons.bell} size={14}/>
-            </button>
-            <button onClick={() => onNavigate?.('settings')} style={{ width: 36, height: 36, borderRadius: 8, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 16, color: '#1a0f00', fontWeight: 400, border: 'none', cursor: 'pointer' }}>
+            </motion.button>
+            <motion.button whileTap={{ scale: 0.88 }} whileHover={{ scale: 1.06, transition: { duration: 0.12 } }} onClick={() => onNavigate?.('settings')} style={{ width: 36, height: 36, borderRadius: 8, background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Fraunces, serif', fontSize: 16, color: '#1a0f00', fontWeight: 400, border: 'none', cursor: 'pointer' }}>
               {username.charAt(0).toUpperCase()}
-            </button>
+            </motion.button>
           </div>
         </div>
 
@@ -219,7 +219,16 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
             { icon: Icons.bookmark, value: `${memorizedCount}/114`,  label: fr ? 'Sourates'          : 'سورة',        color: t.accent,   shimmer: false },
             { icon: Icons.badge,    value: userData.badges?.filter(b => b.unlockedAt).length ?? 0, label: fr ? 'Badges' : 'شارة', color: '#a78bdb', shimmer: false },
           ].map((s, i) => (
-            <div key={i} className={`anim-souffle anim-d${i + 1}${s.shimmer ? ' anim-shimmer' : ''}`} style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(0,0,0,0.14)', transition: { duration: 0.15 } }}
+              whileTap={{ scale: 0.96 }}
+              className={s.shimmer ? 'anim-shimmer' : ''}
+              style={{ ...card, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'default' }}
+            >
               <div style={{ width: 34, height: 34, borderRadius: 8, background: `${s.color}16`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon d={s.icon} size={15} color={s.color}/>
               </div>
@@ -227,7 +236,7 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
                 <div style={{ fontFamily: 'Fraunces, serif', fontSize: 18, color: t.ink, fontWeight: 300, lineHeight: 1 }}>{s.value}</div>
                 <div style={{ fontSize: 9.5, color: t.inkMute, marginTop: 3, letterSpacing: '0.08em' }}>{s.label}</div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
 
@@ -241,6 +250,8 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
             {resumePos && (
               <motion.div
                 initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+              whileHover={{ y: -2, scale: 1.005, transition: { duration: 0.15 } }}
+              whileTap={{ scale: 0.97 }}
                 style={{ ...card, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', background: `linear-gradient(135deg, ${t.accent}0e, ${t.card})` }}
                 onClick={() => onNavigate?.('quran')}
               >
@@ -319,21 +330,24 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
                 )}
 
                 <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.04, transition: { duration: 0.12 } }}
                     onClick={() => onNavigate?.('memorization')}
                     style={{ padding: '9px 18px', borderRadius: 8, background: t.accent, color: '#1a0f00', fontFamily: 'Inter', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', border: 'none' }}>
                     {fr ? 'Mémorisation' : 'الحفظ'} <Icon d={Icons.arrow} size={12}/>
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.04, transition: { duration: 0.12 } }}
                     onClick={() => onNavigate?.('kanban')}
                     style={{ padding: '9px 14px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, fontFamily: 'Inter', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                     <Icon d={Icons.grid} size={12}/> {fr ? 'Kanban' : 'كانبان'}
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.92 }} whileHover={{ scale: 1.04, transition: { duration: 0.12 } }}
                     onClick={() => onNavigate?.('diftar')}
                     style={{ padding: '9px 14px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}`, color: t.inkDim, fontFamily: 'Inter', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                     <Icon d={Icons.edit} size={12}/> {fr ? 'Diftar' : 'الدفتر'}
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </div>
@@ -490,8 +504,13 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
                 <span style={{ fontFamily: 'Fraunces, serif', fontSize: 26, color: t.ink, fontWeight: 300 }}>{monthSessions.length}</span>
                 <span style={{ fontSize: 12, color: t.inkDim }}>/ {monthTarget} {fr ? 'sessions' : 'جلسة'}</span>
               </div>
-              <div style={{ height: 4, background: t.lineSoft, borderRadius: 4 }}>
-                <div style={{ height: '100%', width: `${Math.min(monthSessions.length / monthTarget * 100, 100)}%`, background: `linear-gradient(90deg, ${t.accent}, ${t.accentBright})`, borderRadius: 4 }}/>
+              <div style={{ height: 4, background: t.lineSoft, borderRadius: 4, overflow: 'hidden' }}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(monthSessions.length / monthTarget * 100, 100)}%` }}
+                  transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
+                  style={{ height: '100%', background: `linear-gradient(90deg, ${t.accent}, ${t.accentBright})`, borderRadius: 4 }}
+                />
               </div>
             </div>
 
@@ -518,11 +537,12 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
                       ))}
                     </div>
                   </div>
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.94 }} whileHover={{ scale: 1.02, transition: { duration: 0.12 } }}
                     onClick={() => onNavigate?.('memorization')}
                     style={{ width: '100%', marginTop: 12, padding: '8px 0', borderRadius: 7, background: `${t.accent}18`, border: `1px solid ${t.accent}33`, color: t.accent, fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', cursor: 'pointer' }}>
                     {fr ? 'Commencer' : 'ابدأ'}
-                  </button>
+                  </motion.button>
                 </div>
               );
             })()}
@@ -543,7 +563,13 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {reviewSurahs.map((s, i) => (
-                    <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}` }}>
+                    <motion.div
+                      key={s.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.07, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, background: t.cardElev, border: `1px solid ${t.line}` }}
+                    >
                       <div style={{ width: 24, height: 24, borderRadius: 6, background: `${t.accent}18`, border: `1px solid ${t.accent}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <span style={{ fontFamily: 'Fraunces, serif', fontSize: 10, color: t.accent }}>{i + 1}</span>
                       </div>
@@ -554,7 +580,7 @@ export const Dashboard = ({ userData, lang, onNavigate }: { userData: UserData; 
                         </div>
                         <div style={{ fontSize: 9.5, color: t.inkMute, marginTop: 2 }}>{s.verses} {fr ? 'versets' : 'آية'}</div>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}
