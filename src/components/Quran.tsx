@@ -284,9 +284,10 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const [globalListHeight, setGlobalListHeight] = useState(500);
   const globalListContainerRef = useRef<HTMLDivElement>(null);
 
-  const cache   = useRef<Map<number, QuranVerse[]>>(new Map());
-  const listRef = useRef<HTMLDivElement>(null);
-  const baseFontRef = useRef(24);
+  const cache          = useRef<Map<number, QuranVerse[]>>(new Map());
+  const listRef        = useRef<HTMLDivElement>(null);
+  const baseFontRef    = useRef(24);
+  const grabOffsetRef  = useRef(0);
 
   const card: React.CSSProperties = { background: t.card, border: `1px solid ${t.line}`, borderRadius: 12 };
   const inputStyle: React.CSSProperties = {
@@ -512,11 +513,13 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
     const track = trackRef.current;
     const list  = listRef.current;
     if (!track || !list) return;
-    const rect    = track.getBoundingClientRect();
-    const rawPct  = (clientY - rect.top) / rect.height;
-    const clamped = Math.max(0, Math.min(1, rawPct));
-    const maxScroll = list.scrollHeight - list.clientHeight;
-    list.scrollTop = clamped * maxScroll;
+    const rect      = track.getBoundingClientRect();
+    const tPct      = Math.max(8, Math.min(70, (list.clientHeight / list.scrollHeight) * 100));
+    const thumbPx   = (tPct / 100) * rect.height;
+    const usable    = Math.max(rect.height - thumbPx, 1);
+    const adjusted  = clientY - rect.top - grabOffsetRef.current;
+    const clamped   = Math.max(0, Math.min(1, adjusted / usable));
+    list.scrollTop  = clamped * (list.scrollHeight - list.clientHeight);
   }, []);
 
   useEffect(() => {
@@ -1122,8 +1125,35 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
             ref={trackRef}
             onMouseEnter={() => setTrackHovered(true)}
             onMouseLeave={() => { if (!scrubbing) setTrackHovered(false); }}
-            onMouseDown={e => { e.preventDefault(); setScrubbing(true); scrubToY(e.clientY); }}
-            onTouchStart={e => { setScrubbing(true); scrubToY(e.touches[0].clientY); }}
+            onMouseDown={e => {
+              e.preventDefault();
+              const track = trackRef.current; const list = listRef.current;
+              if (track && list) {
+                const rect = track.getBoundingClientRect();
+                const tPct = Math.max(8, Math.min(70, (list.clientHeight / list.scrollHeight) * 100));
+                const thumbPx = (tPct / 100) * rect.height;
+                const usable  = rect.height - thumbPx;
+                const thumbTopPx = (list.scrollTop / (list.scrollHeight - list.clientHeight || 1)) * usable;
+                const cur = e.clientY - rect.top;
+                grabOffsetRef.current = (cur >= thumbTopPx && cur <= thumbTopPx + thumbPx)
+                  ? cur - thumbTopPx : thumbPx / 2;
+              }
+              setScrubbing(true); scrubToY(e.clientY);
+            }}
+            onTouchStart={e => {
+              const track = trackRef.current; const list = listRef.current;
+              if (track && list) {
+                const rect = track.getBoundingClientRect();
+                const tPct = Math.max(8, Math.min(70, (list.clientHeight / list.scrollHeight) * 100));
+                const thumbPx = (tPct / 100) * rect.height;
+                const usable  = rect.height - thumbPx;
+                const thumbTopPx = (list.scrollTop / (list.scrollHeight - list.clientHeight || 1)) * usable;
+                const cur = e.touches[0].clientY - rect.top;
+                grabOffsetRef.current = (cur >= thumbTopPx && cur <= thumbTopPx + thumbPx)
+                  ? cur - thumbTopPx : thumbPx / 2;
+              }
+              setScrubbing(true); scrubToY(e.touches[0].clientY);
+            }}
             style={{
               width: scrubbing ? 10 : trackHovered ? 7 : 3,
               transition: scrubbing ? 'none' : 'width 0.22s ease',

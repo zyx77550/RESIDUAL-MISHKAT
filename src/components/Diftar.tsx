@@ -214,6 +214,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     shapeStartRotation: number;
   } | null>(null);
   const scrollTrackRef = useRef<HTMLDivElement>(null);
+  const grabOffsetRef  = useRef(0);
   const toolbarRef     = useRef<HTMLDivElement>(null);
   const [toolbarH, setToolbarH] = useState(72);
   const [searchQuery, setSearchQuery]   = useState('');
@@ -1116,9 +1117,13 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     const track = scrollTrackRef.current;
     const sc    = scrollContainerRef.current;
     if (!track || !sc) return;
-    const rect    = track.getBoundingClientRect();
-    const clamped = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-    sc.scrollTop  = clamped * (sc.scrollHeight - sc.clientHeight);
+    const rect     = track.getBoundingClientRect();
+    const tPct     = Math.max(8, Math.min(60, (sc.clientHeight / sc.scrollHeight) * 100));
+    const thumbPx  = (tPct / 100) * rect.height;
+    const usable   = Math.max(rect.height - thumbPx, 1);
+    const adjusted = clientY - rect.top - grabOffsetRef.current;
+    const clamped  = Math.max(0, Math.min(1, adjusted / usable));
+    sc.scrollTop   = clamped * (sc.scrollHeight - sc.clientHeight);
   }, []);
 
   useEffect(() => {
@@ -2033,8 +2038,35 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         ref={scrollTrackRef}
         onMouseEnter={() => setTrackHovered(true)}
         onMouseLeave={() => { if (!scrubbing) setTrackHovered(false); }}
-        onMouseDown={e => { e.preventDefault(); setScrubbing(true); scrubToY(e.clientY); }}
-        onTouchStart={e => { setScrubbing(true); scrubToY(e.touches[0].clientY); }}
+        onMouseDown={e => {
+          e.preventDefault();
+          const track = scrollTrackRef.current; const sc = scrollContainerRef.current;
+          if (track && sc) {
+            const rect = track.getBoundingClientRect();
+            const tPct = Math.max(8, Math.min(60, (sc.clientHeight / sc.scrollHeight) * 100));
+            const thumbPx = (tPct / 100) * rect.height;
+            const usable  = rect.height - thumbPx;
+            const thumbTopPx = (sc.scrollTop / (sc.scrollHeight - sc.clientHeight || 1)) * usable;
+            const cur = e.clientY - rect.top;
+            grabOffsetRef.current = (cur >= thumbTopPx && cur <= thumbTopPx + thumbPx)
+              ? cur - thumbTopPx : thumbPx / 2;
+          }
+          setScrubbing(true); scrubToY(e.clientY);
+        }}
+        onTouchStart={e => {
+          const track = scrollTrackRef.current; const sc = scrollContainerRef.current;
+          if (track && sc) {
+            const rect = track.getBoundingClientRect();
+            const tPct = Math.max(8, Math.min(60, (sc.clientHeight / sc.scrollHeight) * 100));
+            const thumbPx = (tPct / 100) * rect.height;
+            const usable  = rect.height - thumbPx;
+            const thumbTopPx = (sc.scrollTop / (sc.scrollHeight - sc.clientHeight || 1)) * usable;
+            const cur = e.touches[0].clientY - rect.top;
+            grabOffsetRef.current = (cur >= thumbTopPx && cur <= thumbTopPx + thumbPx)
+              ? cur - thumbTopPx : thumbPx / 2;
+          }
+          setScrubbing(true); scrubToY(e.touches[0].clientY);
+        }}
         style={{
           width: scrubbing ? 10 : trackHovered ? 7 : 3,
           transition: scrubbing ? 'none' : 'width 0.22s ease',
