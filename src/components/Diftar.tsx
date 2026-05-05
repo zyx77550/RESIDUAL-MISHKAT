@@ -165,8 +165,8 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [showPaperSettings, setShowPaperSettings]   = useState(false);
   const [isSaving, setIsSaving]             = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [scrollHover,    setScrollHover]    = useState(false);
-  const [scrollActive,   setScrollActive]   = useState(false);
+  const [scrubbing,      setScrubbing]      = useState(false);
+  const [trackHovered,   setTrackHovered]   = useState(false);
   const [paperStyle, setPaperStyle]         = useState<'lines'|'blank'|'grid'|'dots'|'arabesque'|'diamond'|'hexagonal'|'music'|'floral'|'islamic_star'|'waves'|'leaves'|'crosses'|'triangles'>('lines');
   const [paperColor, setPaperColor]         = useState('#fdfcf8');
   const [pageHeight, setPageHeight]         = useState(5000);
@@ -213,8 +213,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     handle: 'move' | 'nw' | 'ne' | 'sw' | 'se' | 'rotate';
     shapeStartRotation: number;
   } | null>(null);
-  const scrollDragRef  = useRef<{ startY: number; startScrollTop: number } | null>(null);
-  const hideTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollTrackRef = useRef<HTMLDivElement>(null);
   const toolbarRef     = useRef<HTMLDivElement>(null);
   const [toolbarH, setToolbarH] = useState(72);
@@ -660,12 +658,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     ctx.restore();
   };
 
-  const handleManualScroll = (yPercent: number) => {
-    const sc = scrollContainerRef.current;
-    if (!sc) return;
-    sc.scrollTop = yPercent * (sc.scrollHeight - sc.clientHeight);
-  };
-
   const redrawCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -834,8 +826,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const startDrawing = (e: React.PointerEvent) => {
     // Palm rejection MUST be first — before any pointer tracking
     if (stylusModeRef.current && e.pointerType === 'touch') return;
-    // Ne pas dessiner dans la zone du scroll handle (bord droit 36 px)
-    if (e.clientX > window.innerWidth - 36) return;
+
 
     // Track all active pointers for pinch detection
     activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -1120,6 +1111,34 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
   }, [activePageId]);
+
+  const scrubToY = useCallback((clientY: number) => {
+    const track = scrollTrackRef.current;
+    const sc    = scrollContainerRef.current;
+    if (!track || !sc) return;
+    const rect    = track.getBoundingClientRect();
+    const clamped = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+    sc.scrollTop  = clamped * (sc.scrollHeight - sc.clientHeight);
+  }, []);
+
+  useEffect(() => {
+    if (!scrubbing) return;
+    const onMove = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault();
+      scrubToY('touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY);
+    };
+    const onUp = () => setScrubbing(false);
+    window.addEventListener('mousemove', onMove, { passive: false });
+    window.addEventListener('mouseup',   onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend',  onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup',   onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend',  onUp);
+    };
+  }, [scrubbing, scrubToY]);
 
   useEffect(() => {
     const handle = (e: MouseEvent) => { setCursorPos({ x: e.clientX, y: e.clientY }); };
@@ -1506,19 +1525,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     );
   }
 
-  // ── Scroll handle — computed fresh each render ──────────────────────────
-  const _sc = scrollContainerRef.current;
-  const thumbPct    = _sc ? Math.max(8, Math.min(60, (_sc.clientHeight / _sc.scrollHeight) * 100)) : 12;
-  const thumbTopPct = scrollProgress * (100 - thumbPct);
-  const showScrollHandle = (e?: React.PointerEvent) => {
-    if (e && e.pointerType === 'touch' && !scrollHover) return;
-    setScrollHover(true);
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-  };
-  const hideScrollHandle = () => {
-    if (scrollActive) return;
-    hideTimerRef.current = setTimeout(() => setScrollHover(false), 1200);
-  };
+  // ── Scroll handle ────────────────────────────────────────────────────────
+  const _sc      = scrollContainerRef.current;
+  const thumbPct = _sc ? Math.max(8, Math.min(60, (_sc.clientHeight / _sc.scrollHeight) * 100)) : 12;
 
   // ──────────────────────────────────
   // CANVAS / EDITOR VIEW
@@ -1858,100 +1867,16 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       </div>
       {/* FIN TOOLBAR FIXÉE */}
 
-      {/* SMART SCROLL HANDLE */}
+      {/* CANVAS + INLINE SCRUBBER */}
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, gap: 0 }}>
 
-      {/* Zone d'approche invisible */}
-      <div
-        style={{ position: 'fixed', zIndex: 70, pointerEvents: 'auto', right: 0, top: toolbarH, bottom: 100, width: 32 }}
-        onPointerEnter={showScrollHandle}
-        onPointerLeave={hideScrollHandle}
-      />
-
-      {/* Handle visible */}
-      <div
-        ref={scrollTrackRef}
-        style={{ position: 'fixed', zIndex: 71, pointerEvents: 'none', right: 4, top: toolbarH, bottom: 100, opacity: scrollHover || scrollActive ? 1 : 0, transition: 'opacity 0.2s' }}
-      >
-        {/* Piste */}
-        <div
-          style={{ position: 'absolute', right: 0, top: 0, bottom: 0, borderRadius: 10, pointerEvents: 'auto', background: `${t.accent}12`,
-            width: scrollActive ? 20 : scrollHover ? 13 : 4, transition: 'width 0.15s ease' }}
-          onPointerDown={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            handleManualScroll(Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)));
-          }}
-        >
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, borderRadius: 10, height: `${scrollProgress * 100}%`, background: `${t.accent}24`, transition: 'height 0.08s linear' }} />
-        </div>
-
-        {/* Thumb */}
-        <div
-          style={{
-            position: 'absolute', right: 0, borderRadius: 10, pointerEvents: 'auto', userSelect: 'none',
-            top: `${thumbTopPct}%`, height: `${thumbPct}%`, minHeight: 36, touchAction: 'none',
-            background: t.accent, cursor: scrollActive ? 'grabbing' : 'grab',
-            width: scrollActive ? 20 : scrollHover ? 13 : 4,
-            opacity: scrollActive ? 1 : scrollHover ? 0.82 : 0.55,
-            boxShadow: scrollActive ? `0 2px 12px ${t.accent}59` : 'none',
-            transition: 'width 0.15s ease, opacity 0.15s ease',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
-          }}
-          onPointerEnter={showScrollHandle}
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-            if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-            setScrollHover(true);
-            setScrollActive(true);
-            const s = scrollContainerRef.current;
-            scrollDragRef.current = { startY: e.clientY, startScrollTop: s?.scrollTop ?? 0 };
-          }}
-          onPointerMove={(e) => {
-            const drag = scrollDragRef.current;
-            if (!drag) return;
-            const s = scrollContainerRef.current;
-            if (!s) return;
-            const trackH = scrollTrackRef.current?.clientHeight ?? (window.innerHeight - toolbarH - 100);
-            const usableH = Math.max(trackH * (1 - thumbPct / 100), 1);
-            const dy = e.clientY - drag.startY;
-            s.scrollTop = drag.startScrollTop + (dy * 1.8 / usableH) * (s.scrollHeight - s.clientHeight);
-          }}
-          onPointerUp={() => { scrollDragRef.current = null; setScrollActive(false); hideTimerRef.current = setTimeout(() => setScrollHover(false), 1500); }}
-          onPointerCancel={() => { scrollDragRef.current = null; setScrollActive(false); setScrollHover(false); }}
-        >
-          {scrollHover && [0, 1, 2].map(i => (
-            <div key={i} style={{ width: 7, height: 1.5, background: 'rgba(255,255,255,0.8)', borderRadius: 2, flexShrink: 0 }} />
-          ))}
-        </div>
-      </div>
-
-      {/* Back-to-top */}
-      {scrollProgress > 0.06 && !scrollActive && !scrollHover && (
-        <button
-          onClick={() => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-          style={{ position: 'fixed', bottom: 112, right: 12, zIndex: 69, width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto', background: t.bg, border: `1px solid ${t.accent}1a`, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', cursor: 'pointer' }}
-        >
-          <svg style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }} width="36" height="36" viewBox="0 0 36 36">
-            <circle cx="18" cy="18" r="14" fill="none" stroke={`${t.accent}12`} strokeWidth="2" />
-            <circle cx="18" cy="18" r="14" fill="none" stroke={t.accent} strokeWidth="2" strokeLinecap="round"
-              strokeDasharray={`${2 * Math.PI * 14}`}
-              strokeDashoffset={`${2 * Math.PI * 14 * (1 - scrollProgress)}`}
-              style={{ opacity: 0.65, transition: 'stroke-dashoffset 0.15s ease' }} />
-          </svg>
-          <span style={{ fontSize: 8, fontWeight: 900, color: t.accent, userSelect: 'none', position: 'relative' }}>↑</span>
-        </button>
-      )}
-
-      {/* ZONE SCROLLABLE (canvas) — pt-20 compense la toolbar fixed */}
+      {/* ZONE SCROLLABLE (canvas) */}
       <div
         ref={scrollContainerRef}
         style={{ flex: 1, borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflowY: 'auto', position: 'relative', border: `1px solid ${t.accent}14`, scrollBehavior: 'smooth', cursor: 'none' }}
         onScroll={e => {
           const s = e.currentTarget;
           setScrollProgress(s.scrollTop / (s.scrollHeight - s.clientHeight || 1));
-          setScrollHover(true);
-          if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-          hideTimerRef.current = setTimeout(() => setScrollHover(false), 1500);
         }}
       >
         {/* Toast */}
@@ -2101,6 +2026,39 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Inline scrubber (same as Quran) ── */}
+      <div
+        ref={scrollTrackRef}
+        onMouseEnter={() => setTrackHovered(true)}
+        onMouseLeave={() => { if (!scrubbing) setTrackHovered(false); }}
+        onMouseDown={e => { e.preventDefault(); setScrubbing(true); scrubToY(e.clientY); }}
+        onTouchStart={e => { setScrubbing(true); scrubToY(e.touches[0].clientY); }}
+        style={{
+          width: scrubbing ? 10 : trackHovered ? 7 : 3,
+          transition: scrubbing ? 'none' : 'width 0.22s ease',
+          alignSelf: 'stretch', margin: '8px 4px',
+          background: t.lineSoft,
+          borderRadius: 999, position: 'relative',
+          cursor: 'ns-resize', flexShrink: 0, userSelect: 'none',
+        }}
+      >
+        <div style={{
+          position: 'absolute',
+          top: `${scrollProgress * (100 - thumbPct)}%`,
+          left: 0, right: 0,
+          height: `${thumbPct}%`,
+          minHeight: 28,
+          background: scrubbing ? t.accent : trackHovered ? t.accentBright : t.accent,
+          opacity: scrubbing ? 1 : trackHovered ? 0.85 : 0.45,
+          borderRadius: 999,
+          transition: scrubbing ? 'none' : 'top 0.12s ease, opacity 0.2s, background 0.2s',
+          boxShadow: scrubbing ? `0 0 10px ${t.accent}66` : 'none',
+        }}/>
+      </div>
+
+      {/* end canvas + scrubber flex row */}
       </div>
 
       {/* ─── Help / Guide modal ──────────────────────────────────────────── */}
