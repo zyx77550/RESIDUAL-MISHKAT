@@ -263,7 +263,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
   const [authenticPage, setAuthenticPage] = useState(1);
   const [readProgress, setReadProgress] = useState(0);
   const [mushafSelected, setMushafSelected] = useState<QuranVerse | null>(null);
-  const [readingMode, setReadingMode] = useState<'default' | 'night' | 'flare'>('default');
+
   const [fontSize, setFontSize]   = useState(24);
   const [playingId, setPlayingId] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -594,10 +594,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
     );
   }
 
-  // ── Reading mode colours ──────────────────────────────────────────
-  const readingBg    = readingMode === 'night' ? '#0d0b08' : readingMode === 'flare' ? '#fff8ee' : undefined;
-  const readingInk   = readingMode === 'night' ? '#e8d8a0' : readingMode === 'flare' ? '#2a1800' : undefined;
-  const readingMuted = readingMode === 'night' ? '#8a7a5a' : readingMode === 'flare' ? '#7a5830' : undefined;
 
   const onListScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
@@ -608,7 +604,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
   // ── Verse view ────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0, ...(readingBg ? { background: readingBg, color: readingInk } : {}) }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 0 }}>
       <div style={{ flexShrink: 0, paddingBottom: 14 }}>
         {/* Ligne 1 : retour + identité de la sourate */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -622,7 +618,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
             <div style={{ fontSize: 10, color: t.inkMute, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {selectedSurah?.name} · {selectedSurah?.verses} {fr ? 'v.' : 'آية'} · Juz {selectedSurah?.juz}
             </div>
-            <h2 style={{ fontFamily: 'Amiri Quran, serif', fontSize: isMobile ? 24 : 28, color: readingInk ?? t.ink, margin: 0, lineHeight: 1.3, direction: 'rtl', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h2 style={{ fontFamily: 'Amiri Quran, serif', fontSize: isMobile ? 24 : 28, color: t.ink, margin: 0, lineHeight: 1.3, direction: 'rtl', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {selectedSurah?.arabicName}
             </h2>
           </div>
@@ -657,18 +653,6 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
             <button onClick={() => setFontSize(s => Math.max(16, s - 2))} style={{ padding: '4px 6px', background: 'transparent', border: 'none', color: t.inkDim, cursor: 'pointer', display: 'flex' }}><Minus size={11}/></button>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.accent, minWidth: 18, textAlign: 'center' }}>{fontSize}</span>
             <button onClick={() => setFontSize(s => Math.min(42, s + 2))} style={{ padding: '4px 6px', background: 'transparent', border: 'none', color: t.inkDim, cursor: 'pointer', display: 'flex' }}><Plus size={11}/></button>
-          </div>
-          {/* Reading mode */}
-          <div style={ctrlGroup}>
-            {([['default','☀'], ['night','🌙'], ['flare','✨']] as const).map(([m, icon]) => (
-              <button key={m} onClick={() => setReadingMode(m)} style={{
-                width: 26, height: 26, borderRadius: 6,
-                background: readingMode === m ? t.accent : 'transparent',
-                border: 'none', cursor: 'pointer', fontSize: 12,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'background 0.15s',
-              }} title={m}>{icon}</button>
-            ))}
           </div>
         </div>
 
@@ -717,27 +701,27 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
         {/* ── LIST MODE ── */}
         {viewMode === 'list' && !loading && !dbError && filteredVerses.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}
-            style={{ background: readingBg ?? t.card, border: `1px solid ${t.line}`, borderRadius: 16, overflow: 'hidden', marginBottom: 8 }}
+            style={{ background: t.card, border: `1px solid ${t.line}`, borderRadius: 16, overflow: 'hidden', marginBottom: 8 }}
           >
             {/* List header */}
             <div style={{ padding: '14px 22px', borderBottom: `1px solid ${t.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: `linear-gradient(180deg, ${t.accent}08, transparent)` }}>
-              <span style={{ fontFamily: 'Fraunces, serif', fontSize: 17, color: readingInk ?? t.ink, fontWeight: 300 }}>
+              <span style={{ fontFamily: 'Fraunces, serif', fontSize: 17, color: t.ink, fontWeight: 300 }}>
                 {verseSearch
                   ? (fr ? `${filteredVerses.length} résultat${filteredVerses.length > 1 ? 's' : ''}` : `${filteredVerses.length} نتيجة`)
                   : (fr ? `${filteredVerses.length} versets` : `${filteredVerses.length} آية`)}
               </span>
-              <span style={{ fontSize: 11, color: readingMuted ?? t.inkDim }}>Juz {selectedSurah?.juz}</span>
+              <span style={{ fontSize: 11, color: t.inkDim }}>Juz {selectedSurah?.juz}</span>
             </div>
 
             {/* Basmala */}
             {selectedSurahId !== 9 && !verseSearch && (
-              <div style={{ padding: '20px 36px 16px', textAlign: 'center', borderBottom: `1px solid ${t.line}` }}>
+              <div style={{ padding: '20px 16px 16px', display: 'flex', justifyContent: 'center', borderBottom: `1px solid ${t.line}` }}>
                 <div style={{
-                  display: 'inline-block', padding: '10px 28px',
-                  border: `1px solid ${t.line}`, borderRadius: 10,
+                  padding: '10px 24px', maxWidth: '100%',
+                  border: `1px solid ${t.accent}30`, borderRadius: 10,
                   background: `${t.accent}07`,
                 }}>
-                  <div className="anim-reading" style={{ fontFamily: 'Amiri Quran, serif', fontSize: 26, direction: 'rtl', lineHeight: 1.8 }}>
+                  <div className="anim-reading" style={{ fontFamily: 'Amiri Quran, serif', fontSize: narrow ? 20 : 24, direction: 'rtl', lineHeight: 1.8, textAlign: 'center', whiteSpace: 'nowrap' }}>
                     بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
                   </div>
                 </div>
@@ -766,11 +750,11 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
                     {/* Text content */}
                     <div style={{ flex: 1, textAlign: 'right', direction: 'rtl' }}>
-                      <div style={{ fontFamily: 'Amiri Quran, serif', fontSize: fontSize, lineHeight: 2.2, color: readingInk ?? t.ink }}>
+                      <div className="anim-verse-glow" style={{ fontFamily: 'Amiri Quran, serif', fontSize: fontSize, lineHeight: 2.2, color: t.ink }}>
                         {verse.arabic_text}
                       </div>
                       {isSelected && (
-                        <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 13, color: readingMuted ?? t.inkDim, marginTop: 10, lineHeight: 1.7, direction: 'ltr', textAlign: 'left' }}>
+                        <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontWeight: 300, fontSize: 13, color: t.inkDim, marginTop: 10, lineHeight: 1.7, direction: 'ltr', textAlign: 'left' }}>
                           {verse.french_text}
                         </div>
                       )}
@@ -1020,14 +1004,14 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
       </div>
 
       {/* Hidden share card */}
-      <div ref={shareRef} style={{ position: 'fixed', top: -9999, left: -9999, zIndex: -1, width: 480, padding: '32px 36px', background: readingBg ?? t.card, borderRadius: 20, fontFamily: 'Amiri Quran, serif' }}>
+      <div ref={shareRef} style={{ position: 'fixed', top: -9999, left: -9999, zIndex: -1, width: 480, padding: '32px 36px', background: t.card, borderRadius: 20, fontFamily: 'Amiri Quran, serif' }}>
         {mushafSelected && (
           <>
             <p style={{ fontSize: 11, color: t.accentBright, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 16, fontFamily: 'Inter, sans-serif' }}>
               {selectedSurah?.name} · {fr ? `Verset ${mushafSelected.ayah_number}` : `آية ${toArabicNum(mushafSelected.ayah_number)}`}
             </p>
-            <p style={{ fontSize: 26, direction: 'rtl', textAlign: 'right', color: readingInk ?? t.ink, lineHeight: '2.2', marginBottom: 20 }}>{mushafSelected.arabic_text}</p>
-            <p style={{ fontSize: 14, color: readingMuted ?? t.inkDim, lineHeight: '1.7', fontStyle: 'italic', fontFamily: 'Fraunces, serif' }}>« {mushafSelected.french_text} »</p>
+            <p style={{ fontSize: 26, direction: 'rtl', textAlign: 'right', color: t.ink, lineHeight: '2.2', marginBottom: 20 }}>{mushafSelected.arabic_text}</p>
+            <p style={{ fontSize: 14, color: t.inkDim, lineHeight: '1.7', fontStyle: 'italic', fontFamily: 'Fraunces, serif' }}>« {mushafSelected.french_text} »</p>
             <div style={{ marginTop: 24, paddingTop: 14, borderTop: `1px solid ${t.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 10, color: t.inkMute, fontFamily: 'Inter, sans-serif', letterSpacing: '0.15em' }}>مِشْكَاة · mishkat</span>
               <span style={{ fontSize: 14, color: t.accent, fontFamily: 'Amiri Quran, serif' }}>القرآن الكريم</span>

@@ -22,7 +22,8 @@ import localforage from 'localforage';
 import { UserData, Badge, generateAllSurahs, checkLoginStreak } from './types';
 import { checkAndUnlockBadges, celebrateBadgeUnlock } from './lib/badgeEngine';
 import { supabase, loadUserData, saveUserData, migrateLocalToSupabase, isAdminEmail } from './lib/supabase';
-import { AuthScreen } from './components/Auth';
+import { AuthScreen, REMEMBER_KEY, SESSION_ALIVE_KEY } from './components/Auth';
+import { WelcomeSplash } from './components/WelcomeSplash';
 import { OnboardingModal } from './components/Onboarding';
 import { setSoundEnabled, playBadgeUnlock } from './lib/sounds';
 
@@ -48,6 +49,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showTrialPopup, setShowTrialPopup] = useState(false);
+  const [showSplash, setShowSplash] = useState(false);
 
   const isDark = userData?.settings?.darkMode ?? false;
   const themeMap = isDark ? DARK_THEMES : THEMES;
@@ -80,6 +82,14 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
+        // "Remember me" enforcement: if user logged in without remember-me,
+        // the session must not survive a browser restart (sessionStorage is cleared on restart).
+        const hasRemember  = !!localStorage.getItem(REMEMBER_KEY);
+        const hasAliveFlag = !!sessionStorage.getItem(SESSION_ALIVE_KEY);
+        if (!hasRemember && !hasAliveFlag) {
+          supabase.auth.signOut().then(() => { setShowAuth(true); setAuthChecked(true); });
+          return;
+        }
         setSupabaseUserId(session.user.id);
         setShowAuth(false);
       } else if (!localOnly) {
@@ -107,9 +117,11 @@ export default function App() {
               if (typeof cloudData.loginStreak !== 'number') cloudData.loginStreak = 1;
               cloudData.settings = { ...cloudData.settings, isAdmin: isAdminEmail(session.user.email) };
               setUserData(cloudData);
+              setShowSplash(true);
               return;
             }
           } catch {}
+          setShowSplash(true);
         }
         setUserData(prev => prev ? {
           ...prev,
@@ -360,6 +372,10 @@ export default function App() {
         <AuthScreen lang={lang} onContinueLocal={() => { setLocalOnly(true); setShowAuth(false); }}/>
       </ThemeContext.Provider>
     );
+  }
+
+  if (showSplash) {
+    return <WelcomeSplash lang={lang} onDone={() => setShowSplash(false)} />;
   }
 
   if (!userData) {

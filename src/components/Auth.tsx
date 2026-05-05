@@ -8,7 +8,8 @@ interface AuthProps {
   onContinueLocal: () => void;
 }
 
-const REMEMBER_KEY = 'mishkat_remembered_email';
+export const REMEMBER_KEY      = 'mishkat_remembered_email';
+export const SESSION_ALIVE_KEY = 'mishkat_session_alive';
 
 export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
   const t = useT();
@@ -45,8 +46,13 @@ export const AuthScreen = ({ lang, onContinueLocal }: AuthProps) => {
       if (mode === 'login') {
         const { error } = await signIn(email, password);
         if (error) throw error;
-        if (rememberMe) localStorage.setItem(REMEMBER_KEY, email);
-        else localStorage.removeItem(REMEMBER_KEY);
+        if (rememberMe) {
+          localStorage.setItem(REMEMBER_KEY, email);
+          sessionStorage.removeItem(SESSION_ALIVE_KEY);
+        } else {
+          localStorage.removeItem(REMEMBER_KEY);
+          sessionStorage.setItem(SESSION_ALIVE_KEY, '1');
+        }
       } else {
         const { error } = await signUp(email, password);
         if (error) throw error;

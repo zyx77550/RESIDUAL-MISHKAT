@@ -145,6 +145,8 @@ button { cursor: pointer; border: none; background: none; }
   animation: basmala-glow 3s ease-in-out infinite;
   display: inline-block;
 }
+/* Same glow pulse for verse Arabic text — no display override */
+.anim-verse-glow { animation: basmala-glow 4s ease-in-out infinite; }
 
 /* 5. Card flip — déclenché au clic via .is-flipped, pas au hover */
 .flip-container { perspective: 1000px; width: 100%; }
