@@ -299,7 +299,7 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
   const pinchBind = usePinch(({ offset: [scale], first }) => {
     if (viewMode === 'authentic') {
-      if (!zoomLocked) setImgScale(Math.max(1, Math.min(2.5, scale)));
+      if (!zoomLocked) setImgScale(Math.max(1, Math.min(2, scale)));
     } else {
       if (first) baseFontRef.current = fontSize;
       setFontSize(Math.max(16, Math.min(42, Math.round(baseFontRef.current * scale))));
@@ -869,40 +869,76 @@ export const QuranSection = ({ userData, lang }: QuranProps) => {
 
               {/* Page number badge */}
               <div style={{
-                position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
-                background: 'rgba(26,15,0,0.82)', borderRadius: 99,
-                padding: '3px 14px', fontSize: 11, color: '#d4a64a',
-                fontFamily: 'Fraunces, serif', letterSpacing: '0.14em', whiteSpace: 'nowrap',
+                position: 'absolute', bottom: 10, left: 10,
+                background: 'rgba(12,8,0,0.82)', borderRadius: 99,
+                padding: '3px 12px', fontSize: 10, color: '#d4a64a',
+                fontFamily: 'Fraunces, serif', letterSpacing: '0.12em', whiteSpace: 'nowrap',
                 pointerEvents: 'none', zIndex: 2,
               }}>
                 {fr ? `Page ${authenticPage}` : `صفحة ${toArabicNum(authenticPage)}`}
               </div>
 
-              {/* Lock / zoom controls */}
-              <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 6, zIndex: 2 }}>
-                {imgScale > 1 && !zoomLocked && (
-                  <div style={{
-                    background: 'rgba(26,15,0,0.75)', borderRadius: 99,
-                    padding: '3px 10px', fontSize: 10, color: '#d4a64a',
-                    fontFamily: 'Fraunces, serif', pointerEvents: 'none',
-                  }}>
-                    ×{imgScale.toFixed(1)}
-                  </div>
-                )}
-                <button
+              {/* Zoom controls pill */}
+              <div style={{
+                position: 'absolute', bottom: 10, right: 10, zIndex: 2,
+                display: 'flex', alignItems: 'center', gap: 2,
+                background: 'rgba(12,8,0,0.82)',
+                border: '1px solid rgba(212,166,74,0.22)',
+                borderRadius: 99, padding: '3px 6px',
+                backdropFilter: 'blur(8px)',
+              }}>
+                {/* Zoom out */}
+                <motion.button
+                  whileTap={{ scale: 0.78 }}
+                  onClick={() => { if (!zoomLocked) setImgScale(s => Math.max(1, parseFloat((s - 0.25).toFixed(2)))); }}
+                  disabled={zoomLocked || imgScale <= 1}
+                  style={{
+                    width: 26, height: 26, borderRadius: 999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: (zoomLocked || imgScale <= 1) ? 'rgba(212,166,74,0.25)' : '#d4a64a',
+                    cursor: (zoomLocked || imgScale <= 1) ? 'default' : 'pointer',
+                  }}
+                ><Minus size={11}/></motion.button>
+
+                {/* Scale label */}
+                <div style={{
+                  minWidth: 28, textAlign: 'center',
+                  fontSize: 10, color: '#d4a64a', fontFamily: 'Fraunces, serif',
+                  letterSpacing: '0.03em', userSelect: 'none',
+                }}>
+                  ×{imgScale.toFixed(2).replace(/\.?0+$/, '')}
+                </div>
+
+                {/* Zoom in */}
+                <motion.button
+                  whileTap={{ scale: 0.78 }}
+                  onClick={() => { if (!zoomLocked) setImgScale(s => Math.min(2, parseFloat((s + 0.25).toFixed(2)))); }}
+                  disabled={zoomLocked || imgScale >= 2}
+                  style={{
+                    width: 26, height: 26, borderRadius: 999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: (zoomLocked || imgScale >= 2) ? 'rgba(212,166,74,0.25)' : '#d4a64a',
+                    cursor: (zoomLocked || imgScale >= 2) ? 'default' : 'pointer',
+                  }}
+                ><Plus size={11}/></motion.button>
+
+                {/* Divider */}
+                <div style={{ width: 1, height: 14, background: 'rgba(212,166,74,0.18)', margin: '0 3px' }}/>
+
+                {/* Lock toggle */}
+                <motion.button
+                  whileTap={{ scale: 0.78 }}
                   onClick={() => setZoomLocked(l => !l)}
                   title={zoomLocked ? (fr ? 'Déverrouiller le zoom' : 'فتح التكبير') : (fr ? 'Verrouiller le zoom' : 'قفل التكبير')}
                   style={{
-                    width: 30, height: 30, borderRadius: 999,
+                    width: 26, height: 26, borderRadius: 999,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: zoomLocked ? 'rgba(212,166,74,0.25)' : 'rgba(26,15,0,0.65)',
-                    border: `1px solid ${zoomLocked ? '#d4a64a' : 'rgba(212,166,74,0.3)'}`,
-                    color: zoomLocked ? '#d4a64a' : 'rgba(212,166,74,0.7)',
+                    color: zoomLocked ? '#d4a64a' : 'rgba(212,166,74,0.45)',
                     cursor: 'pointer',
                   }}
                 >
-                  {zoomLocked ? <Lock size={12}/> : <Unlock size={12}/>}
-                </button>
+                  {zoomLocked ? <Lock size={11}/> : <Unlock size={11}/>}
+                </motion.button>
               </div>
             </div>
 
