@@ -2057,8 +2057,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         )}
       </div>
 
-      </div>
-
       {/* ── PREMIUM SCROLL COMPONENT ── */}
       {activePageId && (
         <div ref={scrollTrackRef} className="absolute right-0 top-0 bottom-0 w-16 z-50 pointer-events-none">
@@ -2183,8 +2181,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         </div>
       )}
 
-      {/* end canvas + scrubber flex row */}
-      </div>
+      </div> {/* end canvas + scrubber flex row */}
 
       {/* ─── Help / Guide modal ──────────────────────────────────────────── */}
       {showHelp && (
