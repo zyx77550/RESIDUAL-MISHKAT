@@ -1,0 +1,75 @@
+/* Diftar Premium Interface Styles */
+
+.diftar-premium-ribbon {
+  background: rgba(12, 8, 6, 0.7);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(196, 151, 63, 0.15);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.diftar-premium-dock {
+  background: rgba(20, 12, 10, 0.75);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.diftar-premium-rail {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+}
+
+.diftar-tool-btn {
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.diftar-tool-btn:hover {
+  transform: translateY(-4px) scale(1.1);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.diftar-tool-btn.active {
+  background: linear-gradient(135deg, #8B2635, #5c1820);
+  box-shadow: 0 6px 18px rgba(139, 38, 53, 0.4);
+  color: white;
+}
+
+.diftar-gold-text {
+  color: #C4973F;
+  font-family: 'Libre Baskerville', serif;
+}
+
+.diftar-crimson-bg {
+  background: #8B2635;
+}
+
+.diftar-glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+}
+
+/* Scroll Helper Enhancements */
+.premium-scroll-tab {
+  background: rgba(14, 10, 8, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(196, 151, 63, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.premium-scroll-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 1px solid rgba(196, 151, 63, 0.1);
+}
+
+.peek-pill {
+  background: rgba(139, 38, 53, 0.9);
+  color: white;
+  box-shadow: 0 4px 12px rgba(139, 38, 53, 0.4);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}

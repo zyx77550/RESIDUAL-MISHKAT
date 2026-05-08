@@ -5,6 +5,7 @@ import { HexColorPicker } from 'react-colorful';
 import { Stroke, Shape, DiftarPage, UserData } from '../types';
 import { useT } from '../lib/theme';
 import { Icon, Icons, useIsNarrow, useIsMobile } from './ui';
+import './Diftar.css';
 
 // Page templates
 const PAGE_TEMPLATES = [
@@ -147,7 +148,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [tool, setTool]                     = useState<'select' | 'pen' | 'highlighter' | 'fountain-pen' | 'chalk' | 'eraser' | 'ruler' | 'spray' | 'marker' | 'neon' | 'pencil' | 'watercolor' | 'calligraphy' | 'dotted' | 'brush'>('pen');
   const [shapeSize, setShapeSize]           = useState(60);
   const [showToolsMenu, setShowToolsMenu]           = useState(false);
-  const [showSectionsPanel, setShowSectionsPanel]   = useState(false);
   const [showCustomizationMenu, setShowCustomizationMenu] = useState(false);
   const [color, setColor]                   = useState('#8B2635');
   const [colorTab, setColorTab]             = useState<keyof typeof COLOR_PALETTE>('classiques');
@@ -171,7 +171,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [paperStyle, setPaperStyle]         = useState<'lines'|'blank'|'grid'|'dots'|'arabesque'|'diamond'|'hexagonal'|'music'|'floral'|'islamic_star'|'waves'|'leaves'|'crosses'|'triangles'>('lines');
   const [paperColor, setPaperColor]         = useState('#fdfcf8');
   const [pageHeight, setPageHeight]         = useState(5000);
-  const [sections, setSections]             = useState<{ id: string; title: string; y: number }[]>([]);
   const [canvasScale, setCanvasScale]       = useState(1);
 
   // ── Premium Scroll States ──
@@ -183,6 +182,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const scrollTrackRef = useRef<HTMLDivElement>(null);
   const padlockHoldTimerRef = useRef<any>(null);
   const retractTimerRef = useRef<any>(null);
+  const grabOffsetRef = useRef(0);
   const [tabTranslateX, setTabTranslateX] = useState(36);
   const [tabIconY, setTabIconY] = useState(0);
   const lastPointerYRef = useRef(0);
@@ -234,12 +234,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [toolbarH, setToolbarH] = useState(72);
   const [searchQuery, setSearchQuery]   = useState('');
   const [showSearch, setShowSearch]     = useState(false);
+  const [ribbonVisible, setRibbonVisible] = useState(true);
   const [libraryScrolled, setLibraryScrolled] = useState(false);
-  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const libraryContainerRef = useRef<HTMLDivElement>(null);
-  const [toolbarPinned, setToolbarPinned] = useState(true);
-  const [toolbarHidden, setToolbarHidden] = useState(false);
-  const lastScrollYRef = useRef(0);
 
   const activePage = userData.diftarPages.find(p => p.id === activePageId);
 
@@ -261,31 +258,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     scrollParent.addEventListener('scroll', handle, { passive: true });
     return () => scrollParent.removeEventListener('scroll', handle);
   }, [activePageId]);
-
-  useEffect(() => {
-    if (!activePageId || toolbarPinned) {
-      setToolbarHidden(false);
-      return;
-    }
-    const sc = scrollContainerRef.current;
-    if (!sc) return;
-
-    const handleScroll = () => {
-      const currentY = sc.scrollTop;
-      const delta = currentY - lastScrollYRef.current;
-      
-      if (delta > 30 && !toolbarHidden && currentY > 100) {
-        setToolbarHidden(true);
-      } else if (delta < -30 && toolbarHidden) {
-        setToolbarHidden(false);
-      }
-      
-      lastScrollYRef.current = currentY;
-    };
-
-    sc.addEventListener('scroll', handleScroll, { passive: true });
-    return () => sc.removeEventListener('scroll', handleScroll);
-  }, [activePageId, toolbarPinned, toolbarHidden]);
 
   const updateStaticBuffer = useCallback(() => {
     const canvas = canvasRef.current;
@@ -529,7 +501,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       setPageHeight(activePage.height || 5000);
       setPaperStyle(activePage.paperStyle || 'lines');
       setPaperColor((activePage as any).paperColor || '#fdfcf8');
-      setSections(activePage.sections || []);
       setUndoStack([]);
       setRedoStack([]);
     }
@@ -1073,21 +1044,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     pdf.save(`${activePage?.title || 'diftar'}.pdf`);
   };
 
-  const addSection = () => {
-    const sc = scrollContainerRef.current;
-    const y = sc ? sc.scrollTop : 0;
-    const newSec = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: fr ? `Section ${sections.length + 1}` : `قسم ${sections.length + 1}`,
-      y: Math.round(y)
-    };
-    setSections(prev => [...prev, newSec].sort((a, b) => a.y - b.y));
-  };
-
-  const deleteSection = (id: string) => {
-    setSections(prev => prev.filter(s => s.id !== id));
-  };
-
   const savePage = () => {
     if (!activePageId) return;
     setIsSaving(true);
@@ -1095,7 +1051,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       ...prev,
       diftarPages: prev.diftarPages.map(p =>
         p.id === activePageId
-          ? { ...p, strokes: currentStrokes, shapes, height: pageHeight, paperStyle, paperColor: paperColor, sections, lastSaved: Date.now() }
+          ? { ...p, strokes: currentStrokes, shapes, height: pageHeight, paperStyle, paperColor: paperColor, lastSaved: Date.now() }
           : p
       ),
     }));
@@ -1108,7 +1064,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     const ms = intervalSec ? intervalSec * 1000 : 5000;
     const timer = setInterval(() => { if (activePageId) savePage(); }, ms);
     return () => clearInterval(timer);
-  }, [currentStrokes, shapes, sections, activePageId, userData.settings?.autoSaveInterval]);
+  }, [currentStrokes, shapes, activePageId, userData.settings?.autoSaveInterval]);
 
   const createPage = (tpl?: typeof PAGE_TEMPLATES[0]) => {
     const template = tpl || PAGE_TEMPLATES[4];
@@ -1226,10 +1182,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if (activePageId) savePage(); return; }
-      if (e.code === 'Space' && activePageId && document.activeElement?.tagName !== 'INPUT') {
-        e.preventDefault();
-        setTool(prev => prev === 'select' ? 'pen' : 'select');
-      }
       if (e.key === 'Escape') { closeAllPanels(); setSelectedShapeId(null); return; }
       if (!activePageId || e.ctrlKey || e.metaKey) return;
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -1580,6 +1532,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             </div>
           </div>
         )}
+
         {/* ── Scroll-to-top (library view) ── */}
         {libraryScrolled && (
           <button
@@ -1607,165 +1560,148 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', height: '100%' }}>
 
-      {/* Peek pill (visible when toolbar hidden) */}
-      <button 
-        onClick={() => setToolbarHidden(false)}
-        style={{
-          position: 'absolute', top: 14, left: '50%', transform: `translateX(-50%) translateY(${toolbarHidden ? '0' : '-140%'})`,
-          pointerEvents: toolbarHidden ? 'auto' : 'none',
-          background: `linear-gradient(180deg, ${t.accentBright}, ${t.accent})`,
-          color: '#fff', border: '1px solid rgba(255,255,255,.18)',
-          borderRadius: 99, padding: '10px 20px 10px 14px',
-          fontSize: 12, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase',
-          display: 'flex', alignItems: 'center', gap: 10,
-          boxShadow: `0 12px 36px ${t.accent}45, inset 0 1px 0 rgba(255,255,255,.35)`,
-          zIndex: 31, cursor: 'pointer', transition: 'all .35s cubic-bezier(.2,.8,.2,1)',
-          opacity: toolbarHidden ? 1 : 0
-        }}
-      >
-        <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
-          <i style={{ display: 'block', width: 18, height: 2, background: 'rgba(255,255,255,.6)', borderRadius: 1 }} />
-          <i style={{ display: 'block', width: 18, height: 2, background: 'rgba(255,255,255,.6)', borderRadius: 1 }} />
-        </div>
-        <span>{fr ? 'Outils' : 'أدوات'}</span>
-      </button>
-
-      {/* TOOLBAR */}
+      {/* PREMIUM RIBBON */}
       <div 
         ref={toolbarRef} 
+        className={`diftar-premium-ribbon ${ribbonVisible ? 'visible' : 'hidden'}`}
         style={{ 
-          flexShrink: 0, position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, 
-          padding: '12px 14px 0', display: 'flex', flexDirection: 'column', pointerEvents: 'none',
-          transition: 'transform .35s cubic-bezier(.2,.8,.2,1), opacity .25s',
-          transform: toolbarHidden ? 'translateY(-110%)' : 'translateY(0)',
-          opacity: toolbarHidden ? 0 : 1,
-          alignItems: 'center'
+          flexShrink: 0, 
+          position: 'sticky', 
+          top: 0, 
+          zIndex: 100, 
+          padding: '12px 20px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          transform: ribbonVisible ? 'translateY(0)' : 'translateY(-100%)',
+          pointerEvents: 'auto'
         }}
       >
-
-        {/* Barre principale */}
-        <div style={{
-          backdropFilter: 'blur(36px) saturate(1.4)', borderRadius: 999, 
-          boxShadow: '0 1px 0 rgba(255,255,255,1) inset, 0 -1px 0 rgba(200,150,42,.2) inset, 0 14px 38px rgba(80,50,10,.14)',
-          border: `1px solid ${t.accent}4d`, padding: '6px 8px', display: 'flex', alignItems: 'center',
-          gap: 3, minHeight: 52, flexShrink: 0, pointerEvents: 'auto', background: `linear-gradient(180deg, rgba(255,253,247,.96), rgba(248,243,233,.9))`,
-          position: 'relative'
-        }}>
-          {/* Left: back + title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, paddingRight: 4 }}>
-            <button
-              onClick={() => { savePage(); setActivePageId(null); }}
-              style={{ ...btnStyle(false), fontSize: 18 }}
-              title={fr ? 'Retour' : 'رجوع'}
-            >
-              ←
-            </button>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-              <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.22em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.7, display: 'flex', gap: 6, alignItems: 'center' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#c44539' }}></span>
-                {activePage?.type}
-              </div>
-              <input
-                value={activePage?.title}
-                onChange={e => setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) }))}
-                style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 18, width: 140, background: 'transparent', border: 'none', outline: 'none', color: t.ink }}
-              />
-            </div>
-          </div>
-
-          <div style={{ width: 1, height: 24, background: `${t.accent}33`, margin: '0 4px' }} />
-
-          {/* Mode switch: Draw / Pan (select) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: `${t.accent}0f`, borderRadius: 14, padding: 3 }}>
-            <button 
-              onClick={() => { closeAllPanels(); setTool('pen'); }} 
-              style={{ ...btnStyle(tool !== 'select'), borderRadius: 11, width: 36, height: 32, background: tool !== 'select' ? t.card : 'transparent', color: tool !== 'select' ? t.accent : t.inkMute, boxShadow: tool !== 'select' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none' }}
-              title={fr ? 'Dessiner' : 'رسم'}
-            >
-              ✏️
-            </button>
-            <button 
-              onClick={() => { closeAllPanels(); setTool('select'); }} 
-              style={{ ...btnStyle(tool === 'select'), borderRadius: 11, width: 36, height: 32, background: tool === 'select' ? t.card : 'transparent', color: tool === 'select' ? t.accent : t.inkMute, boxShadow: tool === 'select' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none' }}
-              title={fr ? 'Déplacer / Scroll' : 'تحريك / تصفح'}
-            >
-              ✋
-            </button>
-          </div>
-
-          <div style={{ width: 1, height: 24, background: `${t.accent}33`, margin: '0 4px' }} />
-
-          {/* Center: panel buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: `${t.accent}0f`, borderRadius: 14, padding: 3 }}>
-            {[
-              { id: 'tools',  emoji: '✏️', title: fr ? 'Outils' : 'أدوات',    active: showToolsMenu,         action: () => { closeAllPanels(); setShowToolsMenu(v => !v); } },
-              { id: 'colors', emoji: '🎨', title: fr ? 'Couleurs' : 'الألوان', active: showCustomizationMenu, action: () => { closeAllPanels(); setShowCustomizationMenu(v => !v); } },
-              { id: 'shapes', emoji: '⭐', title: fr ? 'Formes' : 'الأشكال',   active: showShapePicker,       action: () => { closeAllPanels(); setShowShapePicker(v => !v); } },
-              { id: 'sections', emoji: '🔖', title: fr ? 'Sections' : 'أقسام', active: showSectionsPanel,    action: () => { closeAllPanels(); setShowSectionsPanel(v => !v); } },
-              { id: 'emojis', emoji: '😊', title: fr ? 'Emojis' : 'إيموجي',    active: showEmojiPicker,       action: () => { closeAllPanels(); setShowEmojiPicker(v => !v); } },
-              { id: 'paper',  emoji: '⚙️', title: fr ? 'Papier' : 'الورق',     active: showPaperSettings,     action: () => { closeAllPanels(); setShowPaperSettings(v => !v); } },
-            ].map(btn => (
-              <button key={btn.id} onClick={btn.action} title={btn.title} style={{ ...btnStyle(btn.active), background: btn.active ? `linear-gradient(135deg, ${t.accentBright}, ${t.accent})` : 'transparent', color: btn.active ? '#fff' : t.accent, boxShadow: btn.active ? `0 4px 14px ${t.accent}66, inset 0 1px 0 rgba(255,255,255,.3)` : 'none', borderRadius: 99, width: 36, height: 36 }}>
-                {btn.emoji}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ flex: 1, minWidth: 10 }} />
-
-          {/* Right: stylus + zoom + undo/redo + pin + save */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            <button
-              onClick={() => setStylusMode(v => !v)}
-              title={fr ? (stylusMode ? 'Mode Stylet actif' : 'Activer le mode Stylet') : (stylusMode ? 'وضع القلم' : 'تفعيل القلم')}
-              style={{ ...btnStyle(stylusMode), width: 36, height: 36, background: stylusMode ? `linear-gradient(135deg, ${t.accentBright}, ${t.accent})` : 'transparent', color: stylusMode ? '#fff' : t.accent }}
-            >
-              {stylusMode ? '🖊' : '👆'}
-            </button>
-            
-            {/* Zoom */}
-            <div style={{ display: 'flex', alignItems: 'center', background: `${t.accent}0f`, borderRadius: 14, padding: 3, gap: 1 }}>
-              <button onClick={() => setZoom(z => Math.max(0.25, z / 1.2))} style={{ ...btnStyle(false), width: 32, height: 32 }} title="Zoom -">−</button>
-              <button onClick={() => setZoom(1)} style={{ background: 'transparent', border: 'none', color: t.ink, fontSize: 10, fontWeight: 800, minWidth: 40, cursor: 'pointer', fontFamily: 'monospace' }}>{Math.round(zoom * 100)}%</button>
-              <button onClick={() => setZoom(z => Math.min(4, z * 1.2))} style={{ ...btnStyle(false), width: 32, height: 32 }} title="Zoom +">+</button>
-            </div>
-
-            {/* Undo/Redo */}
-            <div style={{ display: 'flex', background: `${t.accent}0f`, borderRadius: 14, padding: 3, gap: 1 }}>
-              <button onClick={undo} style={{ ...btnStyle(false), width: 32, height: 32 }} title="Annuler">↶</button>
-              <button onClick={redo} style={{ ...btnStyle(false), width: 32, height: 32 }} title="Refaire">↷</button>
-            </div>
-
-            {/* Pin Toggle */}
-            <button
-              onClick={() => setToolbarPinned(v => !v)}
-              title={fr ? (toolbarPinned ? 'Désépingler (Masquage auto)' : 'Épingler la barre') : (toolbarPinned ? 'فك التثبيت' : 'تثبيت الشريط')}
-              style={{ ...btnStyle(toolbarPinned), width: 36, height: 36, color: toolbarPinned ? t.accent : t.inkMute }}
-            >
-              📌
-            </button>
-
-            <button onClick={() => setShowConfirmClear(true)} style={{ ...btnStyle(false), color: 'rgba(239,68,68,0.6)', width: 36, height: 36 }} title="Effacer">🗑</button>
-            <button onClick={exportPDF} style={{ ...btnStyle(false), width: 36, height: 36 }} title="Exporter">↓</button>
-
-            <button
-              onClick={savePage}
-              disabled={isSaving}
+        {/* Left: back + title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button
+            onClick={() => { savePage(); setActivePageId(null); }}
+            className="diftar-tool-btn"
+            style={{ 
+              background: 'rgba(255,255,255,0.05)', 
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '12px',
+              width: 40, height: 40,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#C4973F', fontSize: 20
+            }}
+          >
+            ←
+          </button>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <input
+              value={activePage?.title}
+              onChange={e => setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) }))}
+              className="diftar-gold-text"
               style={{ 
-                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 14, 
-                background: isSaving ? '#5b8a4e' : t.accent, color: '#fff', border: 'none', cursor: 'pointer', 
-                fontWeight: 700, fontSize: 12, boxShadow: `0 6px 16px ${isSaving ? '#5b8a4e66' : t.accent + '52'}`,
-                transition: 'all 0.2s'
+                fontSize: 20, 
+                background: 'transparent', 
+                border: 'none', 
+                outline: 'none', 
+                fontWeight: 600,
+                width: 200
               }}
-            >
-              {isSaving ? '✓' : '💾'}
-              <span style={{ display: isMobile ? 'none' : 'inline' }}>{isSaving ? (fr ? 'Sauvegardé' : 'تم') : (fr ? 'Sauvegarder' : 'حفظ')}</span>
-            </button>
+            />
+            <span style={{ fontSize: 10, color: 'rgba(196, 151, 63, 0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              {fr ? 'Carnet de mémorisation' : 'دفتر الحفظ'}
+            </span>
           </div>
         </div>
 
+        {/* Center: Main Tool Groups */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 8, 
+          background: 'rgba(0,0,0,0.2)', 
+          padding: '4px 8px', 
+          borderRadius: 16,
+          border: '1px solid rgba(255,255,255,0.05)'
+        }}>
+          {[
+            { id: 'tools',  emoji: '✏️', label: fr ? 'Dessin' : 'رسم', active: showToolsMenu, action: () => { closeAllPanels(); setShowToolsMenu(v => !v); } },
+            { id: 'shapes', emoji: '⭐', label: fr ? 'Formes' : 'أشكال', active: showShapePicker, action: () => { closeAllPanels(); setShowShapePicker(v => !v); } },
+            { id: 'colors', emoji: '🎨', label: fr ? 'Thème' : 'سمة', active: showCustomizationMenu, action: () => { closeAllPanels(); setShowCustomizationMenu(v => !v); } },
+            { id: 'paper',  emoji: '📜', label: fr ? 'Papier' : 'ورق', active: showPaperSettings, action: () => { closeAllPanels(); setShowPaperSettings(v => !v); } },
+          ].map(grp => (
+            <button 
+              key={grp.id} 
+              onClick={grp.action}
+              className={`diftar-tool-btn ${grp.active ? 'active' : ''}`}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 12,
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 13,
+                fontWeight: 500,
+                color: grp.active ? 'white' : 'rgba(255,255,255,0.7)',
+                background: grp.active ? 'linear-gradient(135deg, #8B2635, #5c1820)' : 'transparent',
+                cursor: 'pointer'
+              }}
+            >
+              <span>{grp.emoji}</span>
+              <span style={{ fontFamily: 'DM Sans, sans-serif' }}>{grp.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Right: Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.03)', padding: 4, borderRadius: 12 }}>
+            <button onClick={undo} className="diftar-tool-btn" style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', padding: '4px 8px' }}>↶</button>
+            <button onClick={redo} className="diftar-tool-btn" style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', padding: '4px 8px' }}>↷</button>
+          </div>
+          <button 
+            onClick={savePage} 
+            className="diftar-crimson-bg"
+            style={{ 
+              color: 'white', 
+              border: 'none', 
+              padding: '10px 20px', 
+              borderRadius: 12, 
+              fontWeight: 600, 
+              fontSize: 13, 
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(139, 38, 53, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              transition: 'all 0.2s'
+            }}
+          >
+            {isSaving ? '✓' : '💾'}
+            <span style={{ fontFamily: 'DM Sans, sans-serif' }}>{isSaving ? (fr ? 'Sauvegardé' : 'تم') : (fr ? 'Enregistrer' : 'حفظ')}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* PEEK PILL (appears when ribbon is hidden) */}
+      {!ribbonVisible && (
+        <div 
+          onClick={() => setRibbonVisible(true)}
+          className="peek-pill"
+          style={{ 
+            position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', 
+            zIndex: 101, padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
+            fontSize: 10, display: 'flex', alignItems: 'center', gap: 6
+          }}
+        >
+          <span>{fr ? 'MENU' : 'قائمة'}</span>
+          <span style={{ transform: 'rotate(90deg)' }}>›</span>
+        </div>
+      )}
+
+
         {/* Panels */}
-        {(showToolsMenu || showCustomizationMenu || showShapePicker || showEmojiPicker || showPaperSettings || showSectionsPanel) && (
+        {(showToolsMenu || showCustomizationMenu || showShapePicker || showEmojiPicker || showPaperSettings) && (
           <div
             style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, maxWidth: 640, margin: '0 auto', pointerEvents: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 90px)', paddingTop: 4 }}
           >
@@ -1999,104 +1935,11 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                   </div>
                 </div>
               )}
-
-              {showSectionsPanel && (
-                <div style={{ backdropFilter: 'blur(32px)', borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.16)', border: `1px solid ${t.accent}1a`, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, background: t.bg }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase', color: t.accentBright, opacity: 0.6 }}>{fr ? 'Gestion des Sections' : 'إدارة الأقسام'}</div>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      const currentY = scrollContainerRef.current?.scrollTop || 0;
-                      const newSec = { id: Date.now().toString(), title: fr ? `Nouvelle section` : `قسم جديد`, y: Math.round(currentY) };
-                      setSections(prev => [...prev, newSec].sort((a,b) => a.y - b.y));
-                    }}
-                    style={{ 
-                      width: '100%', padding: '12px', borderRadius: 16, background: `${t.accent}14`, border: `1px dashed ${t.accent}4d`, color: t.accent, cursor: 'pointer', fontWeight: 700, fontSize: 11,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = `${t.accent}26`)}
-                    onMouseLeave={e => (e.currentTarget.style.background = `${t.accent}14`)}
-                  >
-                    <span>+</span> {fr ? "Ajouter une section ici" : "إضافة قسم هنا"}
-                  </button>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto', paddingRight: 4 }} className="no-scrollbar">
-                    {sections.length === 0 && (
-                      <div style={{ padding: '20px 0', textAlign: 'center', color: t.inkMute, fontSize: 11, fontStyle: 'italic' }}>
-                        {fr ? "Aucune section définie" : "لا توجد أقسام محددة"}
-                      </div>
-                    )}
-                    {sections.map((sec, idx) => (
-                      <div key={sec.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: `${t.accent}08`, padding: '8px 12px', borderRadius: 16, border: `1px solid ${activeSectionId === sec.id ? t.accent : 'transparent'}`, transition: 'all 0.2s' }}>
-                        <div style={{ width: 18, height: 18, borderRadius: '50%', background: activeSectionId === sec.id ? t.accent : `${t.accent}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: activeSectionId === sec.id ? '#fff' : t.accent, fontWeight: 900 }}>
-                          {idx + 1}
-                        </div>
-                        <input
-                          value={sec.title}
-                          onChange={e => setSections(prev => prev.map(s => s.id === sec.id ? { ...s, title: e.target.value } : s))}
-                          style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.ink, fontSize: 12, fontWeight: 600, fontFamily: 'Fraunces, serif', fontStyle: 'italic' }}
-                        />
-                        <button
-                          onClick={() => scrollContainerRef.current?.scrollTo({ top: sec.y, behavior: 'smooth' })}
-                          style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 12, opacity: 0.6 }}
-                          title={fr ? "Aller à" : "ذهاب إلى"}
-                        >
-                          👁️
-                        </button>
-                        <button
-                          onClick={() => setSections(prev => prev.filter(s => s.id !== sec.id))}
-                          style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 12, opacity: 0.6 }}
-                          title={fr ? "Supprimer" : "حذف"}
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
           </div>
         )}
 
-      </div>
-      {/* FIN TOOLBAR FIXÉE */}
-
       {/* CANVAS + INLINE SCRUBBER */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0, gap: 0, position: 'relative' }}>
-
-        {/* NAV RAIL (SIDE) */}
-        <div style={{
-          position: 'absolute', left: 12, top: '20%', bottom: '20%',
-          zIndex: 40, width: 1, background: `${t.accent}14`,
-          borderRadius: 1, display: isMobile ? 'none' : 'block'
-        }}>
-          {sections.map((sec) => (
-            <button
-              key={sec.id}
-              onClick={() => {
-                const sc = scrollContainerRef.current;
-                if (sc) sc.scrollTo({ top: sec.y, behavior: 'smooth' });
-              }}
-              title={sec.title}
-              style={{
-                position: 'absolute', left: -9, top: `${(sec.y / pageHeight) * 100}%`,
-                width: 20, height: 20, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all .2s'
-              }}
-            >
-              <div style={{
-                width: 4, height: 4, borderRadius: '50%', 
-                background: activeSectionId === sec.id ? t.accentBright : `${t.accent}4d`,
-                transition: 'all .3s',
-                transform: activeSectionId === sec.id ? 'scale(2)' : 'scale(1)',
-                boxShadow: activeSectionId === sec.id ? `0 0 10px ${t.accent}66` : 'none'
-              }} />
-            </button>
-          ))}
-        </div>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, gap: 0 }}>
 
       {/* ZONE SCROLLABLE (canvas) */}
       <div
@@ -2107,17 +1950,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           const s = e.currentTarget;
           const progress = s.scrollTop / (s.scrollHeight - s.clientHeight || 1);
           setScrollProgress(progress);
-
-          // Find active section
-          if (sections.length > 0) {
-            const currentY = s.scrollTop;
-            let activeId = sections[0].id;
-            for (const sec of sections) {
-              if (currentY >= sec.y - 100) activeId = sec.id;
-              else break;
-            }
-            setActiveSectionId(activeId);
-          }
 
           // Auto-reveal on scroll if unlocked
           if (!isScrollLocked && !isDraggingScroll) {
@@ -2245,8 +2077,10 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
 
         {/* Add space button */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0', background: paperColor }}>
-          <button onClick={() => setPageHeight(prev => prev + 2000)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 20, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', border: `1px solid ${t.accent}26`, color: t.accent, background: `${t.accent}0d`, cursor: 'pointer' }}>
+          <button 
+            onClick={() => setPageHeight(prev => prev + 2000)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 20, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', border: `1px solid ${t.accent}26`, color: t.accent, background: `${t.accent}0d`, cursor: 'pointer' }}
+          >
             + {fr ? "Ajouter de l'espace" : 'إضافة مساحة'}
           </button>
         </div>
@@ -2276,11 +2110,10 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         )}
       </div>
 
-      {/* ── PREMIUM SCROLL COMPONENT ── */}
+      {/* ── PREMIUM SCROLL HELPER ── */}
       {activePageId && (
-        <div ref={scrollTrackRef} className="absolute right-0 top-0 bottom-0 w-16 z-50 pointer-events-none">
+        <div ref={scrollTrackRef} className="premium-scroll-track absolute right-0 top-0 bottom-0 w-16 z-120 pointer-events-none">
           
-          {/* Hitbox + Tab + Padlock */}
           <div 
             ref={scrollHitboxRef}
             className="absolute right-0 top-0 w-16 h-32 pointer-events-none touch-none"
@@ -2305,16 +2138,11 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                 if (!isDraggingScroll) return;
                 const sc = scrollContainerRef.current;
                 if (!sc) return;
-                
-                // Scrubbing logic
                 const trackH = scrollTrackRef.current?.clientHeight || window.innerHeight;
-                const maxTop = trackH - 128; // hitbox height
+                const maxTop = trackH - 128;
                 const maxScroll = sc.scrollHeight - sc.clientHeight;
-                
                 const deltaY = (e.clientY - dragStartPointerYRef.current) * (maxScroll / maxTop);
                 sc.scrollTop = dragStartScrollYRef.current + deltaY;
-
-                // Visual tilt
                 const dy = e.clientY - lastPointerYRef.current;
                 setTabIconY(dy < 0 ? -2 : (dy > 0 ? 2 : 0));
                 lastPointerYRef.current = e.clientY;
@@ -2327,26 +2155,19 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               }}
               onPointerEnter={() => { if (!isScrollLocked) setTabTranslateX(0); }}
               onPointerLeave={() => { if (!isDraggingScroll) setTabTranslateX(36); }}
-              className={`pointer-events-auto absolute right-0 top-0 w-12 h-20 bg-gradient-to-br from-[#fdfbf7]/90 to-[#ecdac1]/80 backdrop-blur-md rounded-l-2xl shadow-[-4px_0_20px_rgba(218,165,32,0.15)] flex items-center justify-center transition-transform duration-300 ease-out border border-r-0 border-white/90 ${isScrollLocked ? 'opacity-30 cursor-not-allowed' : 'cursor-grab'}`}
+              className={`premium-scroll-tab pointer-events-auto absolute right-0 top-0 w-12 h-20 rounded-l-2xl flex items-center justify-center transition-transform duration-300 ease-out ${isScrollLocked ? 'opacity-30 cursor-not-allowed' : 'cursor-grab'}`}
               style={{ transform: `translateX(${tabTranslateX}px)` }}
             >
-              <div className="absolute left-0 top-1/4 h-1/2 w-[3px] bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-sm shadow-[1px_0_4px_rgba(245,158,11,0.3)]"></div>
+              <div className="absolute left-0 top-1/4 h-1/2 w-[2px] bg-[#C4973F] rounded-r-full shadow-[0_0_8px_#C4973F]"></div>
               
-              <div className="relative flex flex-col items-center justify-center gap-0.5 ml-2 transition-transform duration-150" style={{ transform: `translateY(${tabIconY}px)` }}>
-                {/* Arrows */}
-                <div className={`flex flex-col gap-0.5 transition-opacity duration-200 ${isDraggingScroll ? 'opacity-0' : 'opacity-100'}`}>
-                  <svg className="w-[14px] h-[10px]" viewBox="0 0 14 10" fill="none" stroke="#b45309" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M7 10V2M7 2L3 6M7 2l4 4"/>
-                  </svg>
-                  <svg className="w-[14px] h-[10px]" viewBox="0 0 14 10" fill="none" stroke="#b45309" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M7 0v8M7 8L3 4M7 8l4-4"/>
-                  </svg>
+              <div className="relative flex flex-col items-center justify-center gap-1 ml-2 transition-transform duration-150" style={{ transform: `translateY(${tabIconY}px)` }}>
+                <div className={`flex flex-col gap-1 transition-opacity duration-200 ${isDraggingScroll ? 'opacity-0' : 'opacity-100'}`}>
+                  <span style={{ color: '#C4973F', fontSize: 10 }}>▴</span>
+                  <span style={{ color: '#C4973F', fontSize: 10 }}>▾</span>
                 </div>
-                {/* Grips (Visible during drag) */}
                 <div className={`absolute inset-0 flex flex-col items-center justify-center gap-1 transition-opacity duration-200 ${isDraggingScroll ? 'opacity-100' : 'opacity-0'}`}>
-                  <div className="w-[3px] h-[3px] rounded-full bg-amber-700"></div>
-                  <div className="w-[3px] h-[3px] rounded-full bg-amber-700 opacity-60"></div>
-                  <div className="w-[3px] h-[3px] rounded-full bg-amber-700 opacity-30"></div>
+                  <div className="w-[3px] h-[3px] rounded-full bg-[#C4973F]"></div>
+                  <div className="w-[3px] h-[3px] rounded-full bg-[#C4973F] opacity-50"></div>
                 </div>
               </div>
             </div>
@@ -2371,32 +2192,134 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               }}
               onPointerUp={() => { clearInterval(padlockHoldTimerRef.current); setHoldProgress(0); }}
               onPointerLeave={() => { clearInterval(padlockHoldTimerRef.current); setHoldProgress(0); }}
-              className={`pointer-events-auto absolute right-2 bottom-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all z-10 ${isScrollLocked ? 'bg-white/30 border border-white/40 opacity-40 hover:opacity-100' : 'bg-amber-100 border border-amber-400 opacity-100'}`}
+              className={`pointer-events-auto absolute right-2 bottom-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all z-10 ${isScrollLocked ? 'bg-white/10 border border-white/20 opacity-40 hover:opacity-100' : 'bg-[#C4973F]/20 border border-[#C4973F]/40 opacity-100'}`}
             >
-              {/* Progress Ring */}
               <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
                 <circle 
                   cx="16" cy="16" r="14" 
-                  stroke="#f59e0b" strokeWidth="2.5" fill="none" strokeLinecap="round" 
+                  stroke="#C4973F" strokeWidth="2" fill="none" strokeLinecap="round" 
                   strokeDasharray="88" 
                   strokeDashoffset={88 - (88 * (holdProgress / 100))} 
-                  className="transition-none" 
                 />
               </svg>
 
-              {isScrollLocked ? (
-                <svg className="w-3.5 h-3.5 text-amber-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-              ) : (
-                <svg className="w-3.5 h-3.5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-                </svg>
-              )}
+              <span style={{ color: '#C4973F', fontSize: 14 }}>
+                {isScrollLocked ? '🔒' : '🔓'}
+              </span>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── PREMIUM DOCK ── */}
+      {activePageId && (
+        <div 
+          className="diftar-premium-dock"
+          style={{
+            position: 'absolute',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 110,
+            padding: '8px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            pointerEvents: 'auto'
+          }}
+        >
+          {[
+            { id: 'select', emoji: '↖', title: fr ? 'Sélecteur' : 'تحديد', active: tool === 'select', action: () => setTool('select') },
+            { id: 'pen',    emoji: '✏️', title: fr ? 'Stylo' : 'قلم', active: tool === 'pen', action: () => setTool('pen') },
+            { id: 'eraser', emoji: '🧽', title: fr ? 'Gomme' : 'ممحاة', active: tool === 'eraser', action: () => setTool('eraser') },
+            { id: 'ruler',  emoji: '📏', title: fr ? 'Règle' : 'مسطرة', active: tool === 'ruler', action: () => setTool('ruler') },
+            { type: 'sep' },
+            { id: 'undo',   emoji: '↶', title: fr ? 'Annuler' : 'تراجع', action: undo },
+            { id: 'redo',   emoji: '↷', title: fr ? 'Refaire' : 'إعادة', action: redo },
+            { type: 'sep' },
+            { id: 'save',   emoji: isSaving ? '✓' : '💾', title: fr ? 'Sauver' : 'حفظ', action: savePage, special: true },
+          ].map((item, idx) => (
+            item.type === 'sep' ? (
+              <div key={`sep-${idx}`} style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
+            ) : (
+              <button
+                key={item.id}
+                onClick={item.action}
+                title={item.title}
+                className={`diftar-tool-btn ${item.active ? 'active' : ''}`}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
+                  border: 'none',
+                  background: item.active ? 'linear-gradient(135deg, #8B2635, #5c1820)' : 'transparent',
+                  color: item.active ? 'white' : 'rgba(255,255,255,0.8)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 20,
+                  cursor: 'pointer',
+                  position: 'relative'
+                }}
+              >
+                {item.emoji}
+                {item.active && (
+                  <div style={{ position: 'absolute', bottom: -6, width: 4, height: 4, borderRadius: '50%', background: '#C4973F' }} />
+                )}
+              </button>
+            )
+          ))}
+        </div>
+      )}
+      {/* ── SECTIONS SHELF (RAIL) ── */}
+      {activePageId && (
+        <div 
+          className="diftar-premium-rail"
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 110,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            padding: '20px 8px',
+            pointerEvents: 'auto'
+          }}
+        >
+          {userData.diftarPages.slice(0, 5).map(page => (
+            <button
+              key={page.id}
+              onClick={() => setActivePageId(page.id)}
+              title={page.title}
+              className={`diftar-rail-item ${activePageId === page.id ? 'active' : ''}`}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                background: activePageId === page.id ? 'rgba(196, 151, 63, 0.2)' : 'transparent',
+                border: `1px solid ${activePageId === page.id ? '#C4973F' : 'rgba(255,255,255,0.1)'}`,
+                color: activePageId === page.id ? '#C4973F' : 'rgba(255,255,255,0.4)',
+                fontSize: 14,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+            >
+              {page.title.charAt(0).toUpperCase()}
+            </button>
+          ))}
+          <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.05)' }} />
+          <button 
+            onClick={() => setActivePageId(null)}
+            className="diftar-rail-item"
+            style={{ width: 36, height: 36, borderRadius: 12, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', fontSize: 16, cursor: 'pointer' }}
+          >
+            ⊞
+          </button>
         </div>
       )}
 
