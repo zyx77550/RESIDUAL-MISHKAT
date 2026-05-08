@@ -186,6 +186,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const lastPointerYRef = useRef(0);
   const dragStartScrollYRef = useRef(0);
   const dragStartPointerYRef = useRef(0);
+  const grabOffsetRef = useRef(0);
   const isDrawingRef    = useRef(false);
   const activeStrokeRef = useRef<Stroke | null>(null);
   const stickerCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
