@@ -5,7 +5,6 @@ import { HexColorPicker } from 'react-colorful';
 import { Stroke, Shape, DiftarPage, UserData } from '../types';
 import { useT } from '../lib/theme';
 import { Icon, Icons, useIsNarrow, useIsMobile } from './ui';
-import './Diftar.css';
 
 // Page templates
 const PAGE_TEMPLATES = [
@@ -182,7 +181,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const scrollTrackRef = useRef<HTMLDivElement>(null);
   const padlockHoldTimerRef = useRef<any>(null);
   const retractTimerRef = useRef<any>(null);
-  const grabOffsetRef = useRef(0);
   const [tabTranslateX, setTabTranslateX] = useState(36);
   const [tabIconY, setTabIconY] = useState(0);
   const lastPointerYRef = useRef(0);
@@ -234,7 +232,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [toolbarH, setToolbarH] = useState(72);
   const [searchQuery, setSearchQuery]   = useState('');
   const [showSearch, setShowSearch]     = useState(false);
-  const [ribbonVisible, setRibbonVisible] = useState(true);
   const [libraryScrolled, setLibraryScrolled] = useState(false);
   const libraryContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1560,145 +1557,92 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', height: '100%' }}>
 
-      {/* PREMIUM RIBBON */}
-      <div 
-        ref={toolbarRef} 
-        className={`diftar-premium-ribbon ${ribbonVisible ? 'visible' : 'hidden'}`}
-        style={{ 
-          flexShrink: 0, 
-          position: 'sticky', 
-          top: 0, 
-          zIndex: 100, 
-          padding: '12px 20px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          transform: ribbonVisible ? 'translateY(0)' : 'translateY(-100%)',
-          pointerEvents: 'auto'
-        }}
-      >
-        {/* Left: back + title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button
-            onClick={() => { savePage(); setActivePageId(null); }}
-            className="diftar-tool-btn"
-            style={{ 
-              background: 'rgba(255,255,255,0.05)', 
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '12px',
-              width: 40, height: 40,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#C4973F', fontSize: 20
-            }}
-          >
-            ←
-          </button>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* TOOLBAR */}
+      <div ref={toolbarRef} style={{ flexShrink: 0, position: 'relative', zIndex: 10, padding: '8px 12px 0', display: 'flex', flexDirection: 'column', pointerEvents: 'none' }}>
+
+        {/* Barre principale */}
+        <div style={{
+          backdropFilter: 'blur(24px)', borderRadius: 32, boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+          border: `1px solid ${t.accent}1a`, padding: 8, display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', gap: 8, overflowX: 'auto', flexShrink: 0,
+          pointerEvents: 'auto', background: t.bg,
+        }}>
+          {/* Left: back + title + help */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <button
+              onClick={() => { savePage(); setActivePageId(null); }}
+              style={{ ...btnStyle(false), fontSize: 18 }}
+            >
+              ←
+            </button>
             <input
               value={activePage?.title}
               onChange={e => setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) }))}
-              className="diftar-gold-text"
-              style={{ 
-                fontSize: 20, 
-                background: 'transparent', 
-                border: 'none', 
-                outline: 'none', 
-                fontWeight: 600,
-                width: 200
-              }}
+              style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 15, width: 140, background: 'transparent', border: 'none', outline: 'none', color: t.accent }}
             />
-            <span style={{ fontSize: 10, color: 'rgba(196, 151, 63, 0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              {fr ? 'Carnet de mémorisation' : 'دفتر الحفظ'}
-            </span>
-          </div>
-        </div>
-
-        {/* Center: Main Tool Groups */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 8, 
-          background: 'rgba(0,0,0,0.2)', 
-          padding: '4px 8px', 
-          borderRadius: 16,
-          border: '1px solid rgba(255,255,255,0.05)'
-        }}>
-          {[
-            { id: 'tools',  emoji: '✏️', label: fr ? 'Dessin' : 'رسم', active: showToolsMenu, action: () => { closeAllPanels(); setShowToolsMenu(v => !v); } },
-            { id: 'shapes', emoji: '⭐', label: fr ? 'Formes' : 'أشكال', active: showShapePicker, action: () => { closeAllPanels(); setShowShapePicker(v => !v); } },
-            { id: 'colors', emoji: '🎨', label: fr ? 'Thème' : 'سمة', active: showCustomizationMenu, action: () => { closeAllPanels(); setShowCustomizationMenu(v => !v); } },
-            { id: 'paper',  emoji: '📜', label: fr ? 'Papier' : 'ورق', active: showPaperSettings, action: () => { closeAllPanels(); setShowPaperSettings(v => !v); } },
-          ].map(grp => (
-            <button 
-              key={grp.id} 
-              onClick={grp.action}
-              className={`diftar-tool-btn ${grp.active ? 'active' : ''}`}
-              style={{
-                padding: '8px 16px',
-                borderRadius: 12,
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 13,
-                fontWeight: 500,
-                color: grp.active ? 'white' : 'rgba(255,255,255,0.7)',
-                background: grp.active ? 'linear-gradient(135deg, #8B2635, #5c1820)' : 'transparent',
-                cursor: 'pointer'
-              }}
+            <button
+              onClick={() => setShowHelp(true)}
+              title={fr ? "Guide d'utilisation" : 'دليل الاستخدام'}
+              style={{ ...btnStyle(false), opacity: 0.6, fontSize: 14 }}
             >
-              <span>{grp.emoji}</span>
-              <span style={{ fontFamily: 'DM Sans, sans-serif' }}>{grp.label}</span>
+              ℹ
             </button>
-          ))}
-        </div>
-
-        {/* Right: Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.03)', padding: 4, borderRadius: 12 }}>
-            <button onClick={undo} className="diftar-tool-btn" style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', padding: '4px 8px' }}>↶</button>
-            <button onClick={redo} className="diftar-tool-btn" style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', padding: '4px 8px' }}>↷</button>
           </div>
-          <button 
-            onClick={savePage} 
-            className="diftar-crimson-bg"
-            style={{ 
-              color: 'white', 
-              border: 'none', 
-              padding: '10px 20px', 
-              borderRadius: 12, 
-              fontWeight: 600, 
-              fontSize: 13, 
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(139, 38, 53, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              transition: 'all 0.2s'
-            }}
-          >
-            {isSaving ? '✓' : '💾'}
-            <span style={{ fontFamily: 'DM Sans, sans-serif' }}>{isSaving ? (fr ? 'Sauvegardé' : 'تم') : (fr ? 'Enregistrer' : 'حفظ')}</span>
-          </button>
-        </div>
-      </div>
 
-      {/* PEEK PILL (appears when ribbon is hidden) */}
-      {!ribbonVisible && (
-        <div 
-          onClick={() => setRibbonVisible(true)}
-          className="peek-pill"
-          style={{ 
-            position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', 
-            zIndex: 101, padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
-            fontSize: 10, display: 'flex', alignItems: 'center', gap: 6
-          }}
-        >
-          <span>{fr ? 'MENU' : 'قائمة'}</span>
-          <span style={{ transform: 'rotate(90deg)' }}>›</span>
-        </div>
-      )}
+          {/* Center: panel buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 20, padding: 4, background: `${t.accent}0d` }}>
+            {[
+              { id: 'tools',  emoji: '✏️', title: fr ? 'Outils' : 'أدوات',    active: showToolsMenu,         action: () => { closeAllPanels(); setShowToolsMenu(v => !v); } },
+              { id: 'colors', emoji: '🎨', title: fr ? 'Couleurs' : 'الألوان', active: showCustomizationMenu, action: () => { closeAllPanels(); setShowCustomizationMenu(v => !v); } },
+              { id: 'shapes', emoji: '⭐', title: fr ? 'Formes' : 'الأشكال',   active: showShapePicker,       action: () => { closeAllPanels(); setShowShapePicker(v => !v); } },
+              { id: 'emojis', emoji: '😊', title: fr ? 'Emojis' : 'إيموجي',    active: showEmojiPicker,       action: () => { closeAllPanels(); setShowEmojiPicker(v => !v); } },
+              { id: 'paper',  emoji: '⚙️', title: fr ? 'Papier' : 'الورق',     active: showPaperSettings,     action: () => { closeAllPanels(); setShowPaperSettings(v => !v); } },
+            ].map(btn => (
+              <button key={btn.id} onClick={btn.action} title={btn.title} style={btnStyle(btn.active)}>
+                {btn.emoji}
+              </button>
+            ))}
+          </div>
 
+          {/* Right: select + stylus + zoom + undo/redo + save */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <button
+              onClick={() => { closeAllPanels(); setTool(tool === 'select' ? 'pen' : 'select'); }}
+              title={fr ? 'Sélection (S)' : 'تحديد (S)'}
+              style={btnStyle(tool === 'select')}
+            >
+              ↖
+            </button>
+            <button
+              onClick={() => setStylusMode(v => !v)}
+              title={fr ? (stylusMode ? 'Mode Stylet actif' : 'Activer le mode Stylet') : (stylusMode ? 'وضع القلم' : 'تفعيل القلم')}
+              style={{ ...btnStyle(stylusMode), minWidth: 36, background: stylusMode ? t.accentBright : 'transparent' }}
+            >
+              {stylusMode ? '🖊' : '👆'}
+            </button>
+            {/* Zoom */}
+            <div style={{ display: 'flex', alignItems: 'center', borderRadius: 20, padding: 4, gap: 2, background: `${t.accent}0d` }}>
+              <button onClick={() => { setZoom(z => Math.max(0.25, z / 1.2)); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} style={{ ...btnStyle(false), fontSize: 14 }} title="Zoom -">−</button>
+              <button onClick={() => { setZoom(1); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} style={{ background: 'transparent', border: 'none', color: t.accent, fontSize: 9, fontWeight: 900, minWidth: 32, cursor: 'pointer', padding: '0 4px' }}>{Math.round(zoom * 100)}%</button>
+              <button onClick={() => { setZoom(z => Math.min(4, z * 1.2)); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} style={{ ...btnStyle(false), fontSize: 14 }} title="Zoom +">+</button>
+            </div>
+            {/* Undo/Redo */}
+            <div style={{ display: 'flex', borderRadius: 20, padding: 4, background: `${t.accent}0d` }}>
+              <button onClick={undo} style={btnStyle(false)} title="Annuler">↶</button>
+              <button onClick={redo} style={btnStyle(false)} title="Refaire">↷</button>
+            </div>
+            <button onClick={() => setShowConfirmClear(true)} style={{ ...btnStyle(false), color: 'rgba(239,68,68,0.6)' }} title="Effacer">🗑</button>
+            <button onClick={exportPDF} style={btnStyle(false)} title="Exporter">↓</button>
+            <button
+              onClick={savePage}
+              disabled={isSaving}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 20, background: isSaving ? '#22c55e' : t.accent, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12, transition: 'background 0.2s' }}
+            >
+              {isSaving ? '✓' : '💾'}
+              <span>{isSaving ? (fr ? 'Sauvegardé' : 'تم') : (fr ? 'Sauvegarder' : 'حفظ')}</span>
+            </button>
+          </div>
+        </div>
 
         {/* Panels */}
         {(showToolsMenu || showCustomizationMenu || showShapePicker || showEmojiPicker || showPaperSettings) && (
@@ -1938,6 +1882,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           </div>
         )}
 
+      </div>
+      {/* FIN TOOLBAR FIXÉE */}
+
       {/* CANVAS + INLINE SCRUBBER */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, gap: 0 }}>
 
@@ -2077,10 +2024,8 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
 
         {/* Add space button */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0', background: paperColor }}>
-          <button 
-            onClick={() => setPageHeight(prev => prev + 2000)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 20, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', border: `1px solid ${t.accent}26`, color: t.accent, background: `${t.accent}0d`, cursor: 'pointer' }}
-          >
+          <button onClick={() => setPageHeight(prev => prev + 2000)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 20, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', border: `1px solid ${t.accent}26`, color: t.accent, background: `${t.accent}0d`, cursor: 'pointer' }}>
             + {fr ? "Ajouter de l'espace" : 'إضافة مساحة'}
           </button>
         </div>
@@ -2110,10 +2055,11 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         )}
       </div>
 
-      {/* ── PREMIUM SCROLL HELPER ── */}
+      {/* ── PREMIUM SCROLL COMPONENT ── */}
       {activePageId && (
-        <div ref={scrollTrackRef} className="premium-scroll-track absolute right-0 top-0 bottom-0 w-16 z-120 pointer-events-none">
+        <div ref={scrollTrackRef} className="absolute right-0 top-0 bottom-0 w-16 z-50 pointer-events-none">
           
+          {/* Hitbox + Tab + Padlock */}
           <div 
             ref={scrollHitboxRef}
             className="absolute right-0 top-0 w-16 h-32 pointer-events-none touch-none"
@@ -2138,11 +2084,16 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                 if (!isDraggingScroll) return;
                 const sc = scrollContainerRef.current;
                 if (!sc) return;
+                
+                // Scrubbing logic
                 const trackH = scrollTrackRef.current?.clientHeight || window.innerHeight;
-                const maxTop = trackH - 128;
+                const maxTop = trackH - 128; // hitbox height
                 const maxScroll = sc.scrollHeight - sc.clientHeight;
+                
                 const deltaY = (e.clientY - dragStartPointerYRef.current) * (maxScroll / maxTop);
                 sc.scrollTop = dragStartScrollYRef.current + deltaY;
+
+                // Visual tilt
                 const dy = e.clientY - lastPointerYRef.current;
                 setTabIconY(dy < 0 ? -2 : (dy > 0 ? 2 : 0));
                 lastPointerYRef.current = e.clientY;
@@ -2155,19 +2106,26 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               }}
               onPointerEnter={() => { if (!isScrollLocked) setTabTranslateX(0); }}
               onPointerLeave={() => { if (!isDraggingScroll) setTabTranslateX(36); }}
-              className={`premium-scroll-tab pointer-events-auto absolute right-0 top-0 w-12 h-20 rounded-l-2xl flex items-center justify-center transition-transform duration-300 ease-out ${isScrollLocked ? 'opacity-30 cursor-not-allowed' : 'cursor-grab'}`}
+              className={`pointer-events-auto absolute right-0 top-0 w-12 h-20 bg-gradient-to-br from-[#fdfbf7]/90 to-[#ecdac1]/80 backdrop-blur-md rounded-l-2xl shadow-[-4px_0_20px_rgba(218,165,32,0.15)] flex items-center justify-center transition-transform duration-300 ease-out border border-r-0 border-white/90 ${isScrollLocked ? 'opacity-30 cursor-not-allowed' : 'cursor-grab'}`}
               style={{ transform: `translateX(${tabTranslateX}px)` }}
             >
-              <div className="absolute left-0 top-1/4 h-1/2 w-[2px] bg-[#C4973F] rounded-r-full shadow-[0_0_8px_#C4973F]"></div>
+              <div className="absolute left-0 top-1/4 h-1/2 w-[3px] bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-sm shadow-[1px_0_4px_rgba(245,158,11,0.3)]"></div>
               
-              <div className="relative flex flex-col items-center justify-center gap-1 ml-2 transition-transform duration-150" style={{ transform: `translateY(${tabIconY}px)` }}>
-                <div className={`flex flex-col gap-1 transition-opacity duration-200 ${isDraggingScroll ? 'opacity-0' : 'opacity-100'}`}>
-                  <span style={{ color: '#C4973F', fontSize: 10 }}>▴</span>
-                  <span style={{ color: '#C4973F', fontSize: 10 }}>▾</span>
+              <div className="relative flex flex-col items-center justify-center gap-0.5 ml-2 transition-transform duration-150" style={{ transform: `translateY(${tabIconY}px)` }}>
+                {/* Arrows */}
+                <div className={`flex flex-col gap-0.5 transition-opacity duration-200 ${isDraggingScroll ? 'opacity-0' : 'opacity-100'}`}>
+                  <svg className="w-[14px] h-[10px]" viewBox="0 0 14 10" fill="none" stroke="#b45309" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 10V2M7 2L3 6M7 2l4 4"/>
+                  </svg>
+                  <svg className="w-[14px] h-[10px]" viewBox="0 0 14 10" fill="none" stroke="#b45309" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 0v8M7 8L3 4M7 8l4-4"/>
+                  </svg>
                 </div>
+                {/* Grips (Visible during drag) */}
                 <div className={`absolute inset-0 flex flex-col items-center justify-center gap-1 transition-opacity duration-200 ${isDraggingScroll ? 'opacity-100' : 'opacity-0'}`}>
-                  <div className="w-[3px] h-[3px] rounded-full bg-[#C4973F]"></div>
-                  <div className="w-[3px] h-[3px] rounded-full bg-[#C4973F] opacity-50"></div>
+                  <div className="w-[3px] h-[3px] rounded-full bg-amber-700"></div>
+                  <div className="w-[3px] h-[3px] rounded-full bg-amber-700 opacity-60"></div>
+                  <div className="w-[3px] h-[3px] rounded-full bg-amber-700 opacity-30"></div>
                 </div>
               </div>
             </div>
@@ -2192,134 +2150,32 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               }}
               onPointerUp={() => { clearInterval(padlockHoldTimerRef.current); setHoldProgress(0); }}
               onPointerLeave={() => { clearInterval(padlockHoldTimerRef.current); setHoldProgress(0); }}
-              className={`pointer-events-auto absolute right-2 bottom-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all z-10 ${isScrollLocked ? 'bg-white/10 border border-white/20 opacity-40 hover:opacity-100' : 'bg-[#C4973F]/20 border border-[#C4973F]/40 opacity-100'}`}
+              className={`pointer-events-auto absolute right-2 bottom-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all z-10 ${isScrollLocked ? 'bg-white/30 border border-white/40 opacity-40 hover:opacity-100' : 'bg-amber-100 border border-amber-400 opacity-100'}`}
             >
+              {/* Progress Ring */}
               <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
                 <circle 
                   cx="16" cy="16" r="14" 
-                  stroke="#C4973F" strokeWidth="2" fill="none" strokeLinecap="round" 
+                  stroke="#f59e0b" strokeWidth="2.5" fill="none" strokeLinecap="round" 
                   strokeDasharray="88" 
                   strokeDashoffset={88 - (88 * (holdProgress / 100))} 
+                  className="transition-none" 
                 />
               </svg>
 
-              <span style={{ color: '#C4973F', fontSize: 14 }}>
-                {isScrollLocked ? '🔒' : '🔓'}
-              </span>
+              {isScrollLocked ? (
+                <svg className="w-3.5 h-3.5 text-amber-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                </svg>
+              )}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ── PREMIUM DOCK ── */}
-      {activePageId && (
-        <div 
-          className="diftar-premium-dock"
-          style={{
-            position: 'absolute',
-            bottom: 24,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 110,
-            padding: '8px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            pointerEvents: 'auto'
-          }}
-        >
-          {[
-            { id: 'select', emoji: '↖', title: fr ? 'Sélecteur' : 'تحديد', active: tool === 'select', action: () => setTool('select') },
-            { id: 'pen',    emoji: '✏️', title: fr ? 'Stylo' : 'قلم', active: tool === 'pen', action: () => setTool('pen') },
-            { id: 'eraser', emoji: '🧽', title: fr ? 'Gomme' : 'ممحاة', active: tool === 'eraser', action: () => setTool('eraser') },
-            { id: 'ruler',  emoji: '📏', title: fr ? 'Règle' : 'مسطرة', active: tool === 'ruler', action: () => setTool('ruler') },
-            { type: 'sep' },
-            { id: 'undo',   emoji: '↶', title: fr ? 'Annuler' : 'تراجع', action: undo },
-            { id: 'redo',   emoji: '↷', title: fr ? 'Refaire' : 'إعادة', action: redo },
-            { type: 'sep' },
-            { id: 'save',   emoji: isSaving ? '✓' : '💾', title: fr ? 'Sauver' : 'حفظ', action: savePage, special: true },
-          ].map((item, idx) => (
-            item.type === 'sep' ? (
-              <div key={`sep-${idx}`} style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
-            ) : (
-              <button
-                key={item.id}
-                onClick={item.action}
-                title={item.title}
-                className={`diftar-tool-btn ${item.active ? 'active' : ''}`}
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 14,
-                  border: 'none',
-                  background: item.active ? 'linear-gradient(135deg, #8B2635, #5c1820)' : 'transparent',
-                  color: item.active ? 'white' : 'rgba(255,255,255,0.8)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 20,
-                  cursor: 'pointer',
-                  position: 'relative'
-                }}
-              >
-                {item.emoji}
-                {item.active && (
-                  <div style={{ position: 'absolute', bottom: -6, width: 4, height: 4, borderRadius: '50%', background: '#C4973F' }} />
-                )}
-              </button>
-            )
-          ))}
-        </div>
-      )}
-      {/* ── SECTIONS SHELF (RAIL) ── */}
-      {activePageId && (
-        <div 
-          className="diftar-premium-rail"
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            zIndex: 110,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 16,
-            padding: '20px 8px',
-            pointerEvents: 'auto'
-          }}
-        >
-          {userData.diftarPages.slice(0, 5).map(page => (
-            <button
-              key={page.id}
-              onClick={() => setActivePageId(page.id)}
-              title={page.title}
-              className={`diftar-rail-item ${activePageId === page.id ? 'active' : ''}`}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 12,
-                background: activePageId === page.id ? 'rgba(196, 151, 63, 0.2)' : 'transparent',
-                border: `1px solid ${activePageId === page.id ? '#C4973F' : 'rgba(255,255,255,0.1)'}`,
-                color: activePageId === page.id ? '#C4973F' : 'rgba(255,255,255,0.4)',
-                fontSize: 14,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
-            >
-              {page.title.charAt(0).toUpperCase()}
-            </button>
-          ))}
-          <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.05)' }} />
-          <button 
-            onClick={() => setActivePageId(null)}
-            className="diftar-rail-item"
-            style={{ width: 36, height: 36, borderRadius: 12, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', fontSize: 16, cursor: 'pointer' }}
-          >
-            ⊞
-          </button>
         </div>
       )}
 

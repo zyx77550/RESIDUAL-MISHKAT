@@ -43,7 +43,6 @@ export interface DiftarPage {
   paperStyle?: 'blank' | 'lines' | 'grid' | 'dots' | 'arabesque' | 'diamond' | 'hexagonal' | 'music'
              | 'floral' | 'islamic_star' | 'waves' | 'leaves' | 'crosses' | 'triangles';
   paperColor?: string;
-  sections?: { id: string; title: string; y: number }[];
   lastSaved: number;
 }
 
