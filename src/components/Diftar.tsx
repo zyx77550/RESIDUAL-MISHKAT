@@ -171,6 +171,21 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [paperColor, setPaperColor]         = useState('#fdfcf8');
   const [pageHeight, setPageHeight]         = useState(5000);
   const [canvasScale, setCanvasScale]       = useState(1);
+
+  // ── Premium Scroll States ──
+  const [isScrollLocked, setIsScrollLocked] = useState(true);
+  const [isDraggingScroll, setIsDraggingScroll] = useState(false);
+  const [holdProgress, setHoldProgress] = useState(0);
+  const scrollTabRef = useRef<HTMLDivElement>(null);
+  const scrollHitboxRef = useRef<HTMLDivElement>(null);
+  const scrollTrackRef = useRef<HTMLDivElement>(null);
+  const padlockHoldTimerRef = useRef<any>(null);
+  const retractTimerRef = useRef<any>(null);
+  const [tabTranslateX, setTabTranslateX] = useState(36);
+  const [tabIconY, setTabIconY] = useState(0);
+  const lastPointerYRef = useRef(0);
+  const dragStartScrollYRef = useRef(0);
+  const dragStartPointerYRef = useRef(0);
   const isDrawingRef    = useRef(false);
   const activeStrokeRef = useRef<Stroke | null>(null);
   const stickerCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -1879,9 +1894,18 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       <div
         ref={scrollContainerRef}
         style={{ flex: 1, borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflowY: 'auto', position: 'relative', border: `1px solid ${t.accent}14`, scrollBehavior: 'smooth', cursor: 'none' }}
+        className="no-scrollbar"
         onScroll={e => {
           const s = e.currentTarget;
-          setScrollProgress(s.scrollTop / (s.scrollHeight - s.clientHeight || 1));
+          const progress = s.scrollTop / (s.scrollHeight - s.clientHeight || 1);
+          setScrollProgress(progress);
+
+          // Auto-reveal on scroll if unlocked
+          if (!isScrollLocked && !isDraggingScroll) {
+            setTabTranslateX(0);
+            clearTimeout(retractTimerRef.current);
+            retractTimerRef.current = setTimeout(() => setTabTranslateX(36), 1500);
+          }
         }}
       >
         {/* Toast */}
@@ -2033,62 +2057,131 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         )}
       </div>
 
-      {/* ── Inline scrubber (same as Quran) ── */}
-      <div
-        ref={scrollTrackRef}
-        onMouseEnter={() => setTrackHovered(true)}
-        onMouseLeave={() => { if (!scrubbing) setTrackHovered(false); }}
-        onMouseDown={e => {
-          e.preventDefault();
-          const track = scrollTrackRef.current; const sc = scrollContainerRef.current;
-          if (track && sc) {
-            const rect = track.getBoundingClientRect();
-            const tPct = Math.max(8, Math.min(60, (sc.clientHeight / sc.scrollHeight) * 100));
-            const thumbPx = (tPct / 100) * rect.height;
-            const usable  = rect.height - thumbPx;
-            const thumbTopPx = (sc.scrollTop / (sc.scrollHeight - sc.clientHeight || 1)) * usable;
-            const cur = e.clientY - rect.top;
-            grabOffsetRef.current = (cur >= thumbTopPx && cur <= thumbTopPx + thumbPx)
-              ? cur - thumbTopPx : thumbPx / 2;
-          }
-          setScrubbing(true); scrubToY(e.clientY);
-        }}
-        onTouchStart={e => {
-          const track = scrollTrackRef.current; const sc = scrollContainerRef.current;
-          if (track && sc) {
-            const rect = track.getBoundingClientRect();
-            const tPct = Math.max(8, Math.min(60, (sc.clientHeight / sc.scrollHeight) * 100));
-            const thumbPx = (tPct / 100) * rect.height;
-            const usable  = rect.height - thumbPx;
-            const thumbTopPx = (sc.scrollTop / (sc.scrollHeight - sc.clientHeight || 1)) * usable;
-            const cur = e.touches[0].clientY - rect.top;
-            grabOffsetRef.current = (cur >= thumbTopPx && cur <= thumbTopPx + thumbPx)
-              ? cur - thumbTopPx : thumbPx / 2;
-          }
-          setScrubbing(true); scrubToY(e.touches[0].clientY);
-        }}
-        style={{
-          width: scrubbing ? 10 : trackHovered ? 7 : 3,
-          transition: scrubbing ? 'none' : 'width 0.22s ease',
-          alignSelf: 'stretch', margin: '8px 4px',
-          background: t.lineSoft,
-          borderRadius: 999, position: 'relative',
-          cursor: 'ns-resize', flexShrink: 0, userSelect: 'none',
-        }}
-      >
-        <div style={{
-          position: 'absolute',
-          top: `${scrollProgress * (100 - thumbPct)}%`,
-          left: 0, right: 0,
-          height: `${thumbPct}%`,
-          minHeight: 28,
-          background: scrubbing ? t.accent : trackHovered ? t.accentBright : t.accent,
-          opacity: scrubbing ? 1 : trackHovered ? 0.85 : 0.45,
-          borderRadius: 999,
-          transition: scrubbing ? 'none' : 'top 0.12s ease, opacity 0.2s, background 0.2s',
-          boxShadow: scrubbing ? `0 0 10px ${t.accent}66` : 'none',
-        }}/>
       </div>
+
+      {/* ── PREMIUM SCROLL COMPONENT ── */}
+      {activePageId && (
+        <div ref={scrollTrackRef} className="absolute right-0 top-0 bottom-0 w-16 z-50 pointer-events-none">
+          
+          {/* Hitbox + Tab + Padlock */}
+          <div 
+            ref={scrollHitboxRef}
+            className="absolute right-0 top-0 w-16 h-32 pointer-events-none touch-none"
+            style={{ transform: `translateY(${scrollProgress * (window.innerHeight - 128)}px)` }}
+          >
+            {/* SCROLL TAB */}
+            <div 
+              ref={scrollTabRef}
+              onPointerDown={(e) => {
+                if (isScrollLocked) return;
+                setIsDraggingScroll(true);
+                const sc = scrollContainerRef.current;
+                if (!sc) return;
+                e.currentTarget.setPointerCapture(e.pointerId);
+                dragStartPointerYRef.current = e.clientY;
+                dragStartScrollYRef.current = sc.scrollTop;
+                lastPointerYRef.current = e.clientY;
+                setTabTranslateX(0);
+                e.stopPropagation();
+              }}
+              onPointerMove={(e) => {
+                if (!isDraggingScroll) return;
+                const sc = scrollContainerRef.current;
+                if (!sc) return;
+                
+                // Scrubbing logic
+                const trackH = scrollTrackRef.current?.clientHeight || window.innerHeight;
+                const maxTop = trackH - 128; // hitbox height
+                const maxScroll = sc.scrollHeight - sc.clientHeight;
+                
+                const deltaY = (e.clientY - dragStartPointerYRef.current) * (maxScroll / maxTop);
+                sc.scrollTop = dragStartScrollYRef.current + deltaY;
+
+                // Visual tilt
+                const dy = e.clientY - lastPointerYRef.current;
+                setTabIconY(dy < 0 ? -2 : (dy > 0 ? 2 : 0));
+                lastPointerYRef.current = e.clientY;
+              }}
+              onPointerUp={(e) => {
+                setIsDraggingScroll(false);
+                setTabIconY(0);
+                e.currentTarget.releasePointerCapture(e.pointerId);
+                retractTimerRef.current = setTimeout(() => setTabTranslateX(36), 1500);
+              }}
+              onPointerEnter={() => { if (!isScrollLocked) setTabTranslateX(0); }}
+              onPointerLeave={() => { if (!isDraggingScroll) setTabTranslateX(36); }}
+              className={`pointer-events-auto absolute right-0 top-0 w-12 h-20 bg-gradient-to-br from-[#fdfbf7]/90 to-[#ecdac1]/80 backdrop-blur-md rounded-l-2xl shadow-[-4px_0_20px_rgba(218,165,32,0.15)] flex items-center justify-center transition-transform duration-300 ease-out border border-r-0 border-white/90 ${isScrollLocked ? 'opacity-30 cursor-not-allowed' : 'cursor-grab'}`}
+              style={{ transform: `translateX(${tabTranslateX}px)` }}
+            >
+              <div className="absolute left-0 top-1/4 h-1/2 w-[3px] bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-sm shadow-[1px_0_4px_rgba(245,158,11,0.3)]"></div>
+              
+              <div className="relative flex flex-col items-center justify-center gap-0.5 ml-2 transition-transform duration-150" style={{ transform: `translateY(${tabIconY}px)` }}>
+                {/* Arrows */}
+                <div className={`flex flex-col gap-0.5 transition-opacity duration-200 ${isDraggingScroll ? 'opacity-0' : 'opacity-100'}`}>
+                  <svg className="w-[14px] h-[10px]" viewBox="0 0 14 10" fill="none" stroke="#b45309" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 10V2M7 2L3 6M7 2l4 4"/>
+                  </svg>
+                  <svg className="w-[14px] h-[10px]" viewBox="0 0 14 10" fill="none" stroke="#b45309" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 0v8M7 8L3 4M7 8l4-4"/>
+                  </svg>
+                </div>
+                {/* Grips (Visible during drag) */}
+                <div className={`absolute inset-0 flex flex-col items-center justify-center gap-1 transition-opacity duration-200 ${isDraggingScroll ? 'opacity-100' : 'opacity-0'}`}>
+                  <div className="w-[3px] h-[3px] rounded-full bg-amber-700"></div>
+                  <div className="w-[3px] h-[3px] rounded-full bg-amber-700 opacity-60"></div>
+                  <div className="w-[3px] h-[3px] rounded-full bg-amber-700 opacity-30"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* PADLOCK BUTTON */}
+            <div 
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                setHoldProgress(0);
+                const startTime = Date.now();
+                padlockHoldTimerRef.current = setInterval(() => {
+                  const elapsed = Date.now() - startTime;
+                  const p = Math.min(100, (elapsed / 800) * 100);
+                  setHoldProgress(p);
+                  if (elapsed >= 800) {
+                    clearInterval(padlockHoldTimerRef.current);
+                    setIsScrollLocked(prev => !prev);
+                    if (navigator.vibrate) navigator.vibrate(50);
+                    setHoldProgress(0);
+                  }
+                }, 20);
+              }}
+              onPointerUp={() => { clearInterval(padlockHoldTimerRef.current); setHoldProgress(0); }}
+              onPointerLeave={() => { clearInterval(padlockHoldTimerRef.current); setHoldProgress(0); }}
+              className={`pointer-events-auto absolute right-2 bottom-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all z-10 ${isScrollLocked ? 'bg-white/30 border border-white/40 opacity-40 hover:opacity-100' : 'bg-amber-100 border border-amber-400 opacity-100'}`}
+            >
+              {/* Progress Ring */}
+              <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
+                <circle 
+                  cx="16" cy="16" r="14" 
+                  stroke="#f59e0b" strokeWidth="2.5" fill="none" strokeLinecap="round" 
+                  strokeDasharray="88" 
+                  strokeDashoffset={88 - (88 * (holdProgress / 100))} 
+                  className="transition-none" 
+                />
+              </svg>
+
+              {isScrollLocked ? (
+                <svg className="w-3.5 h-3.5 text-amber-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                </svg>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* end canvas + scrubber flex row */}
       </div>
