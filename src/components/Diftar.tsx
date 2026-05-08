@@ -228,8 +228,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     handle: 'move' | 'nw' | 'ne' | 'sw' | 'se' | 'rotate';
     shapeStartRotation: number;
   } | null>(null);
-  const scrollTrackRef = useRef<HTMLDivElement>(null);
-  const grabOffsetRef  = useRef(0);
   const toolbarRef     = useRef<HTMLDivElement>(null);
   const [toolbarH, setToolbarH] = useState(72);
   const [searchQuery, setSearchQuery]   = useState('');
