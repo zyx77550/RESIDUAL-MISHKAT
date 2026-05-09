@@ -5,7 +5,6 @@ import { HexColorPicker } from 'react-colorful';
 import { Stroke, Shape, DiftarPage, UserData } from '../types';
 import { useT } from '../lib/theme';
 import { Icon, Icons, useIsNarrow, useIsMobile } from './ui';
-import './Diftar.css';
 
 // Page templates
 const PAGE_TEMPLATES = [
@@ -99,6 +98,7 @@ const SHAPE_CATEGORIES = [
       { id: 'lightning',     type: 'lightning'     as const, label: { fr: 'Éclair',       ar: 'برق'     } },
       { id: 'sun',           type: 'sun'           as const, label: { fr: 'Soleil',       ar: 'شمس'     } },
       { id: 'speech_bubble', type: 'speech_bubble' as const, label: { fr: 'Bulle',        ar: 'فقاعة'   } },
+      { id: 'cross',         type: 'cross'         as const, label: { fr: 'Croix',        ar: 'صليب'    } },
     ],
   },
   {
@@ -165,29 +165,17 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [showColorWheel, setShowColorWheel]     = useState(false);
   const [showPaperSettings, setShowPaperSettings]   = useState(false);
   const [isSaving, setIsSaving]             = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [scrubbing,      setScrubbing]      = useState(false);
-  const [trackHovered,   setTrackHovered]   = useState(false);
   const [paperStyle, setPaperStyle]         = useState<'lines'|'blank'|'grid'|'dots'|'arabesque'|'diamond'|'hexagonal'|'music'|'floral'|'islamic_star'|'waves'|'leaves'|'crosses'|'triangles'>('lines');
   const [paperColor, setPaperColor]         = useState('#fdfcf8');
   const [pageHeight, setPageHeight]         = useState(5000);
   const [canvasScale, setCanvasScale]       = useState(1);
 
-  // ── Premium Scroll States ──
-  const [isScrollLocked, setIsScrollLocked] = useState(true);
-  const [isDraggingScroll, setIsDraggingScroll] = useState(false);
-  const [holdProgress, setHoldProgress] = useState(0);
-  const scrollTabRef = useRef<HTMLDivElement>(null);
-  const scrollHitboxRef = useRef<HTMLDivElement>(null);
-  const scrollTrackRef = useRef<HTMLDivElement>(null);
-  const padlockHoldTimerRef = useRef<any>(null);
-  const retractTimerRef = useRef<any>(null);
-  const grabOffsetRef = useRef(0);
-  const [tabTranslateX, setTabTranslateX] = useState(36);
-  const [tabIconY, setTabIconY] = useState(0);
-  const lastPointerYRef = useRef(0);
-  const dragStartScrollYRef = useRef(0);
-  const dragStartPointerYRef = useRef(0);
+  // ─── SCROLL & MOMENTUM ───────────────────────────────────────────────────
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [isScrubbing, setIsScrubbing]       = useState(false);
+  const momentumRef = useRef({ velocity: 0, lastY: 0, lastTime: 0, isDecelerating: false });
+  const scrollPointerRef = useRef<number | null>(null);
+
   const isDrawingRef    = useRef(false);
   const activeStrokeRef = useRef<Stroke | null>(null);
   const stickerCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -234,7 +222,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [toolbarH, setToolbarH] = useState(72);
   const [searchQuery, setSearchQuery]   = useState('');
   const [showSearch, setShowSearch]     = useState(false);
-  const [ribbonVisible, setRibbonVisible] = useState(true);
   const [libraryScrolled, setLibraryScrolled] = useState(false);
   const libraryContainerRef = useRef<HTMLDivElement>(null);
 
@@ -804,11 +791,116 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     if (!sc) return;
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = sc;
-      setScrollProgress(scrollTop / (scrollHeight - clientHeight || 1));
+      const progress = scrollTop / (scrollHeight - clientHeight || 1);
+      setScrollProgress(progress);
+
+      // Auto-extend page logic
+      if (scrollTop + clientHeight > scrollHeight - 400) {
+        setPageHeight(prev => prev + 1000);
+      }
     };
     sc.addEventListener('scroll', handleScroll);
     return () => sc.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // ─── SMART SCROLL INERTIEL (MOMENTUM) ───────────────────────────────────
+  useEffect(() => {
+    const sc = scrollContainerRef.current;
+    if (!sc) return;
+
+    const handlePointerDown = (e: PointerEvent) => {
+      // Si on clique sur le scrubber ou un bouton, on ignore
+      if ((e.target as HTMLElement).closest('.no-scroll')) return;
+      
+      // En mode stylet, le doigt scrolle nativement via overflow, 
+      // donc on ne gère le momentum que si on veut un scroll custom.
+      // Mais ici on implémente un scroll "Smart" :
+      if (stylusModeRef.current && e.pointerType === 'touch') return; 
+      
+      // Si on est en train de dessiner, on ignore le scroll
+      if (isDrawing || tool === 'select') return;
+
+      momentumRef.current.isDecelerating = false;
+      momentumRef.current.velocity = 0;
+      momentumRef.current.lastY = e.clientY;
+      momentumRef.current.lastTime = Date.now();
+      scrollPointerRef.current = e.pointerId;
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (scrollPointerRef.current !== e.pointerId) return;
+      if (isDrawing) return;
+
+      const now = Date.now();
+      const dt = now - momentumRef.current.lastTime;
+      const dy = e.clientY - momentumRef.current.lastY;
+
+      if (dt > 0) {
+        momentumRef.current.velocity = dy / dt;
+      }
+
+      // Défilement manuel si on n'est pas en train de dessiner
+      sc.scrollTop -= dy;
+
+      momentumRef.current.lastY = e.clientY;
+      momentumRef.current.lastTime = now;
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      if (scrollPointerRef.current !== e.pointerId) return;
+      scrollPointerRef.current = null;
+
+      // Lancer l'inertie
+      if (Math.abs(momentumRef.current.velocity) > 0.2) {
+        momentumRef.current.isDecelerating = true;
+        requestAnimationFrame(stepMomentum);
+      }
+    };
+
+    const stepMomentum = () => {
+      if (!momentumRef.current.isDecelerating || !sc) return;
+
+      sc.scrollTop -= momentumRef.current.velocity * 16;
+      momentumRef.current.velocity *= 0.95; // Friction
+
+      if (Math.abs(momentumRef.current.velocity) < 0.05) {
+        momentumRef.current.isDecelerating = false;
+      } else {
+        requestAnimationFrame(stepMomentum);
+      }
+    };
+
+    sc.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => {
+      sc.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [isDrawing, tool]);
+
+  const handleScrubberPointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    setIsScrubbing(true);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handleScrubberPointerMove = (e: React.PointerEvent) => {
+    if (!isScrubbing || !scrollContainerRef.current) return;
+    const sc = scrollContainerRef.current;
+    const rect = sc.getBoundingClientRect();
+    // On calcule la position relative dans le container (on laisse une marge de 100px en haut/bas comme dans le CSS)
+    const trackHeight = rect.height - 200;
+    const y = Math.max(0, Math.min(trackHeight, e.clientY - rect.top - 100));
+    const pct = y / trackHeight;
+    sc.scrollTop = pct * (sc.scrollHeight - sc.clientHeight);
+  };
+
+  const handleScrubberPointerUp = (e: React.PointerEvent) => {
+    setIsScrubbing(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  };
 
   const getCoords = (e: React.PointerEvent) => {
     const canvas = canvasRef.current;
@@ -1128,38 +1220,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
   }, [activePageId]);
-
-  const scrubToY = useCallback((clientY: number) => {
-    const track = scrollTrackRef.current;
-    const sc    = scrollContainerRef.current;
-    if (!track || !sc) return;
-    const rect     = track.getBoundingClientRect();
-    const tPct     = Math.max(8, Math.min(60, (sc.clientHeight / sc.scrollHeight) * 100));
-    const thumbPx  = (tPct / 100) * rect.height;
-    const usable   = Math.max(rect.height - thumbPx, 1);
-    const adjusted = clientY - rect.top - grabOffsetRef.current;
-    const clamped  = Math.max(0, Math.min(1, adjusted / usable));
-    sc.scrollTop   = clamped * (sc.scrollHeight - sc.clientHeight);
-  }, []);
-
-  useEffect(() => {
-    if (!scrubbing) return;
-    const onMove = (e: MouseEvent | TouchEvent) => {
-      e.preventDefault();
-      scrubToY('touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY);
-    };
-    const onUp = () => setScrubbing(false);
-    window.addEventListener('mousemove', onMove, { passive: false });
-    window.addEventListener('mouseup',   onUp);
-    window.addEventListener('touchmove', onMove, { passive: false });
-    window.addEventListener('touchend',  onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup',   onUp);
-      window.removeEventListener('touchmove', onMove);
-      window.removeEventListener('touchend',  onUp);
-    };
-  }, [scrubbing, scrubToY]);
 
   useEffect(() => {
     const handle = (e: MouseEvent) => { setCursorPos({ x: e.clientX, y: e.clientY }); };
@@ -1560,145 +1620,92 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', height: '100%' }}>
 
-      {/* PREMIUM RIBBON */}
-      <div 
-        ref={toolbarRef} 
-        className={`diftar-premium-ribbon ${ribbonVisible ? 'visible' : 'hidden'}`}
-        style={{ 
-          flexShrink: 0, 
-          position: 'sticky', 
-          top: 0, 
-          zIndex: 100, 
-          padding: '12px 20px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          transform: ribbonVisible ? 'translateY(0)' : 'translateY(-100%)',
-          pointerEvents: 'auto'
-        }}
-      >
-        {/* Left: back + title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button
-            onClick={() => { savePage(); setActivePageId(null); }}
-            className="diftar-tool-btn"
-            style={{ 
-              background: 'rgba(255,255,255,0.05)', 
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '12px',
-              width: 40, height: 40,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#C4973F', fontSize: 20
-            }}
-          >
-            ←
-          </button>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* TOOLBAR */}
+      <div ref={toolbarRef} style={{ flexShrink: 0, position: 'relative', zIndex: 10, padding: '8px 12px 0', display: 'flex', flexDirection: 'column', pointerEvents: 'none' }}>
+
+        {/* Barre principale */}
+        <div style={{
+          backdropFilter: 'blur(24px)', borderRadius: 32, boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+          border: `1px solid ${t.accent}1a`, padding: 8, display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', gap: 8, overflowX: 'auto', flexShrink: 0,
+          pointerEvents: 'auto', background: t.bg,
+        }}>
+          {/* Left: back + title + help */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <button
+              onClick={() => { savePage(); setActivePageId(null); }}
+              style={{ ...btnStyle(false), fontSize: 18 }}
+            >
+              ←
+            </button>
             <input
               value={activePage?.title}
               onChange={e => setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.map(p => p.id === activePageId ? { ...p, title: e.target.value } : p) }))}
-              className="diftar-gold-text"
-              style={{ 
-                fontSize: 20, 
-                background: 'transparent', 
-                border: 'none', 
-                outline: 'none', 
-                fontWeight: 600,
-                width: 200
-              }}
+              style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 15, width: 140, background: 'transparent', border: 'none', outline: 'none', color: t.accent }}
             />
-            <span style={{ fontSize: 10, color: 'rgba(196, 151, 63, 0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              {fr ? 'Carnet de mémorisation' : 'دفتر الحفظ'}
-            </span>
-          </div>
-        </div>
-
-        {/* Center: Main Tool Groups */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 8, 
-          background: 'rgba(0,0,0,0.2)', 
-          padding: '4px 8px', 
-          borderRadius: 16,
-          border: '1px solid rgba(255,255,255,0.05)'
-        }}>
-          {[
-            { id: 'tools',  emoji: '✏️', label: fr ? 'Dessin' : 'رسم', active: showToolsMenu, action: () => { closeAllPanels(); setShowToolsMenu(v => !v); } },
-            { id: 'shapes', emoji: '⭐', label: fr ? 'Formes' : 'أشكال', active: showShapePicker, action: () => { closeAllPanels(); setShowShapePicker(v => !v); } },
-            { id: 'colors', emoji: '🎨', label: fr ? 'Thème' : 'سمة', active: showCustomizationMenu, action: () => { closeAllPanels(); setShowCustomizationMenu(v => !v); } },
-            { id: 'paper',  emoji: '📜', label: fr ? 'Papier' : 'ورق', active: showPaperSettings, action: () => { closeAllPanels(); setShowPaperSettings(v => !v); } },
-          ].map(grp => (
-            <button 
-              key={grp.id} 
-              onClick={grp.action}
-              className={`diftar-tool-btn ${grp.active ? 'active' : ''}`}
-              style={{
-                padding: '8px 16px',
-                borderRadius: 12,
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 13,
-                fontWeight: 500,
-                color: grp.active ? 'white' : 'rgba(255,255,255,0.7)',
-                background: grp.active ? 'linear-gradient(135deg, #8B2635, #5c1820)' : 'transparent',
-                cursor: 'pointer'
-              }}
+            <button
+              onClick={() => setShowHelp(true)}
+              title={fr ? "Guide d'utilisation" : 'دليل الاستخدام'}
+              style={{ ...btnStyle(false), opacity: 0.6, fontSize: 14 }}
             >
-              <span>{grp.emoji}</span>
-              <span style={{ fontFamily: 'DM Sans, sans-serif' }}>{grp.label}</span>
+              ℹ
             </button>
-          ))}
-        </div>
-
-        {/* Right: Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.03)', padding: 4, borderRadius: 12 }}>
-            <button onClick={undo} className="diftar-tool-btn" style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', padding: '4px 8px' }}>↶</button>
-            <button onClick={redo} className="diftar-tool-btn" style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', padding: '4px 8px' }}>↷</button>
           </div>
-          <button 
-            onClick={savePage} 
-            className="diftar-crimson-bg"
-            style={{ 
-              color: 'white', 
-              border: 'none', 
-              padding: '10px 20px', 
-              borderRadius: 12, 
-              fontWeight: 600, 
-              fontSize: 13, 
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(139, 38, 53, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              transition: 'all 0.2s'
-            }}
-          >
-            {isSaving ? '✓' : '💾'}
-            <span style={{ fontFamily: 'DM Sans, sans-serif' }}>{isSaving ? (fr ? 'Sauvegardé' : 'تم') : (fr ? 'Enregistrer' : 'حفظ')}</span>
-          </button>
-        </div>
-      </div>
 
-      {/* PEEK PILL (appears when ribbon is hidden) */}
-      {!ribbonVisible && (
-        <div 
-          onClick={() => setRibbonVisible(true)}
-          className="peek-pill"
-          style={{ 
-            position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', 
-            zIndex: 101, padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
-            fontSize: 10, display: 'flex', alignItems: 'center', gap: 6
-          }}
-        >
-          <span>{fr ? 'MENU' : 'قائمة'}</span>
-          <span style={{ transform: 'rotate(90deg)' }}>›</span>
-        </div>
-      )}
+          {/* Center: panel buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 20, padding: 4, background: `${t.accent}0d` }}>
+            {[
+              { id: 'tools',  emoji: '✏️', title: fr ? 'Outils' : 'أدوات',    active: showToolsMenu,         action: () => { closeAllPanels(); setShowToolsMenu(v => !v); } },
+              { id: 'colors', emoji: '🎨', title: fr ? 'Couleurs' : 'الألوان', active: showCustomizationMenu, action: () => { closeAllPanels(); setShowCustomizationMenu(v => !v); } },
+              { id: 'shapes', emoji: '⭐', title: fr ? 'Formes' : 'الأشكال',   active: showShapePicker,       action: () => { closeAllPanels(); setShowShapePicker(v => !v); } },
+              { id: 'emojis', emoji: '😊', title: fr ? 'Emojis' : 'إيموجي',    active: showEmojiPicker,       action: () => { closeAllPanels(); setShowEmojiPicker(v => !v); } },
+              { id: 'paper',  emoji: '⚙️', title: fr ? 'Papier' : 'الورق',     active: showPaperSettings,     action: () => { closeAllPanels(); setShowPaperSettings(v => !v); } },
+            ].map(btn => (
+              <button key={btn.id} onClick={btn.action} title={btn.title} style={btnStyle(btn.active)}>
+                {btn.emoji}
+              </button>
+            ))}
+          </div>
 
+          {/* Right: select + stylus + zoom + undo/redo + save */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <button
+              onClick={() => { closeAllPanels(); setTool(tool === 'select' ? 'pen' : 'select'); }}
+              title={fr ? 'Sélection (S)' : 'تحديد (S)'}
+              style={btnStyle(tool === 'select')}
+            >
+              ↖
+            </button>
+            <button
+              onClick={() => setStylusMode(v => !v)}
+              title={fr ? (stylusMode ? 'Mode Stylet actif' : 'Activer le mode Stylet') : (stylusMode ? 'وضع القلم' : 'تفعيل القلم')}
+              style={{ ...btnStyle(stylusMode), minWidth: 36, background: stylusMode ? t.accentBright : 'transparent' }}
+            >
+              {stylusMode ? '🖊' : '👆'}
+            </button>
+            {/* Zoom */}
+            <div style={{ display: 'flex', alignItems: 'center', borderRadius: 20, padding: 4, gap: 2, background: `${t.accent}0d` }}>
+              <button onClick={() => { setZoom(z => Math.max(0.25, z / 1.2)); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} style={{ ...btnStyle(false), fontSize: 14 }} title="Zoom -">−</button>
+              <button onClick={() => { setZoom(1); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} style={{ background: 'transparent', border: 'none', color: t.accent, fontSize: 9, fontWeight: 900, minWidth: 32, cursor: 'pointer', padding: '0 4px' }}>{Math.round(zoom * 100)}%</button>
+              <button onClick={() => { setZoom(z => Math.min(4, z * 1.2)); setShowZoomIndicator(true); window.clearTimeout(zoomTimerRef.current); zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500); }} style={{ ...btnStyle(false), fontSize: 14 }} title="Zoom +">+</button>
+            </div>
+            {/* Undo/Redo */}
+            <div style={{ display: 'flex', borderRadius: 20, padding: 4, background: `${t.accent}0d` }}>
+              <button onClick={undo} style={btnStyle(false)} title="Annuler">↶</button>
+              <button onClick={redo} style={btnStyle(false)} title="Refaire">↷</button>
+            </div>
+            <button onClick={() => setShowConfirmClear(true)} style={{ ...btnStyle(false), color: 'rgba(239,68,68,0.6)' }} title="Effacer">🗑</button>
+            <button onClick={exportPDF} style={btnStyle(false)} title="Exporter">↓</button>
+            <button
+              onClick={savePage}
+              disabled={isSaving}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 20, background: isSaving ? '#22c55e' : t.accent, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12, transition: 'background 0.2s' }}
+            >
+              {isSaving ? '✓' : '💾'}
+              <span>{isSaving ? (fr ? 'Sauvegardé' : 'تم') : (fr ? 'Sauvegarder' : 'حفظ')}</span>
+            </button>
+          </div>
+        </div>
 
         {/* Panels */}
         {(showToolsMenu || showCustomizationMenu || showShapePicker || showEmojiPicker || showPaperSettings) && (
@@ -1938,6 +1945,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           </div>
         )}
 
+      </div>
+      {/* FIN TOOLBAR FIXÉE */}
+
       {/* CANVAS + INLINE SCRUBBER */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, gap: 0 }}>
 
@@ -1946,18 +1956,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         ref={scrollContainerRef}
         style={{ flex: 1, borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflowY: 'auto', position: 'relative', border: `1px solid ${t.accent}14`, scrollBehavior: 'smooth', cursor: 'none' }}
         className="no-scrollbar"
-        onScroll={e => {
-          const s = e.currentTarget;
-          const progress = s.scrollTop / (s.scrollHeight - s.clientHeight || 1);
-          setScrollProgress(progress);
-
-          // Auto-reveal on scroll if unlocked
-          if (!isScrollLocked && !isDraggingScroll) {
-            setTabTranslateX(0);
-            clearTimeout(retractTimerRef.current);
-            retractTimerRef.current = setTimeout(() => setTabTranslateX(36), 1500);
-          }
-        }}
+        onScroll={() => {}}
       >
         {/* Toast */}
         {toastMessage && (
@@ -2077,10 +2076,8 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
 
         {/* Add space button */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0', background: paperColor }}>
-          <button 
-            onClick={() => setPageHeight(prev => prev + 2000)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 20, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', border: `1px solid ${t.accent}26`, color: t.accent, background: `${t.accent}0d`, cursor: 'pointer' }}
-          >
+          <button onClick={() => setPageHeight(prev => prev + 2000)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 20, fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', border: `1px solid ${t.accent}26`, color: t.accent, background: `${t.accent}0d`, cursor: 'pointer' }}>
             + {fr ? "Ajouter de l'espace" : 'إضافة مساحة'}
           </button>
         </div>
@@ -2096,7 +2093,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               opacity: tool === 'highlighter' ? 0.35 : 0.85,
               border: activeShapeType ? `2px dashed ${t.accentBright}` : '1px solid rgba(255,255,255,0.8)',
               transform: isDrawing ? 'scale(0.8)' : 'scale(1)',
-              transition: 'width 0.15s, height 0.15s, transform 0.1s',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
             }}>
@@ -2108,220 +2104,51 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             </div>
           </div>
         )}
-      </div>
 
-      {/* ── PREMIUM SCROLL HELPER ── */}
-      {activePageId && (
-        <div ref={scrollTrackRef} className="premium-scroll-track absolute right-0 top-0 bottom-0 w-16 z-120 pointer-events-none">
-          
+        {/* ─── INDICATEUR DE ZOOM (OVERLAY) ─────────────────────────────────── */}
+        {showZoomIndicator && (
+          <div style={{
+            position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            padding: '12px 24px', borderRadius: 24, background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(10px)', color: '#fff', fontSize: 24, fontWeight: 900,
+            zIndex: 100, pointerEvents: 'none', transition: 'opacity 0.3s'
+          }}>
+            {Math.round(zoom * 100)}%
+          </div>
+        )}
+
+        {/* ─── SCROLLER VISUEL INTERACTIF (SCRUBBER) ────────────────────────── */}
+        <div style={{
+          position: 'absolute', right: 4, top: 100, bottom: 100,
+          width: 32, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }} className="no-scroll">
           <div 
-            ref={scrollHitboxRef}
-            className="absolute right-0 top-0 w-16 h-32 pointer-events-none touch-none"
-            style={{ transform: `translateY(${scrollProgress * (window.innerHeight - 128)}px)` }}
+            onPointerDown={handleScrubberPointerDown}
+            onPointerMove={handleScrubberPointerMove}
+            onPointerUp={handleScrubberPointerUp}
+            style={{
+              position: 'absolute', right: 0,
+              top: `${scrollProgress * 100}%`,
+              width: isScrubbing ? 10 : 6,
+              height: 60,
+              background: isScrubbing ? t.accent : 'rgba(255,255,255,0.4)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: 5,
+              border: '1px solid rgba(255,255,255,0.2)',
+              boxShadow: isScrubbing ? `0 0 20px ${t.accent}80` : '0 4px 12px rgba(0,0,0,0.1)',
+              cursor: 'ns-resize',
+              transition: 'width 0.2s, background 0.2s, box-shadow 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
           >
-            {/* SCROLL TAB */}
-            <div 
-              ref={scrollTabRef}
-              onPointerDown={(e) => {
-                if (isScrollLocked) return;
-                setIsDraggingScroll(true);
-                const sc = scrollContainerRef.current;
-                if (!sc) return;
-                e.currentTarget.setPointerCapture(e.pointerId);
-                dragStartPointerYRef.current = e.clientY;
-                dragStartScrollYRef.current = sc.scrollTop;
-                lastPointerYRef.current = e.clientY;
-                setTabTranslateX(0);
-                e.stopPropagation();
-              }}
-              onPointerMove={(e) => {
-                if (!isDraggingScroll) return;
-                const sc = scrollContainerRef.current;
-                if (!sc) return;
-                const trackH = scrollTrackRef.current?.clientHeight || window.innerHeight;
-                const maxTop = trackH - 128;
-                const maxScroll = sc.scrollHeight - sc.clientHeight;
-                const deltaY = (e.clientY - dragStartPointerYRef.current) * (maxScroll / maxTop);
-                sc.scrollTop = dragStartScrollYRef.current + deltaY;
-                const dy = e.clientY - lastPointerYRef.current;
-                setTabIconY(dy < 0 ? -2 : (dy > 0 ? 2 : 0));
-                lastPointerYRef.current = e.clientY;
-              }}
-              onPointerUp={(e) => {
-                setIsDraggingScroll(false);
-                setTabIconY(0);
-                e.currentTarget.releasePointerCapture(e.pointerId);
-                retractTimerRef.current = setTimeout(() => setTabTranslateX(36), 1500);
-              }}
-              onPointerEnter={() => { if (!isScrollLocked) setTabTranslateX(0); }}
-              onPointerLeave={() => { if (!isDraggingScroll) setTabTranslateX(36); }}
-              className={`premium-scroll-tab pointer-events-auto absolute right-0 top-0 w-12 h-20 rounded-l-2xl flex items-center justify-center transition-transform duration-300 ease-out ${isScrollLocked ? 'opacity-30 cursor-not-allowed' : 'cursor-grab'}`}
-              style={{ transform: `translateX(${tabTranslateX}px)` }}
-            >
-              <div className="absolute left-0 top-1/4 h-1/2 w-[2px] bg-[#C4973F] rounded-r-full shadow-[0_0_8px_#C4973F]"></div>
-              
-              <div className="relative flex flex-col items-center justify-center gap-1 ml-2 transition-transform duration-150" style={{ transform: `translateY(${tabIconY}px)` }}>
-                <div className={`flex flex-col gap-1 transition-opacity duration-200 ${isDraggingScroll ? 'opacity-0' : 'opacity-100'}`}>
-                  <span style={{ color: '#C4973F', fontSize: 10 }}>▴</span>
-                  <span style={{ color: '#C4973F', fontSize: 10 }}>▾</span>
-                </div>
-                <div className={`absolute inset-0 flex flex-col items-center justify-center gap-1 transition-opacity duration-200 ${isDraggingScroll ? 'opacity-100' : 'opacity-0'}`}>
-                  <div className="w-[3px] h-[3px] rounded-full bg-[#C4973F]"></div>
-                  <div className="w-[3px] h-[3px] rounded-full bg-[#C4973F] opacity-50"></div>
-                </div>
-              </div>
-            </div>
-
-            {/* PADLOCK BUTTON */}
-            <div 
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                setHoldProgress(0);
-                const startTime = Date.now();
-                padlockHoldTimerRef.current = setInterval(() => {
-                  const elapsed = Date.now() - startTime;
-                  const p = Math.min(100, (elapsed / 800) * 100);
-                  setHoldProgress(p);
-                  if (elapsed >= 800) {
-                    clearInterval(padlockHoldTimerRef.current);
-                    setIsScrollLocked(prev => !prev);
-                    if (navigator.vibrate) navigator.vibrate(50);
-                    setHoldProgress(0);
-                  }
-                }, 20);
-              }}
-              onPointerUp={() => { clearInterval(padlockHoldTimerRef.current); setHoldProgress(0); }}
-              onPointerLeave={() => { clearInterval(padlockHoldTimerRef.current); setHoldProgress(0); }}
-              className={`pointer-events-auto absolute right-2 bottom-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all z-10 ${isScrollLocked ? 'bg-white/10 border border-white/20 opacity-40 hover:opacity-100' : 'bg-[#C4973F]/20 border border-[#C4973F]/40 opacity-100'}`}
-            >
-              <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
-                <circle 
-                  cx="16" cy="16" r="14" 
-                  stroke="#C4973F" strokeWidth="2" fill="none" strokeLinecap="round" 
-                  strokeDasharray="88" 
-                  strokeDashoffset={88 - (88 * (holdProgress / 100))} 
-                />
-              </svg>
-
-              <span style={{ color: '#C4973F', fontSize: 14 }}>
-                {isScrollLocked ? '🔒' : '🔓'}
-              </span>
-            </div>
+            {/* Petites lignes décoratives sur le bouton */}
+            <div style={{ width: 2, height: 10, background: 'rgba(255,255,255,0.3)', borderRadius: 1 }} />
           </div>
         </div>
-      )}
 
-      {/* ── PREMIUM DOCK ── */}
-      {activePageId && (
-        <div 
-          className="diftar-premium-dock"
-          style={{
-            position: 'absolute',
-            bottom: 24,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 110,
-            padding: '8px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            pointerEvents: 'auto'
-          }}
-        >
-          {[
-            { id: 'select', emoji: '↖', title: fr ? 'Sélecteur' : 'تحديد', active: tool === 'select', action: () => setTool('select') },
-            { id: 'pen',    emoji: '✏️', title: fr ? 'Stylo' : 'قلم', active: tool === 'pen', action: () => setTool('pen') },
-            { id: 'eraser', emoji: '🧽', title: fr ? 'Gomme' : 'ممحاة', active: tool === 'eraser', action: () => setTool('eraser') },
-            { id: 'ruler',  emoji: '📏', title: fr ? 'Règle' : 'مسطرة', active: tool === 'ruler', action: () => setTool('ruler') },
-            { type: 'sep' },
-            { id: 'undo',   emoji: '↶', title: fr ? 'Annuler' : 'تراجع', action: undo },
-            { id: 'redo',   emoji: '↷', title: fr ? 'Refaire' : 'إعادة', action: redo },
-            { type: 'sep' },
-            { id: 'save',   emoji: isSaving ? '✓' : '💾', title: fr ? 'Sauver' : 'حفظ', action: savePage, special: true },
-          ].map((item, idx) => (
-            item.type === 'sep' ? (
-              <div key={`sep-${idx}`} style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
-            ) : (
-              <button
-                key={item.id}
-                onClick={item.action}
-                title={item.title}
-                className={`diftar-tool-btn ${item.active ? 'active' : ''}`}
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 14,
-                  border: 'none',
-                  background: item.active ? 'linear-gradient(135deg, #8B2635, #5c1820)' : 'transparent',
-                  color: item.active ? 'white' : 'rgba(255,255,255,0.8)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 20,
-                  cursor: 'pointer',
-                  position: 'relative'
-                }}
-              >
-                {item.emoji}
-                {item.active && (
-                  <div style={{ position: 'absolute', bottom: -6, width: 4, height: 4, borderRadius: '50%', background: '#C4973F' }} />
-                )}
-              </button>
-            )
-          ))}
-        </div>
-      )}
-      {/* ── SECTIONS SHELF (RAIL) ── */}
-      {activePageId && (
-        <div 
-          className="diftar-premium-rail"
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            zIndex: 110,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 16,
-            padding: '20px 8px',
-            pointerEvents: 'auto'
-          }}
-        >
-          {userData.diftarPages.slice(0, 5).map(page => (
-            <button
-              key={page.id}
-              onClick={() => setActivePageId(page.id)}
-              title={page.title}
-              className={`diftar-rail-item ${activePageId === page.id ? 'active' : ''}`}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 12,
-                background: activePageId === page.id ? 'rgba(196, 151, 63, 0.2)' : 'transparent',
-                border: `1px solid ${activePageId === page.id ? '#C4973F' : 'rgba(255,255,255,0.1)'}`,
-                color: activePageId === page.id ? '#C4973F' : 'rgba(255,255,255,0.4)',
-                fontSize: 14,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
-            >
-              {page.title.charAt(0).toUpperCase()}
-            </button>
-          ))}
-          <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.05)' }} />
-          <button 
-            onClick={() => setActivePageId(null)}
-            className="diftar-rail-item"
-            style={{ width: 36, height: 36, borderRadius: 12, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', fontSize: 16, cursor: 'pointer' }}
-          >
-            ⊞
-          </button>
-        </div>
-      )}
+      </div> {/* end canvas container */}
 
       </div> {/* end canvas + scrubber flex row */}
 
@@ -2435,6 +2262,29 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                     { icon: '🖱', text: lang === 'fr' ? 'Ctrl + molette de souris pour zoomer (ordinateur)' : 'Ctrl + عجلة الماوس للتكبير (حاسوب)' },
                     { icon: '±',  text: lang === 'fr' ? 'Boutons − / % / + dans la barre en haut à droite' : 'أزرار − / % / + في الشريط أعلى اليمين' },
                     { icon: '💯', text: lang === 'fr' ? 'Cliquez sur le % pour revenir à 100%' : 'انقر على % للعودة إلى 100%' },
+                  ].map((row, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 16, background: `${t.accent}0a` }}>
+                      <span style={{ fontSize: 15, flexShrink: 0, width: 20, textAlign: 'center', marginTop: 2 }}>{row.icon}</span>
+                      <p style={{ fontSize: 11, lineHeight: 1.6, color: t.inkMute, margin: 0 }}>{row.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Section: Navigation & Scroll */}
+              <section>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 14, color: t.accentBright }}>↕️</span>
+                  <h3 style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: t.accentBright, opacity: 0.7, margin: 0 }}>
+                    {lang === 'fr' ? 'Navigation & Scroll' : 'التنقل والتحريك'}
+                  </h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { icon: '🤏', text: lang === 'fr' ? 'Faites glisser un doigt sur le fond pour scroller avec élan (inertie)' : 'اسحب بإصبع واحد على الخلفية للتحريك مع الاندفاع (القصور الذاتي)' },
+                    { icon: '🖱', text: lang === 'fr' ? 'Utilisez la roulette de la souris pour un défilement classique' : 'استخدم عجلة الماوس للتحريك التقليدي' },
+                    { icon: '🔘', text: lang === 'fr' ? 'Bouton de Scroll (droite) : attrapez la poignée lumineuse pour naviguer très vite dans la page' : 'زر التحريك (يمين): أمسك المقبض المضيء للتنقل بسرعة كبيرة في الصفحة' },
+                    { icon: '🖊', text: lang === 'fr' ? 'Mode Stylet : si activé, vos doigts ne font que scroller, seul le stylet dessine (évite les traits involontaires)' : 'وضع القلم: إذا تم تفعيله، تقوم أصابعك بالتحريك فقط، ويرسم القلم فقط (لتجنب الخطوط غير المقصودة)' },
                   ].map((row, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 16, background: `${t.accent}0a` }}>
                       <span style={{ fontSize: 15, flexShrink: 0, width: 20, textAlign: 'center', marginTop: 2 }}>{row.icon}</span>
