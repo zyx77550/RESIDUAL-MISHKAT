@@ -193,8 +193,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   // Selection tool state
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   // Stylus / palm-rejection
-  const [stylusMode, setStylusMode]         = useState(false);
-  const stylusModeRef = useRef(false);
+  const [penEverDetected, setPenEverDetected] = useState(false);
+  const [stylusMode, setStylusMode]         = useState(true);
+  const stylusModeRef = useRef(true);
   // Zoom
   const [zoom, setZoom]                     = useState(1);
   const [showZoomIndicator, setShowZoomIndicator] = useState(false);
@@ -234,6 +235,18 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       setShowOnboarding(true);
     }
   }, [activePageId]);
+
+  // Keep ref in sync for event handlers
+  useEffect(() => {
+    stylusModeRef.current = stylusMode;
+  }, [stylusMode]);
+
+  // Auto-switch to stylus mode once a pen is detected
+  useEffect(() => {
+    if (penEverDetected) {
+      setStylusMode(true);
+    }
+  }, [penEverDetected]);
 
   useEffect(() => {
     if (activePageId) { setLibraryScrolled(false); return; }
@@ -1807,7 +1820,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
       {/* ZONE SCROLLABLE (canvas) */}
       <div
         ref={scrollContainerRef}
-        style={{ flex: 1, borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflowY: 'auto', position: 'relative', border: `1px solid ${t.accent}14`, scrollBehavior: 'smooth', cursor: 'none' }}
+        style={{ flex: 1, borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflowY: 'auto', position: 'relative', border: `1px solid ${t.accent}14`, scrollBehavior: 'smooth' }}
         className="no-scrollbar"
       >
         {/* Toast */}
