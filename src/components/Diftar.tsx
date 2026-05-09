@@ -170,11 +170,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [pageHeight, setPageHeight]         = useState(5000);
   const [canvasScale, setCanvasScale]       = useState(1);
 
-  // ─── SCROLL & MOMENTUM ───────────────────────────────────────────────────
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [isScrubbing, setIsScrubbing]       = useState(false);
-  const momentumRef = useRef({ velocity: 0, lastY: 0, lastTime: 0, isDecelerating: false });
-  const scrollPointerRef = useRef<number | null>(null);
+  const [penEverDetected, setPenEverDetected] = useState(false);
 
   const isDrawingRef    = useRef(false);
   const activeStrokeRef = useRef<Stroke | null>(null);
@@ -193,6 +189,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [toastMessage, setToastMessage]     = useState<string | null>(null);
   // Help guide
   const [showHelp, setShowHelp] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   // Selection tool state
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   // Stylus / palm-rejection
@@ -202,9 +199,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [zoom, setZoom]                     = useState(1);
   const [showZoomIndicator, setShowZoomIndicator] = useState(false);
   const zoomTimerRef = useRef<number | undefined>(undefined);
-  // Multi-pointer tracking for pinch-to-zoom
-  const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
-  const pinchStartRef = useRef<{ dist: number; zoom: number } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const offscreenRef = useRef<HTMLCanvasElement | null>(null);
   const staticBufferRef = useRef<HTMLCanvasElement | null>(null);
@@ -234,6 +228,12 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (activePageId && !localStorage.getItem('diftar_onboarding_v2')) {
+      setShowOnboarding(true);
+    }
+  }, [activePageId]);
 
   useEffect(() => {
     if (activePageId) { setLibraryScrolled(false); return; }
@@ -769,138 +769,26 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     if (selectedShapeId && !shapes.find(s => s.id === selectedShapeId)) setSelectedShapeId(null);
   }, [shapes, selectedShapeId]);
 
-  // Ctrl+Wheel zoom on the canvas scroll container
+
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container) return;
-    const handleWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey && !e.metaKey) return;
-      e.preventDefault();
-      const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
-      setZoom(prev => Math.max(0.25, Math.min(4, prev * factor)));
-      setShowZoomIndicator(true);
-      window.clearTimeout(zoomTimerRef.current);
-      zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500);
-    };
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
-  }, []);
-
-  useEffect(() => {
-    const sc = scrollContainerRef.current;
-    if (!sc) return;
+    if (!container || !activePageId) return;
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = sc;
-      const progress = scrollTop / (scrollHeight - clientHeight || 1);
-      setScrollProgress(progress);
-
-      // Auto-extend page logic
-      if (scrollTop + clientHeight > scrollHeight - 400) {
-        setPageHeight(prev => prev + 1000);
-      }
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollTop + clientHeight >= scrollHeight - 800) setPageHeight(prev => prev + 1000);
     };
-    sc.addEventListener('scroll', handleScroll);
-    return () => sc.removeEventListener('scroll', handleScroll);
-  }, []);
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [activePageId]);
 
-  // ─── SMART SCROLL INERTIEL (MOMENTUM) ───────────────────────────────────
+  useEffect(() => { if (penEverDetected) { setStylusMode(true); } }, [penEverDetected]);
+
   useEffect(() => {
-    const sc = scrollContainerRef.current;
-    if (!sc) return;
-
-    const handlePointerDown = (e: PointerEvent) => {
-      // Si on clique sur le scrubber ou un bouton, on ignore
-      if ((e.target as HTMLElement).closest('.no-scroll')) return;
-      
-      // En mode stylet, le doigt scrolle nativement via overflow, 
-      // donc on ne gère le momentum que si on veut un scroll custom.
-      // Mais ici on implémente un scroll "Smart" :
-      if (stylusModeRef.current && e.pointerType === 'touch') return; 
-      
-      // Si on est en train de dessiner, on ignore le scroll
-      if (isDrawing || tool === 'select') return;
-
-      momentumRef.current.isDecelerating = false;
-      momentumRef.current.velocity = 0;
-      momentumRef.current.lastY = e.clientY;
-      momentumRef.current.lastTime = Date.now();
-      scrollPointerRef.current = e.pointerId;
-    };
-
-    const handlePointerMove = (e: PointerEvent) => {
-      if (scrollPointerRef.current !== e.pointerId) return;
-      if (isDrawing) return;
-
-      const now = Date.now();
-      const dt = now - momentumRef.current.lastTime;
-      const dy = e.clientY - momentumRef.current.lastY;
-
-      if (dt > 0) {
-        momentumRef.current.velocity = dy / dt;
-      }
-
-      // Défilement manuel si on n'est pas en train de dessiner
-      sc.scrollTop -= dy;
-
-      momentumRef.current.lastY = e.clientY;
-      momentumRef.current.lastTime = now;
-    };
-
-    const handlePointerUp = (e: PointerEvent) => {
-      if (scrollPointerRef.current !== e.pointerId) return;
-      scrollPointerRef.current = null;
-
-      // Lancer l'inertie
-      if (Math.abs(momentumRef.current.velocity) > 0.2) {
-        momentumRef.current.isDecelerating = true;
-        requestAnimationFrame(stepMomentum);
-      }
-    };
-
-    const stepMomentum = () => {
-      if (!momentumRef.current.isDecelerating || !sc) return;
-
-      sc.scrollTop -= momentumRef.current.velocity * 16;
-      momentumRef.current.velocity *= 0.95; // Friction
-
-      if (Math.abs(momentumRef.current.velocity) < 0.05) {
-        momentumRef.current.isDecelerating = false;
-      } else {
-        requestAnimationFrame(stepMomentum);
-      }
-    };
-
-    sc.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    return () => {
-      sc.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-    };
-  }, [isDrawing, tool]);
-
-  const handleScrubberPointerDown = (e: React.PointerEvent) => {
-    e.stopPropagation();
-    setIsScrubbing(true);
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  };
-
-  const handleScrubberPointerMove = (e: React.PointerEvent) => {
-    if (!isScrubbing || !scrollContainerRef.current) return;
-    const sc = scrollContainerRef.current;
-    const rect = sc.getBoundingClientRect();
-    // On calcule la position relative dans le container (on laisse une marge de 100px en haut/bas comme dans le CSS)
-    const trackHeight = rect.height - 200;
-    const y = Math.max(0, Math.min(trackHeight, e.clientY - rect.top - 100));
-    const pct = y / trackHeight;
-    sc.scrollTop = pct * (sc.scrollHeight - sc.clientHeight);
-  };
-
-  const handleScrubberPointerUp = (e: React.PointerEvent) => {
-    setIsScrubbing(false);
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-  };
+    if (!penEverDetected) return;
+    setToastMessage( lang === 'fr' ? 'Stylet détecté — le doigt scrolle, le stylet dessine' : 'ڡلم#ال ٮشاف#اك م#ٮ للرسم ڡلم#ال ،ٮمرير#لل ع 4الإصٮ ;( ');
+    const timer = setTimeout(() => setToastMessage(null), 4000);
+    return () => clearTimeout(timer);
+  }, [penEverDetected, lang]);
 
   const getCoords = (e: React.PointerEvent) => {
     const canvas = canvasRef.current;
@@ -933,26 +821,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   };
 
   const startDrawing = (e: React.PointerEvent) => {
+    if (e.pointerType === 'pen' && !penEverDetected) { setPenEverDetected(true); }
     // Palm rejection MUST be first — before any pointer tracking
     if (stylusModeRef.current && e.pointerType === 'touch') return;
-
-
-    // Track all active pointers for pinch detection
-    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-    // 2-finger pinch: cancel any stroke in progress and enter pinch mode
-    if (activePointersRef.current.size === 2) {
-      isDrawingRef.current = false;
-      setIsDrawing(false);
-      activeStrokeRef.current = null;
-      selectionDragRef.current = null;
-      const pts = Array.from(activePointersRef.current.values());
-      pinchStartRef.current = {
-        dist: Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y),
-        zoom,
-      };
-      return;
-    }
 
     if (activeShapeTypeRef.current) { handleCanvasClick(e); return; }
     if (activeEmojiRef.current) {
@@ -1023,21 +894,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     // Palm rejection MUST be first
     if (stylusModeRef.current && e.pointerType === 'touch') return;
 
-    // Update pointer position for pinch tracking
-    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-    // Pinch-to-zoom: 2 fingers active
-    if (pinchStartRef.current && activePointersRef.current.size >= 2) {
-      const pts = Array.from(activePointersRef.current.values());
-      const newDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
-      const ratio = newDist / pinchStartRef.current.dist;
-      setZoom(Math.max(0.25, Math.min(4, pinchStartRef.current.zoom * ratio)));
-      setShowZoomIndicator(true);
-      window.clearTimeout(zoomTimerRef.current);
-      zoomTimerRef.current = window.setTimeout(() => setShowZoomIndicator(false), 1500);
-      return;
-    }
-
     // Select tool: move the dragged shape
     if (tool === 'select') {
       const drag = selectionDragRef.current;
@@ -1089,9 +945,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
 
   const stopDrawing = (e?: React.PointerEvent) => {
     if (e && stylusModeRef.current && e.pointerType === 'touch') return;
-    if (e) activePointersRef.current.delete(e.pointerId);
-    // Exit pinch mode when fewer than 2 fingers
-    if (activePointersRef.current.size < 2) pinchStartRef.current = null;
     if (tool === 'select') { selectionDragRef.current = null; return; }
     if (!isDrawingRef.current || !activeStrokeRef.current) { isDrawingRef.current = false; setIsDrawing(false); return; }
     isDrawingRef.current = false; setIsDrawing(false);
@@ -1677,7 +1530,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
               ↖
             </button>
             <button
-              onClick={() => setStylusMode(v => !v)}
+              onClick={() => { if (stylusMode) { setStylusMode(false); setPenEverDetected(false); } else { setStylusMode(true); setPenEverDetected(true); } }}
               title={fr ? (stylusMode ? 'Mode Stylet actif' : 'Activer le mode Stylet') : (stylusMode ? 'وضع القلم' : 'تفعيل القلم')}
               style={{ ...btnStyle(stylusMode), minWidth: 36, background: stylusMode ? t.accentBright : 'transparent' }}
             >
@@ -1956,7 +1809,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
         ref={scrollContainerRef}
         style={{ flex: 1, borderRadius: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflowY: 'auto', position: 'relative', border: `1px solid ${t.accent}14`, scrollBehavior: 'smooth', cursor: 'none' }}
         className="no-scrollbar"
-        onScroll={() => {}}
       >
         {/* Toast */}
         {toastMessage && (
@@ -1991,7 +1843,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
             onPointerMove={draw}
             onPointerUp={stopDrawing}
             onPointerCancel={stopDrawing}
-            style={{ width: '100%', touchAction: 'none', display: 'block', cursor: tool === 'select' ? 'default' : 'none' }}
+            style={{ width: '100%', touchAction: stylusMode ? 'pan-y' : 'none', display: 'block', cursor: tool === 'select' ? 'default' : 'none' }}
           />
           {/* Selection handles overlay */}
           {tool === 'select' && (() => {
@@ -2105,48 +1957,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
           </div>
         )}
 
-        {/* ─── INDICATEUR DE ZOOM (OVERLAY) ─────────────────────────────────── */}
-        {showZoomIndicator && (
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-            padding: '12px 24px', borderRadius: 24, background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(10px)', color: '#fff', fontSize: 24, fontWeight: 900,
-            zIndex: 100, pointerEvents: 'none', transition: 'opacity 0.3s'
-          }}>
-            {Math.round(zoom * 100)}%
-          </div>
-        )}
-
-        {/* ─── SCROLLER VISUEL INTERACTIF (SCRUBBER) ────────────────────────── */}
-        <div style={{
-          position: 'absolute', right: 4, top: 100, bottom: 100,
-          width: 32, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }} className="no-scroll">
-          <div 
-            onPointerDown={handleScrubberPointerDown}
-            onPointerMove={handleScrubberPointerMove}
-            onPointerUp={handleScrubberPointerUp}
-            style={{
-              position: 'absolute', right: 0,
-              top: `${scrollProgress * 100}%`,
-              width: isScrubbing ? 10 : 6,
-              height: 60,
-              background: isScrubbing ? t.accent : 'rgba(255,255,255,0.4)',
-              backdropFilter: 'blur(10px)',
-              borderRadius: 5,
-              border: '1px solid rgba(255,255,255,0.2)',
-              boxShadow: isScrubbing ? `0 0 20px ${t.accent}80` : '0 4px 12px rgba(0,0,0,0.1)',
-              cursor: 'ns-resize',
-              transition: 'width 0.2s, background 0.2s, box-shadow 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            {/* Petites lignes décoratives sur le bouton */}
-            <div style={{ width: 2, height: 10, background: 'rgba(255,255,255,0.3)', borderRadius: 1 }} />
-          </div>
-        </div>
 
       </div> {/* end canvas container */}
 
@@ -2188,7 +1998,7 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                   <h3 style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: t.accentBright, opacity: 0.7, margin: 0 }}>
                     {lang === 'fr' ? 'Outils de dessin' : 'أدوات الرسم'}
                   </h3>
-                  </div>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
                   {[
                     { icon: '✏️', name: lang === 'fr' ? 'Stylo'         : 'قلم',          key: '1', desc: lang === 'fr' ? 'Trait fluide avec lissage parfait'        : 'خط سلس بتمهيد مثالي' },
@@ -2258,8 +2068,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { icon: '🤏', text: lang === 'fr' ? 'Pincez 2 doigts sur le canvas pour zoomer/dézoomer (tablette)' : 'اقرص بإصبعين على اللوحة للتكبير أو التصغير (لوحي)' },
-                    { icon: '🖱', text: lang === 'fr' ? 'Ctrl + molette de souris pour zoomer (ordinateur)' : 'Ctrl + عجلة الماوس للتكبير (حاسوب)' },
                     { icon: '±',  text: lang === 'fr' ? 'Boutons − / % / + dans la barre en haut à droite' : 'أزرار − / % / + في الشريط أعلى اليمين' },
                     { icon: '💯', text: lang === 'fr' ? 'Cliquez sur le % pour revenir à 100%' : 'انقر على % للعودة إلى 100%' },
                   ].map((row, i) => (
@@ -2281,10 +2089,9 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { icon: '🤏', text: lang === 'fr' ? 'Faites glisser un doigt sur le fond pour scroller avec élan (inertie)' : 'اسحب بإصبع واحد على الخلفية للتحريك مع الاندفاع (القصور الذاتي)' },
+                    { icon: '👆', text: lang === 'fr' ? 'Faites glisser un doigt sur le fond pour scroller naturellement (swipe)' : 'اسحب بإصبع واحد على الخلفية للتحريك الطبيعي (swipe)' },
                     { icon: '🖱', text: lang === 'fr' ? 'Utilisez la roulette de la souris pour un défilement classique' : 'استخدم عجلة الماوس للتحريك التقليدي' },
-                    { icon: '🔘', text: lang === 'fr' ? 'Bouton de Scroll (droite) : attrapez la poignée lumineuse pour naviguer très vite dans la page' : 'زر التحريك (يمين): أمسك المقبض المضيء للتنقل بسرعة كبيرة في الصفحة' },
-                    { icon: '🖊', text: lang === 'fr' ? 'Mode Stylet : si activé, vos doigts ne font que scroller, seul le stylet dessine (évite les traits involontaires)' : 'وضع القلم: إذا تم تفعيله، تقوم أصابعك بالتحريك فقط، ويرسم القلم فقط (لتجنب الخطوط غير المقصودة)' },
+                    { icon: '🖊', text: lang === 'fr' ? 'Mode Stylet : vos doigts font scroller, seul le stylet dessine (détection automatique)' : 'وضع القلم: أصابعك تقوم بالتحريك فقط، ويرسم القلم فقط (اكتشاف تلقائي)' },
                   ].map((row, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 16, background: `${t.accent}0a` }}>
                       <span style={{ fontSize: 15, flexShrink: 0, width: 20, textAlign: 'center', marginTop: 2 }}>{row.icon}</span>
@@ -2304,8 +2111,8 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { icon: '🖊', text: lang === 'fr' ? 'Bouton 🖊 dans la barre → mode Stylet activé : seul l\'Apple Pencil / S-Pen dessine, le contact de la paume est ignoré' : 'زر 🖊 في الشريط → وضع القلم: يرسم القلم فقط، راحة اليد لا تؤثر' },
-                    { icon: '👆', text: lang === 'fr' ? 'Bouton 👆 → mode Doigt : le doigt et le stylet dessinent tous les deux' : 'زر 👆 → وضع الإصبع: الإصبع والقلم كلاهما يرسمان' },
+                    { icon: '🖊', text: lang === 'fr' ? 'Bouton 🖊 dans la barre → mode Stylet activé : seul l\'Apple Pencil dessine' : 'زر 🖊 في الشريط → وضع القلم: يرسم القلم فقط' },
+                    { icon: '👆', text: lang === 'fr' ? 'Bouton 👆 → mode Doigt : le doigt et le stylet dessinent' : 'زر 👆 → وضع الإصبع: الإصبع والقلم كلاهما يرسمان' },
                   ].map((row, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 16, background: `${t.accent}0a` }}>
                       <span style={{ fontSize: 15, flexShrink: 0, width: 20, textAlign: 'center', marginTop: 2 }}>{row.icon}</span>
@@ -2315,37 +2122,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                 </div>
               </section>
 
-              {/* Section: Raccourcis clavier */}
-              <section>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <span style={{ fontSize: 14 }}>⌨️</span>
-                  <h3 style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.3em', color: t.accentBright, opacity: 0.7, margin: 0 }}>
-                    {lang === 'fr' ? 'Raccourcis clavier' : 'اختصارات لوحة المفاتيح'}
-                  </h3>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
-                  {[
-                    { keys: ['Ctrl','Z'],      desc: lang === 'fr' ? 'Annuler'           : 'تراجع' },
-                    { keys: ['Ctrl','Y'],      desc: lang === 'fr' ? 'Rétablir'          : 'إعادة' },
-                    { keys: ['Ctrl','S'],      desc: lang === 'fr' ? 'Sauvegarder'       : 'حفظ' },
-                    { keys: ['S'],             desc: lang === 'fr' ? 'Outil Sélection'   : 'أداة التحديد' },
-                    { keys: ['Suppr'],         desc: lang === 'fr' ? 'Supprimer forme'   : 'حذف الشكل' },
-                    { keys: ['Échap'],         desc: lang === 'fr' ? 'Fermer panneau'    : 'إغلاق اللوحة' },
-                    { keys: ['1',' → ','9'],   desc: lang === 'fr' ? 'Changer d\'outil'  : 'تغيير الأداة' },
-                    { keys: ['Ctrl','⟵'],      desc: lang === 'fr' ? 'Zoom −'            : 'تصغير' },
-                    { keys: ['Ctrl','⟶'],      desc: lang === 'fr' ? 'Zoom +'            : 'تكبير' },
-                  ].map((row, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 10, borderRadius: 12, background: `${t.accent}0a` }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                        {row.keys.map((k, ki) => (
-                          <kbd key={ki} style={{ fontSize: 9, fontWeight: 900, padding: '2px 6px', borderRadius: 6, fontFamily: 'monospace', background: `${t.accent}1e`, color: t.accent, whiteSpace: 'nowrap' }}>{k}</kbd>
-                        ))}
-                      </div>
-                      <p style={{ fontSize: 10, color: t.inkMute, margin: 0 }}>{row.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
 
               {/* Section: Papier & navigation */}
               <section>
@@ -2383,6 +2159,57 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                 style={{ padding: '8px 20px', borderRadius: 999, border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#fff', background: t.accent }}
               >
                 {lang === 'fr' ? 'Compris !' : 'فهمت!'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Onboarding Modal */}
+      {showOnboarding && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(12px)' }}>
+          <div style={{ width: '100%', maxWidth: 420, borderRadius: 32, boxShadow: '0 30px 60px rgba(0,0,0,0.3)', background: t.card, border: `1px solid ${t.accent}26`, overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'modalShow 0.4s cubic-bezier(0.2, 1, 0.3, 1)' }}>
+            <div style={{ padding: '40px 32px 32px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
+                <div style={{ width: 64, height: 64, borderRadius: 20, background: `${t.accent}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>👆</div>
+                <div style={{ width: 64, height: 64, borderRadius: 20, background: `${t.accent}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>🖊️</div>
+              </div>
+              <div>
+                <h2 style={{ fontFamily: 'serif', fontStyle: 'italic', fontSize: 28, color: t.accent, margin: 0 }}>
+                  {lang === 'fr' ? 'Nouvelle Navigation' : 'تنقل جديد'}
+                </h2>
+                <p style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: t.accentBright, opacity: 0.6, marginTop: 8 }}>
+                  {lang === 'fr' ? 'Expérience fluide et naturelle' : 'تجربة سلسة وطبيعية'}
+                </p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, textAlign: lang === 'fr' ? 'left' : 'right' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, borderRadius: 20, background: `${t.accent}0d` }}>
+                  <span style={{ fontSize: 24 }}>👆</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: t.ink }}>{lang === 'fr' ? 'Le doigt scrolle' : 'الإصبع للتنقل'}</div>
+                    <p style={{ fontSize: 11, color: t.inkMute, margin: '2px 0 0' }}>{lang === 'fr' ? 'Glissez un doigt n\'importe où pour naviguer.' : 'اسحب بإصبع واحد في أي مكان للتنقل.'}</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, borderRadius: 20, background: `${t.accent}0d` }}>
+                  <span style={{ fontSize: 24 }}>🖊️</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: t.ink }}>{lang === 'fr' ? 'Le stylet dessine' : 'القلم للرسم'}</div>
+                    <p style={{ fontSize: 11, color: t.inkMute, margin: '2px 0 0' }}>{lang === 'fr' ? 'L\'Apple Pencil dessine, votre paume est ignorée.' : 'القلم يرسم، ويتم تجاهل راحة اليد.'}</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, borderRadius: 20, background: `${t.accent}0d` }}>
+                  <span style={{ fontSize: 24 }}>✨</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: t.ink }}>{lang === 'fr' ? 'Automatique' : 'تلقائي'}</div>
+                    <p style={{ fontSize: 11, color: t.inkMute, margin: '2px 0 0' }}>{lang === 'fr' ? 'Le mode s\'active dès le premier contact du stylet.' : 'يتم تفعيل الوضع بمجرد لمس القلم.'}</p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => { localStorage.setItem('diftar_onboarding_v2', 'true'); setShowOnboarding(false); }}
+                style={{ marginTop: 8, padding: '16px 0', borderRadius: 16, border: 'none', background: t.accent, color: '#fff', fontWeight: 900, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', boxShadow: `0 8px 20px ${t.accent}40` }}
+              >
+                {lang === 'fr' ? 'J\'ai compris' : 'فهمت'}
               </button>
             </div>
           </div>
