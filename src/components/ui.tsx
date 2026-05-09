@@ -215,27 +215,27 @@ interface SidebarProps {
 }
 
 const MENU_ITEMS = [
-  { id: 'dashboard',    labelFr: 'Tableau de bord', icon: 'dashboard' },
-  { id: 'memorization', labelFr: 'Mémorisation',    icon: 'book'      },
-  { id: 'calendar',     labelFr: 'Calendrier',       icon: 'calendar'  },
-  { id: 'goals',        labelFr: 'Objectifs',        icon: 'target'    },
-  { id: 'badges',       labelFr: 'Badges',           icon: 'badge'     },
-  { id: 'tasbih',       labelFr: 'Tasbih',           icon: 'beads'     },
-  { id: 'coloring',     labelFr: 'Coloriage',        icon: 'palette'   },
-  { id: 'diftar',       labelFr: 'Diftar',           icon: 'pen'       },
-  { id: 'kanban',       labelFr: 'Suivi',            icon: 'chart'     },
-  { id: 'quran',        labelFr: 'Coran',             icon: 'bookmark'  },
-  { id: 'adhkar',       labelFr: 'Adhkar',            icon: 'moon'      },
-  { id: 'quiz',         labelFr: 'Quiz',              icon: 'sparkle'   },
-  { id: 'joursblancs',  labelFr: 'Jours Blancs',     icon: 'moonStar'  },
-  { id: 'settings',     labelFr: 'Réglages',         icon: 'settings'  },
+  { id: 'dashboard',    labelFr: 'Tableau de bord', labelAr: 'لوحة التحكم',    icon: 'dashboard' },
+  { id: 'memorization', labelFr: 'Mémorisation',    labelAr: 'الحفظ',          icon: 'book'      },
+  { id: 'calendar',     labelFr: 'Calendrier',       labelAr: 'التقويم',        icon: 'calendar'  },
+  { id: 'goals',        labelFr: 'Objectifs',        labelAr: 'الأهداف',        icon: 'target'    },
+  { id: 'badges',       labelFr: 'Badges',           labelAr: 'الأوسمة',        icon: 'badge'     },
+  { id: 'tasbih',       labelFr: 'Tasbih',           labelAr: 'تسبيح',          icon: 'beads'     },
+  { id: 'coloring',     labelFr: 'Coloriage',        labelAr: 'تلوين',          icon: 'palette'   },
+  { id: 'diftar',       labelFr: 'Diftar',           labelAr: 'دفتر',          icon: 'pen'       },
+  { id: 'kanban',       labelFr: 'Suivi',            labelAr: 'متابعة',         icon: 'chart'     },
+  { id: 'quran',        labelFr: 'Coran',             labelAr: 'القرآن',         icon: 'bookmark'  },
+  { id: 'adhkar',       labelFr: 'Adhkar',            labelAr: 'الأذكار',        icon: 'moon'      },
+  { id: 'quiz',         labelFr: 'Quiz',              labelAr: 'مسابقة',         icon: 'sparkle'   },
+  { id: 'joursblancs',  labelFr: 'Jours Blancs',     labelAr: 'الأيام البيض',    icon: 'moonStar'  },
+  { id: 'settings',     labelFr: 'Réglages',         labelAr: 'الإعدادات',      icon: 'settings'  },
 ];
 
 export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, lang = 'fr', open: openProp, onClose }: SidebarProps) => {
   const t = useT();
   const items = [
     ...MENU_ITEMS,
-    ...(isAdmin ? [{ id: 'admin', labelFr: 'Admin', icon: 'shield' }] : []),
+    ...(isAdmin ? [{ id: 'admin', labelFr: 'Admin', labelAr: 'الإدارة', icon: 'shield' }] : []),
   ];
 
   const isMobile = useIsMobile();
@@ -266,7 +266,7 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
               }}>
               <Icon d={(Icons as Record<string, React.ReactNode>)[item.icon]} size={17} style={{ color: on ? t.accent : t.inkMute }}/>
               <span style={{ fontSize: 9, fontFamily: 'Inter', fontWeight: on ? 500 : 400, color: on ? t.ink : t.inkMute }}>
-                {item.labelFr.slice(0, 8)}
+                {lang === 'ar' ? (item as any).labelAr : item.labelFr.slice(0, 8)}
               </span>
             </button>
           );
@@ -283,9 +283,11 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
     <aside style={{
       width: 220, padding: '20px 12px',
       background: t.bgSoft,
-      borderRight: `1px solid ${t.line}`,
+      borderRight: lang === 'ar' ? 'none' : `1px solid ${t.line}`,
+      borderLeft: lang === 'ar' ? `1px solid ${t.line}` : 'none',
       display: 'flex', flexDirection: 'column', gap: 18,
       flexShrink: 0, height: '100%', overflow: 'hidden',
+      direction: lang === 'ar' ? 'rtl' : 'ltr',
     }}>
       {/* Logo + close button */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 6px' }}>
@@ -293,7 +295,7 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
         <div style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: 12, color: t.ink, letterSpacing: '0.32em', textTransform: 'uppercase', flex: 1 }}>Mishkat</div>
         <button onClick={handleClose}
           style={{ width: 26, height: 26, borderRadius: 6, background: t.card, border: `1px solid ${t.line}`, color: t.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: lang === 'ar' ? 'scaleX(-1)' : 'none' }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -333,7 +335,7 @@ export const AppSidebar = ({ active, onNavigate, streak = 1, isAdmin = false, la
               <span style={{ color: on ? t.accent : t.inkMute, display: 'inline-flex' }}>
                 <Icon d={(Icons as Record<string, React.ReactNode>)[item.icon]} size={15}/>
               </span>
-              {item.labelFr}
+              {lang === 'ar' ? (item as any).labelAr : item.labelFr}
             </button>
           );
         })}
