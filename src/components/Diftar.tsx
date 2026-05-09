@@ -170,7 +170,6 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
   const [pageHeight, setPageHeight]         = useState(5000);
   const [canvasScale, setCanvasScale]       = useState(1);
 
-  const [penEverDetected, setPenEverDetected] = useState(false);
 
   const isDrawingRef    = useRef(false);
   const activeStrokeRef = useRef<Stroke | null>(null);
