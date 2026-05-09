@@ -4,6 +4,23 @@ dist
 .env.local
 .env.*.local
 
+# Temp and Backup folders
+.agents
+.claude
+.gemini
+backup-redesign/
+diftar-2/
+refonte/
+favicon-package/
+image card diftar +hmtl/
+image_login/
+design-preview*.html
+et --hard *
+
+# System files
+.DS_Store
+Thumbs.db
+
 # Repos clonés à titre de référence (non versionnés)
 open-quran-view/
 Quran-PNG/
