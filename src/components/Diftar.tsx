@@ -138,7 +138,7 @@ const COLOR_PALETTE = {
   ],
 };
 
-export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string }) => {
+export const Diftar = ({ userData, setUserData, lang, onSaveNow }: { userData: UserData; setUserData: React.Dispatch<React.SetStateAction<UserData>>; lang: string; onSaveNow?: (data: UserData) => void }) => {
   const t = useT();
   const narrow = useIsNarrow();
   const isMobile = useIsMobile();
@@ -1038,10 +1038,13 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
     setUserData((prev: UserData) => ({ ...prev, diftarPages: [newPage, ...prev.diftarPages] }));
     setShowTemplateModal(false);
     setActivePageId(newPage.id);
+    onSaveNow?.({ ...userData, diftarPages: [newPage, ...userData.diftarPages] });
   };
 
   const renamePage = (id: string, newTitle: string) => {
+    const updatedPages = userData.diftarPages.map(p => p.id === id ? { ...p, title: newTitle } : p);
     setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.map(p => p.id === id ? { ...p, title: newTitle } : p) }));
+    onSaveNow?.({ ...userData, diftarPages: updatedPages });
   };
 
   useEffect(() => {
@@ -1446,8 +1449,11 @@ export const Diftar = ({ userData, setUserData, lang }: { userData: UserData; se
                 </button>
                 <button
                   onClick={() => {
-                    setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.filter(p => p.id !== showConfirmDelete) }));
+                    const pageIdToDelete = showConfirmDelete;
+                    const updatedPages = userData.diftarPages.filter(p => p.id !== pageIdToDelete);
+                    setUserData((prev: UserData) => ({ ...prev, diftarPages: prev.diftarPages.filter(p => p.id !== pageIdToDelete) }));
                     setShowConfirmDelete(null);
+                    onSaveNow?.({ ...userData, diftarPages: updatedPages });
                   }}
                   style={{ flex: 1, padding: 12, borderRadius: 16, background: '#ef4444', color: '#fff', border: 'none', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}
                 >
