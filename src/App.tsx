@@ -61,6 +61,13 @@ export default function App() {
   const supaDirtyRef = useRef(false);
   useEffect(() => { userDataRef.current = userData; }, [userData]);
 
+  const saveNow = useCallback((dataToSave: UserData) => {
+    if (supabaseUserId) {
+      saveUserData(supabaseUserId, dataToSave).catch(() => {});
+      supaDirtyRef.current = false;
+    }
+  }, [supabaseUserId]);
+
   const updateUserDataWithBadges = useCallback((updater: UserData | ((prev: UserData) => UserData)) => {
     setUserData(prev => {
       if (!prev) return prev;
@@ -450,7 +457,7 @@ export default function App() {
               style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
             >
               {activeTab === 'dashboard'    && <Dashboard {...commonProps} onNavigate={setActiveTab}/>}
-              {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang}/>}
+              {activeTab === 'diftar'       && <Diftar userData={userData} setUserData={updateUserDataWithBadges} lang={lang} onSaveNow={saveNow}/>}
               {!['dashboard','diftar'].includes(activeTab) && (
                 <div style={{ flex: 1, minWidth: 0, padding: isMobile ? '16px 14px 100px' : '26px 28px 36px', display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {activeTab === 'coloring'     && <ColoringGrid {...commonProps}/>}
